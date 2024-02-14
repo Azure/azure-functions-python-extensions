@@ -5,12 +5,9 @@ import unittest
 from typing import Optional
 from enum import Enum
 
-from azfuncbindingbase import Datum
-
-from azfuncblobclient import ContainerClient
-from azfuncblobclient import BlobClientConverter
-
-from azure.storage.blob import ContainerClient as ContainerClientSdk
+from azure.functions.extension.base import Datum
+from azure.functions.extension.blob import BlobClient, BlobClientConverter
+from azure.storage.blob import BlobClient as BlobClientSdk
 
 
 # Mock classes for testing
@@ -64,17 +61,17 @@ class MockFunction:
         self._bindings = bindings
 
 
-class TestContainerClient(unittest.TestCase):
+class TestBlobClient(unittest.TestCase):
     def test_input_type(self):
         check_input_type = BlobClientConverter.check_input_type_annotation
-        self.assertTrue(check_input_type(ContainerClient))
+        self.assertTrue(check_input_type(BlobClient))
         self.assertFalse(check_input_type(str))
         self.assertFalse(check_input_type(bytes))
         self.assertFalse(check_input_type(bytearray))
 
     def test_input_none(self):
         result = BlobClientConverter.decode(
-            data=None, trigger_metadata=None, pytype=ContainerClient)
+            data=None, trigger_metadata=None, pytype=BlobClient)
         self.assertIsNone(result)
 
     def test_input_incorrect_type(self):
@@ -82,15 +79,16 @@ class TestContainerClient(unittest.TestCase):
         with self.assertRaises(ValueError):
             BlobClientConverter.decode(data=datum,
                                        trigger_metadata=None,
-                                       pytype=ContainerClient)
+                                       pytype=BlobClient)
 
     def test_input_empty(self):
         datum: Datum = Datum(value={}, type='model_binding_data')
-        result: ContainerClient = BlobClientConverter.decode(
-            data=datum, trigger_metadata=None, pytype=ContainerClient)
+        result: BlobClient = BlobClientConverter.decode(
+            data=datum, trigger_metadata=None, pytype=BlobClient)
         self.assertIsNone(result)
 
     def test_input_populated(self):
+        # TODO: pass in variable connection string
         sample_mbd = MockMBD(version="1.0",
                              source="AzureStorageBlobs",
                              content_type="application/json",
@@ -99,19 +97,19 @@ class TestContainerClient(unittest.TestCase):
                                      "\"BlobName\":\"test.txt\"}")
 
         datum: Datum = Datum(value=sample_mbd, type='model_binding_data')
-        result: ContainerClient = BlobClientConverter.decode(
-            data=datum,
-            trigger_metadata=None,
-            pytype=ContainerClient)
+        result: BlobClient = BlobClientConverter.decode(data=datum,
+                                                        trigger_metadata=None,
+                                                        pytype=BlobClient)
 
         self.assertIsNotNone(result)
-        self.assertIsInstance(result, ContainerClient)
+        self.assertIsInstance(result, BlobClient)
 
-        sdk_result = ContainerClient(data=datum).get_sdk_type()
+        sdk_result = BlobClient(data=datum).get_sdk_type()
+
         self.assertIsNotNone(sdk_result)
-        self.assertIsInstance(sdk_result, ContainerClientSdk)
+        self.assertIsInstance(sdk_result, BlobClientSdk)
 
-    def test_container_client_invalid_creation(self):
+    def test_blob_client_invalid_creation(self):
         # Create test binding
         mock_blob = MockBinding(name="blob",
                                 direction=MockBindingDirection.IN,
@@ -133,7 +131,7 @@ class TestContainerClient(unittest.TestCase):
                           '"properties": '
                           '{"SupportsDeferredBinding": false}}'])
 
-    def test_container_client_valid_creation(self):
+    def test_blob_client_valid_creation(self):
         # Create test binding
         mock_blob = MockBinding(name="client",
                                 direction=MockBindingDirection.IN,
@@ -141,7 +139,7 @@ class TestContainerClient(unittest.TestCase):
 
         # Create test input_types dict
         mock_input_types = {"client": MockParamTypeInfo(
-            binding_name='blobTrigger', pytype=ContainerClient)}
+            binding_name='blobTrigger', pytype=BlobClient)}
 
         # Create test indexed_function
         mock_indexed_functions = MockFunction(bindings=[mock_blob])

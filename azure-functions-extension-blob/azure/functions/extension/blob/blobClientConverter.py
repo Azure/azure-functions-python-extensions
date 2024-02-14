@@ -3,7 +3,7 @@
 
 from typing import Any
 
-from azfuncbindingbase import Datum, InConverter, OutConverter
+from azure.functions.extension.base import Datum, InConverter, OutConverter
 from .blobClient import BlobClient
 from .containerClient import ContainerClient
 from .storageStreamDownloader import StorageStreamDownloader

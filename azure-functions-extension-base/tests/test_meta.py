@@ -4,7 +4,7 @@
 from typing import Mapping, List
 import unittest
 
-from azfuncbindingbase import meta
+from azure.functions.extension.base import meta
 
 
 class TestMeta(unittest.TestCase):

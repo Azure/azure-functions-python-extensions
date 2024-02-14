@@ -5,7 +5,7 @@ from abc import abstractmethod
 from typing import Any, Optional
 
 
-class SdkType():
+class SdkType:
     def __init__(self, *, data: Optional[dict[str, Any]] = None):
         self._data = data or {}
 

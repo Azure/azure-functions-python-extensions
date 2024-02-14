@@ -4,7 +4,7 @@
 import json
 import os
 
-from azfuncbindingbase import Datum, SdkType
+from azure.functions.extension.base import Datum, SdkType
 from azure.storage.blob import ContainerClient as ContainerClientSdk
 from typing import Union
 
