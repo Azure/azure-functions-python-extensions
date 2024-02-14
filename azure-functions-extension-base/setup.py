@@ -16,11 +16,11 @@ EXTRA_REQUIRES = {
 }
 
 setup(
-    name='azfuncbindingbase',
-    version='0.0.15',
-    author='Your Name',
-    author_email='your.email@example.com',
-    description='A short description of your package',
+    name='azure-functions-extension-base',
+    version='0.0.1',
+    author='Azure Functions team at Microsoft Corp.',
+    author_email='azurefunctions@microsoft.com',
+    description='Base Python worker extension for Azure Functions.',
     packages=find_packages(),
     classifiers=[
         'Programming Language :: Python :: 3',

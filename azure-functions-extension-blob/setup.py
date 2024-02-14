@@ -16,11 +16,11 @@ EXTRA_REQUIRES = {
 }
 
 setup(
-    name='azfuncblobclient',
-    version='0.0.5',
-    author='Your Name',
-    author_email='your.email@example.com',
-    description='A short description of your package',
+    name='azure-functions-extension-blob',
+    version='0.0.1',
+    author='Azure Functions team at Microsoft Corp.',
+    author_email='azurefunctions@microsoft.com',
+    description='Blob Python worker extension for Azure Functions.',
     packages=find_packages(),
     classifiers=[
         'Programming Language :: Python :: 3',
@@ -29,7 +29,7 @@ setup(
     ],
     python_requires='>=3.7',
     install_requires=[
-        'azfuncbindingbase',
+        'azure-functions-extension-base',
         'azure-storage-blob'
     ],
     extras_require=EXTRA_REQUIRES,
