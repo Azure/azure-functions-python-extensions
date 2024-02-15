@@ -17,11 +17,13 @@ EXTRA_REQUIRES = {
 
 setup(
     name='azure-functions-extension-base',
-    version='0.0.1',
+    version='0.0.7',
     author='Azure Functions team at Microsoft Corp.',
     author_email='azurefunctions@microsoft.com',
     description='Base Python worker extension for Azure Functions.',
-    packages=find_packages(),
+    packages=find_packages(exclude=[
+        'azure.functions.extension', 'azure.functions', 'azure', 'tests'
+    ]),
     classifiers=[
         'Programming Language :: Python :: 3',
         'License :: OSI Approved :: MIT License',
