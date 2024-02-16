@@ -40,7 +40,8 @@ def blob_trigger(stream: blob.StorageStreamDownloader):
 @app.blob_input(arg_name="stream",
                 path="PATH/TO/BLOB",
                 connection="AzureWebJobsStorage")
-def main(req: func.HttpRequest, stream: blob.StorageStreamDownloader):
+def blob_input(req: func.HttpRequest, stream: blob.StorageStreamDownloader):
     for chunk in stream.chunks():
         logging.info(f"Python blob trigger function processed blob chunk \n"
                      f"Chunk: {chunk.decode()}")
+    return "ok"

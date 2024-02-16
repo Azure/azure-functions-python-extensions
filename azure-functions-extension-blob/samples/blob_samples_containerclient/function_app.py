@@ -42,3 +42,4 @@ def blob_trigger(client: blob.ContainerClient):
 def blob_input(req: func.HttpRequest, client: blob.BlobClient):
     logging.info(f"Python blob trigger function processed blob \n"
                  f"Properties: {client.get_container_properties()}\n")
+    return "ok"
