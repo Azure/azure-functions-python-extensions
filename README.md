@@ -1,14 +1,32 @@
-# Project
+# Azure Functions Python Extensions
 
-> This repo has been populated by an initial template to help get you started. Please
-> make sure to update the content to build a great experience for community-building.
+This repository is for the active development of the Azure Functions extensions for the Python worker. 
+For consumers of these extensions we recommend 
+visiting our [public developer docs](https://docs.microsoft.com/python/azure/).
 
-As the maintainer of this project, please make a few updates:
+## Getting started
 
-- Improving this README.MD file to provide a great experience
-- Updating SUPPORT.MD with content about this project's support experience
-- Understanding the security reporting process in SECURITY.MD
-- Remove this section from the README
+For your convenience, each binding type has a separate library that you can choose to use instead of one, 
+large Azure package. To get started with a specific library, see the `README.md` (or `README.rst`) file located 
+in the library's project folder.
+
+### Prerequisites
+
+The libraries are supported on Function Apps using Python 3.7 or later. For more details, please read our page on 
+[Python Functions version support policy](https://learn.microsoft.com/en-us/azure/azure-functions/functions-versions?tabs=isolated-process%2Cv4&pivots=programming-language-python#languages).
+
+## Packages available
+* Azure Storage Blob
+
+## Need help?
+
+* For detailed documentation visit our [Azure Functions Extensions for Python documentation]()
+* File an issue via [GitHub Issues](https://github.com/Azure/azure-functions-python-extensions/issues)
+* Check [previous questions](https://stackoverflow.com/questions/tagged/azure+python) or ask new ones on StackOverflow using `azure` and `python` tags.
+
+### Reporting security issues and security bugs
+
+Security issues and bugs should be reported privately, via email, to the Microsoft Security Response Center (MSRC) <secure@microsoft.com>. You should receive a response within 24 hours. If for some reason you do not, please follow up via email to ensure we received your original message. Further information, including the MSRC PGP key, can be found in the [Security TechCenter](https://www.microsoft.com/msrc/faqs-report-an-issue).
 
 ## Contributing
 

@@ -22,7 +22,8 @@ setup(
     author_email='azurefunctions@microsoft.com',
     description='Blob Python worker extension for Azure Functions.',
     packages=find_packages(exclude=[
-        'azure.functions.extension', 'azure.functions', 'azure', 'tests'
+        'azure.functions.extension', 'azure.functions',
+        'azure', 'tests', 'samples'
     ]),
     classifiers=[
         'Programming Language :: Python :: 3',
