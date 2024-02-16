@@ -15,8 +15,8 @@ app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 """
 FOLDER: blob_samples_storagestreamdownloader
 DESCRIPTION:
-    These samples demonstrate how to obtain a BlobClient from a Blob Trigger
-    or Blob Input function app binding.
+    These samples demonstrate how to obtain a StorageStreamDownloader from a
+    Blob Trigger or Blob Input function app binding.
 USAGE:
     Set the environment variables with your own values before running the
     sample:

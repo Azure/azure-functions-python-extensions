@@ -15,7 +15,7 @@ app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 """
 FOLDER: blob_samples_containerclient
 DESCRIPTION:
-    These samples demonstrate how to obtain a BlobClient from a Blob Trigger
+    These samples demonstrate how to obtain a ContainerClient from a Blob Trigger
     or Blob Input function app binding.
 USAGE:
     Set the environment variables with your own values before running the
