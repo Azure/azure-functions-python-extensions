@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "azure-functions-extension-base"
+dynamic = ["version"]
+dependencies = ["flake8~=4.0.1",
+        "flake8-logging-format",
+        "mypy",
+        "pytest",
+        "pytest-cov",
+        "requests==2.*",
+        "coverage"]
+requres-python = ">=3.7"
+authors = ["Azure Functions team at Microsoft Corp."]
+description = "Base Python worker extension for Azure Functions."
+readme = "README.md"
+
+[tool.python-extensions-build]
+mypy = false
+pyright = false
+type_check_samples = false
+verifytypes = false
