@@ -18,7 +18,7 @@ Blob client types can be generated from:
 ## Getting started
 
 ### Prerequisites
-* Python 3.7 or later is required to use this package. For more details, please read our page on [Python Functions version support policy](https://learn.microsoft.com/en-us/azure/azure-functions/functions-versions?tabs=isolated-process%2Cv4&pivots=programming-language-python#languages).
+* Python 3.9 or later is required to use this package. For more details, please read our page on [Python Functions version support policy](https://learn.microsoft.com/en-us/azure/azure-functions/functions-versions?tabs=isolated-process%2Cv4&pivots=programming-language-python#languages).
 
 * You must have an [Azure subscription](https://azure.microsoft.com/free/) and an
 [Azure storage account](https://docs.microsoft.com/azure/storage/common/storage-account-overview) to use this package.
@@ -71,7 +71,7 @@ def blob_trigger(client: blob.BlobClient):
                 path="PATH/TO/BLOB",
                 connection="AzureWebJobsStorage")
 def blob_input(req: func.HttpRequest, client: blob.BlobClient):
-    logging.info(f"Python blob trigger function processed blob \n"
+    logging.info(f"Python blob input function processed blob \n"
                  f"Properties: {client.get_blob_properties()}\n"
                  f"Blob content: {client.download_blob(encoding="utf-8").readall()}")
 ```
