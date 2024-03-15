@@ -12,7 +12,7 @@ in the library's project folder.
 
 ### Prerequisites
 
-The libraries are supported on Function Apps using Python 3.7 or later. For more details, please read our page on 
+The libraries are supported on Function Apps using Python 3.9 or later. For more details, please read our page on 
 [Python Functions version support policy](https://learn.microsoft.com/en-us/azure/azure-functions/functions-versions?tabs=isolated-process%2Cv4&pivots=programming-language-python#languages).
 
 ## SDK Support

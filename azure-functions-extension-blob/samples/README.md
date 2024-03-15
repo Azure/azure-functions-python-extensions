@@ -30,7 +30,7 @@ examples on how to use the Azure Storage Blob client library, please see [Azure 
     * From BlobInput
 
 ## Prerequisites
-* Python 3.7 or later is required to use this package. For more details, please read our page on [Python Functions version support policy](https://learn.microsoft.com/en-us/azure/azure-functions/functions-versions?tabs=isolated-process%2Cv4&pivots=programming-language-python#languages).
+* Python 3.9 or later is required to use this package. For more details, please read our page on [Python Functions version support policy](https://learn.microsoft.com/en-us/azure/azure-functions/functions-versions?tabs=isolated-process%2Cv4&pivots=programming-language-python#languages).
 * You must have an [Azure subscription](https://azure.microsoft.com/free/) and an
 [Azure storage account](https://docs.microsoft.com/azure/storage/common/storage-account-overview) to use this package.
 

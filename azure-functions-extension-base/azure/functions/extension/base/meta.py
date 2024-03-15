@@ -2,6 +2,7 @@
 # Licensed under the MIT License.
 
 import abc
+import inspect
 import json
 
 from . import utils
@@ -88,7 +89,7 @@ class _ConverterMeta(abc.ABCMeta):
 
     @classmethod
     def check_supported_type(cls, subclass: type) -> bool:
-        if subclass is not None:
+        if subclass is not None and inspect.isclass(subclass):
             return issubclass(subclass, sdkType.SdkType)
         return False
 
