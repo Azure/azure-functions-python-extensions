@@ -36,6 +36,5 @@ setup(
         'fastapi',
         'uvicorn'
     ],
-    extras_require=EXTRA_REQUIRES,
-    test_suite='azure-functions-extension-fastapi/tests'
+    extras_require=EXTRA_REQUIRES
 )
