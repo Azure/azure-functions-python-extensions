@@ -34,8 +34,9 @@ jobs:
         python -m pip install -U -e .[dev]
 
     - name: Run Unit Tests
+      working-directory: azure-functions-extension-base
       run: |
-        python -m pytest -q --instafail --cov=. --cov-report xml --cov-branch azure-functions-extension-base/tests
+        python -m pytest -q --instafail --cov=. --cov-report xml --cov-branch tests
 
     - name: Upload Coverage to Codecov
       uses: codecov/codecov-action@v3
