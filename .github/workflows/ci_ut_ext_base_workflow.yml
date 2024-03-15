@@ -2,6 +2,7 @@ name: UT CI Run for Python Extension Base
 
 on:
     push:
+      branches: [ dev, master, main, release/* ]
       paths:
         - 'azure-functions-extension-base/**'
     pull_request:
