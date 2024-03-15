@@ -2,10 +2,11 @@
 #  Licensed under the MIT License.
 
 from setuptools import setup, find_packages
+from azure.functions.extension.blob import __version__
 
 setup(
     name='azure-functions-extension-blob',
-    version='1.0.0a1',
+    version=__version__,
     author='Azure Functions team at Microsoft Corp.',
     author_email='azurefunctions@microsoft.com',
     description='Blob Python worker extension for Azure Functions.',
