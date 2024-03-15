@@ -103,7 +103,7 @@ class TestStorageStreamDownloader(unittest.TestCase):
                                        pytype=StorageStreamDownloader))
 
         self.assertIsNotNone(result)
-        self.assertIsInstance(result, StorageStreamDownloader)
+        self.assertIsInstance(result, SSDSdk)
 
         sdk_result = StorageStreamDownloader(data=datum).get_sdk_type()
 

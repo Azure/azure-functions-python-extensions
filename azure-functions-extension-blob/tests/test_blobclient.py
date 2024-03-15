@@ -102,7 +102,7 @@ class TestBlobClient(unittest.TestCase):
                                                         pytype=BlobClient)
 
         self.assertIsNotNone(result)
-        self.assertIsInstance(result, BlobClient)
+        self.assertIsInstance(result, BlobClientSdk)
 
         sdk_result = BlobClient(data=datum).get_sdk_type()
 

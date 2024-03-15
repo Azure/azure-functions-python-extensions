@@ -102,7 +102,7 @@ class TestContainerClient(unittest.TestCase):
             pytype=ContainerClient)
 
         self.assertIsNotNone(result)
-        self.assertIsInstance(result, ContainerClient)
+        self.assertIsInstance(result, ContainerClientSdk)
 
         sdk_result = ContainerClient(data=datum).get_sdk_type()
         self.assertIsNotNone(sdk_result)
