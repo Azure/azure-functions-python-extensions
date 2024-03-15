@@ -1,6 +1,7 @@
 #  Copyright (c) Microsoft Corporation. All rights reserved.
 #  Licensed under the MIT License.
 
+import json
 import unittest
 from typing import Optional
 from enum import Enum
@@ -89,12 +90,15 @@ class TestStorageStreamDownloader(unittest.TestCase):
         self.assertIsNone(result)
 
     def test_input_populated(self):
-        # TODO: pass in variable connection string
+        content = {
+            "Connection": "AzureWebJobsStorage",
+            "ContainerName": "test-blob",
+            "BlobName": "text.txt"
+        }
+    
         sample_mbd = MockMBD(version="1.0", source="AzureStorageBlobs",
                              content_type="application/json",
-                             content="{\"Connection\":\"AzureWebJobsStorage\","
-                                     "\"ContainerName\":\"test-blob\","
-                                     "\"BlobName\":\"test.txt\"}")
+                             content=json.dumps(content))
 
         datum: Datum = Datum(value=sample_mbd, type='model_binding_data')
         result: StorageStreamDownloader = (
@@ -105,7 +109,7 @@ class TestStorageStreamDownloader(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertIsInstance(result, SSDSdk)
 
-        sdk_result = StorageStreamDownloader(data=datum).get_sdk_type()
+        sdk_result = StorageStreamDownloader(data=datum.value).get_sdk_type()
 
         self.assertIsNotNone(sdk_result)
         self.assertIsInstance(sdk_result, SSDSdk)
