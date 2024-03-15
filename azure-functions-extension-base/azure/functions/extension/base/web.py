@@ -1,22 +1,19 @@
 from abc import abstractmethod
 from enum import Enum
 import inspect
-from typing import Callable, Optional
+from typing import Callable
 
-BASE_EXTENSION_MODULE = __name__
-
-
-class Cache:
-    _http_v2_enabled: Optional[bool] = None
+base_extension_module = __name__
 
 
+# Base extension pkg
 class ModuleTrackerMeta(type):
     _module = None
 
     def __new__(cls, name, bases, dct, **kwargs):
         new_class = super().__new__(cls, name, bases, dct)
         new_module = dct.get('__module__')
-        if new_module != BASE_EXTENSION_MODULE:
+        if new_module != base_extension_module:
             if cls._module is None:
                 cls._module = new_module
             elif cls._module != new_module:
@@ -120,9 +117,7 @@ class WebServer(metaclass=ModuleTrackerMeta):
 
 
 def http_v2_enabled() -> bool:
-    if Cache._http_v2_enabled is None:
-        Cache._http_v2_enabled = ModuleTrackerMeta.module_imported()
-    return Cache._http_v2_enabled
+    return ModuleTrackerMeta.module_imported()
 
 
 class ResponseLabels(Enum):
