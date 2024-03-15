@@ -1,6 +1,7 @@
 #  Copyright (c) Microsoft Corporation. All rights reserved.
 #  Licensed under the MIT License.
 
+import json
 import unittest
 from typing import Optional
 from enum import Enum
@@ -88,12 +89,15 @@ class TestContainerClient(unittest.TestCase):
         self.assertIsNone(result)
 
     def test_input_populated(self):
+        content = {
+            "Connection": "AzureWebJobsStorage",
+            "ContainerName": "test-blob",
+            "BlobName": "text.txt"
+        }
         sample_mbd = MockMBD(version="1.0",
                              source="AzureStorageBlobs",
                              content_type="application/json",
-                             content="{\"Connection\":\"AzureWebJobsStorage\","
-                                     "\"ContainerName\":\"test-blob\","
-                                     "\"BlobName\":\"test.txt\"}")
+                             content=json.dumps(content))
 
         datum: Datum = Datum(value=sample_mbd, type='model_binding_data')
         result: ContainerClient = BlobClientConverter.decode(
@@ -102,9 +106,9 @@ class TestContainerClient(unittest.TestCase):
             pytype=ContainerClient)
 
         self.assertIsNotNone(result)
-        self.assertIsInstance(result, ContainerClient)
+        self.assertIsInstance(result, ContainerClientSdk)
 
-        sdk_result = ContainerClient(data=datum).get_sdk_type()
+        sdk_result = ContainerClient(data=datum.value).get_sdk_type()
         self.assertIsNotNone(sdk_result)
         self.assertIsInstance(sdk_result, ContainerClientSdk)
 

@@ -15,7 +15,18 @@ name: Lint Code Base
 #############################
 # Start the job on all push #
 #############################
-on: [ push, pull_request, workflow_dispatch ]
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - dev
+      - main
+      - 'release/*'
+  pull_request:
+    branches:
+      - dev
+      - main
+      - 'release/*'
 
 ###############
 # Set the Job #

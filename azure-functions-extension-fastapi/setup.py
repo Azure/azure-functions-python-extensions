@@ -14,16 +14,16 @@ EXTRA_REQUIRES = {
         'pytest-cov',
         'requests==2.*',
         'coverage',
-        "pytest-instafail"
+        'pytest-instafail'
     ]
 }
 
 setup(
-    name='azure-functions-extension-blob',
-    version='1.0.0a1',
+    name='azure-functions-extension-fastapi',
+    version='0.0.1',
     author='Azure Functions team at Microsoft Corp.',
     author_email='azurefunctions@microsoft.com',
-    description='Blob Python worker extension for Azure Functions.',
+    description='FastApi Python worker extension for Azure Functions.',
     packages=find_packages(exclude=[
         'azure.functions.extension', 'azure.functions',
         'azure', 'tests', 'samples'
@@ -32,6 +32,7 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Intended Audience :: Developers',
         'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
         'Operating System :: Microsoft :: Windows',
         'Operating System :: POSIX',
@@ -40,10 +41,11 @@ setup(
         'Development Status :: 5 - Production/Stable',
     ],
     license='MIT',
-    extras_require=EXTRA_REQUIRES,
-    python_requires='>=3.9',
+    python_requires='>=3.8',
     install_requires=[
         'azure-functions-extension-base',
-        'azure-storage-blob==12.19.0'
-    ]
+        'fastapi==0.110.0',
+        'uvicorn==0.28.0'
+    ],
+    extras_require=EXTRA_REQUIRES
 )
