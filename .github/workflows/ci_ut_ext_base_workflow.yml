@@ -53,7 +53,7 @@ jobs:
       with:
         github-token: ${{ github.token }} # this will use the runner's token.
         ms-teams-webhook-uri: ${{ secrets.MS_TEAMS_WEBHOOK_URI }}
-        notification-summary: "Python Extension Base UT CI Failed for Python ${{ matrix.python-version }} \n cc:@python_ext_repo"
+        notification-summary: "Python Extension Base UT CI Failed for Python ${{ matrix.python-version }}"
         notification-color: 17a2b8
         timezone: America/Denver
         verbose-logging: false
