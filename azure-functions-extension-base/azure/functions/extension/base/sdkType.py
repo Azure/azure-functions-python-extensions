@@ -5,14 +5,8 @@ from abc import abstractmethod
 import sys
 from typing import Any, Dict, Optional
 
-if sys.version_info >= (3, 8):
-    from typing import TypedDict
-    TypedDict = TypedDict[str, Any]
-else:
-    TypedDict = dict
-
 class SdkType:
-    def __init__(self, *, data: Optional[TypedDict] = None):
+    def __init__(self, *, data: dict = None):
         self._data = data or {}
 
     @abstractmethod
