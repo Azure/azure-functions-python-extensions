@@ -38,5 +38,5 @@ setup(
     ],
     license='MIT',
     extras_require=EXTRA_REQUIRES,
-    python_requires='>=3.7'
+    python_requires='>=3.8'
 )
