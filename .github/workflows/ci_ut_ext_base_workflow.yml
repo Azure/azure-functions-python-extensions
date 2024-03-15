@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - dev
-      - master
       - main
       - release/*
     paths:
@@ -12,7 +11,6 @@ on:
   pull_request:
     branches:
       - dev
-      - master
       - main
       - release/*
     paths:
@@ -68,7 +66,7 @@ jobs:
         with:
           github-token: ${{ github.token }}
           ms-teams-webhook-uri: ${{ secrets.MS_TEAMS_WEBHOOK_URI }}
-          notification-summary: "&#x274C; Python Extension Base UT CI Failed"
+          notification-summary: "Python Extension Base UT CI Failed"
           notification-color: FF0000
           timezone: America/Denver
           verbose-logging: false
@@ -79,7 +77,7 @@ jobs:
         with:
           github-token: ${{ github.token }}
           ms-teams-webhook-uri: ${{ secrets.MS_TEAMS_WEBHOOK_URI }}
-          notification-summary: "&#x2705; Python Extension Base UT CI Passed"
+          notification-summary: "Python Extension Base UT CI Passed"
           notification-color: 008000
           timezone: America/Denver
           verbose-logging: false
