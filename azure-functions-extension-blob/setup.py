@@ -3,6 +3,8 @@
 
 from setuptools import setup, find_packages
 
+# TODO: pin to ext base version after published
+
 EXTRA_REQUIRES = {
     'dev': [
         'flake8~=4.0.1',

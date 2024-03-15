@@ -3,6 +3,8 @@
 
 from setuptools import setup, find_packages
 
+# TODO: pin to ext base version after published
+
 EXTRA_REQUIRES = {
     'dev': [
         'flake8~=4.0.1',
@@ -27,15 +29,23 @@ setup(
         'azure', 'tests', 'samples'
     ]),
     classifiers=[
-        'Programming Language :: Python :: 3',
         'License :: OSI Approved :: MIT License',
-        'Operating System :: OS Independent',
+        'Intended Audience :: Developers',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
+        'Operating System :: Microsoft :: Windows',
+        'Operating System :: POSIX',
+        'Operating System :: MacOS :: MacOS X',
+        'Environment :: Web Environment',
+        'Development Status :: 5 - Production/Stable',
     ],
+    license='MIT',
     python_requires='>=3.8',
     install_requires=[
         'azure-functions-extension-base',
-        'fastapi',
-        'uvicorn'
+        'fastapi==0.110.0',
+        'uvicorn==0.28.0'
     ],
     extras_require=EXTRA_REQUIRES
 )
