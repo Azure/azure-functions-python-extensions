@@ -1,8 +1,9 @@
-# Copyright (c) Microsoft Corporation. All rights reserved.
-# Licensed under the MIT License.
+#  Copyright (c) Microsoft Corporation. All rights reserved.
+#  Licensed under the MIT License.
 
 from setuptools import setup, find_packages
-from azure.functions.extension.base import __version__
+
+# TODO: pin to ext base version after published
 
 EXTRA_REQUIRES = {
     'dev': [
@@ -13,18 +14,19 @@ EXTRA_REQUIRES = {
         'pytest-cov',
         'requests==2.*',
         'coverage',
-        "pytest-instafail"
+        'pytest-instafail'
     ]
 }
 
 setup(
-    name='azure-functions-extension-base',
-    version=__version__,
+    name='azure-functions-extension-fastapi',
+    version='0.0.1',
     author='Azure Functions team at Microsoft Corp.',
     author_email='azurefunctions@microsoft.com',
-    description='Base Python worker extension for Azure Functions.',
+    description='FastApi Python worker extension for Azure Functions.',
     packages=find_packages(exclude=[
-        'azure.functions.extension', 'azure.functions', 'azure', 'tests'
+        'azure.functions.extension', 'azure.functions',
+        'azure', 'tests', 'samples'
     ]),
     classifiers=[
         'License :: OSI Approved :: MIT License',
@@ -39,6 +41,11 @@ setup(
         'Development Status :: 5 - Production/Stable',
     ],
     license='MIT',
-    extras_require=EXTRA_REQUIRES,
-    python_requires='>=3.8'
+    python_requires='>=3.8',
+    install_requires=[
+        'azure-functions-extension-base',
+        'fastapi==0.110.0',
+        'uvicorn==0.28.0'
+    ],
+    extras_require=EXTRA_REQUIRES
 )
