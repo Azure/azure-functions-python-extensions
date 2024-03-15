@@ -5,14 +5,9 @@ from abc import abstractmethod
 import sys
 from typing import Any, Dict, Optional
 
-if sys.version_info < (3, 9):
-    from typing import TypedDict as PyTypedDict
-else:
-    PyTypedDict = dict
-
-class TypedDict(PyTypedDict):
-    pass
+from typing import TypedDict
     
+
 class SdkType:
     def __init__(self, *, data: Optional[TypedDict[str, Any]] = None):
         self._data = data or {}
