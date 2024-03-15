@@ -18,5 +18,5 @@ setup(
         'Operating System :: OS Independent',
     ],
     python_requires='>=3.9'
-    test_suite='tests',
+    test_suite='azure-functions-extension-base/tests',
 )
