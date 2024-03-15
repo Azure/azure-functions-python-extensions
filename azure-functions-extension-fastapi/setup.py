@@ -2,7 +2,6 @@
 #  Licensed under the MIT License.
 
 from setuptools import setup, find_packages
-from azure.functions.extension.fastapi import __version__
 
 EXTRA_REQUIRES = {
     'dev': [
@@ -18,7 +17,7 @@ EXTRA_REQUIRES = {
 
 setup(
     name='azure-functions-extension-fastapi',
-    version=__version__,
+    version='0.0.1',
     author='Azure Functions team at Microsoft Corp.',
     author_email='azurefunctions@microsoft.com',
     description='FastApi Python worker extension for Azure Functions.',
@@ -38,4 +37,5 @@ setup(
         'uvicorn'
     ],
     extras_require=EXTRA_REQUIRES,
+    test_suite='tests'
 )

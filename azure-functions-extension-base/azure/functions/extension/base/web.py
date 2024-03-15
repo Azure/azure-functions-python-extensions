@@ -40,7 +40,7 @@ class RequestTrackerMeta(type):
         if request_type is None:
             raise Exception(f'Request type not provided for class {name}')
 
-        if cls._request_type is not None:
+        if cls._request_type is not None and cls._request_type != request_type:
             raise Exception(f'Only one request type shall be recorded for class {name} '
                             f'but found {cls._request_type} and {request_type}')
         cls._request_type = request_type
@@ -69,7 +69,7 @@ class ResponseTrackerMeta(type):
             raise Exception(f'Response label not provided for class {name}')
         if response_type is None:
             raise Exception(f'Response type not provided for class {name}')
-        if cls._response_types.get(label) is not None:
+        if cls._response_types.get(label) is not None and cls._response_types.get(label) != response_type:
             raise Exception(f'Only one response type shall be recorded for class {name} '
                             f'but found {cls._response_types.get(label)} and {response_type}')
 
@@ -88,8 +88,7 @@ class ResponseTrackerMeta(type):
     @classmethod
     def check_type(cls, pytype: type) -> bool:
         return cls._response_types is not None and any(issubclass(pytype, response_type)
-                                                       for response_type in cls._response_types.values())
-
+                                                        for response_type in cls._response_types.values())
 
 class WebApp(metaclass=ModuleTrackerMeta):
     @abstractmethod

@@ -14,5 +14,3 @@ from fastapi.responses import (
 __all__ = ['WebServer', 'WebApp', 'Request', 'Response', 'StreamingResponse', 'HTMLResponse', 
            'PlainTextResponse', 'RedirectResponse', 'JSONResponse', 'UJSONResponse', 
            'ORJSONResponse', 'FileResponse']
-
-__version__ = "0.0.1"

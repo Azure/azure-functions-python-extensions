@@ -31,4 +31,5 @@ setup(
     ],
     python_requires='>=3.7',
     extras_require=EXTRA_REQUIRES,
+    test_suite='tests',
 )
