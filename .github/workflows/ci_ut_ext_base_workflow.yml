@@ -62,13 +62,25 @@ jobs:
     needs: build
     if: always()
     steps:
-      - name: Notify dedicated teams channel
+      - name: Notify dedicated teams channel on failure
+        if: ${{ always() && needs.build.result == 'failure' }}
         uses: jdcargile/ms-teams-notification@v1.4
-        if: ${{ always() && (needs.build.result == 'failure' || needs.build.result == 'success') }}
         with:
-          github-token: ${{ github.token }} # this will use the runner's token.
+          github-token: ${{ github.token }}
           ms-teams-webhook-uri: ${{ secrets.MS_TEAMS_WEBHOOK_URI }}
-          notification-summary: ":loudspeaker: Python Extension Base UT CI ${needs.build.result == 'success' ? 'Passed' : 'Failed'} for Python ${{ matrix.python-version }}"
-          notification-color: ${{ needs.build.result == 'failure' && 'FF0000' || '008000' }}
+          notification-summary: "&#x274C; Python Extension Base UT CI Failed for Python ${{ matrix.python-version }}"
+          notification-color: FF0000
           timezone: America/Denver
           verbose-logging: false
+
+      - name: Notify dedicated teams channel on success
+        if: ${{ always() && needs.build.result == 'success' }}
+        uses: jdcargile/ms-teams-notification@v1.4
+        with:
+          github-token: ${{ github.token }}
+          ms-teams-webhook-uri: ${{ secrets.MS_TEAMS_WEBHOOK_URI }}
+          notification-summary: "&#x2705; Python Extension Base UT CI Passed for Python ${{ matrix.python-version }}"
+          notification-color: 008000
+          timezone: America/Denver
+          verbose-logging: false
+        
