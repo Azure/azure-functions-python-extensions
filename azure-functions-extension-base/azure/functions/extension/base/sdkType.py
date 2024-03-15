@@ -5,7 +5,7 @@ from abc import abstractmethod
 import sys
 from typing import Any, Dict, Optional
 
-if sys.version_info >= (3, 9):
+if sys.version_info < (3, 9):
     from typing import TypedDict as PyTypedDict
 else:
     PyTypedDict = dict

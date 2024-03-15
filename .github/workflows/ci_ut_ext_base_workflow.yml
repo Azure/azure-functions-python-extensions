@@ -12,7 +12,7 @@ on:
 
 jobs:
   build:
-    name: "Python Extension UT CI Run"
+    name: "Python Extension Base UT CI Run"
     runs-on: ubuntu-latest
     strategy:
         fail-fast: false

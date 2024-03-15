@@ -14,7 +14,7 @@ on:
 
 jobs:
   build:
-    name: "Python Extension UT CI Run"
+    name: "Python Extension Blob UT CI Run"
     runs-on: ubuntu-latest
     strategy:
         fail-fast: false
