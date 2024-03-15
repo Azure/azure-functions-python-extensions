@@ -11,7 +11,8 @@ EXTRA_REQUIRES = {
         'pytest',
         'pytest-cov',
         'requests==2.*',
-        'coverage'
+        'coverage',
+        "pytest-instafail"
     ]
 }
 
