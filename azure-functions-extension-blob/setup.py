@@ -2,7 +2,7 @@
 #  Licensed under the MIT License.
 
 from setuptools import setup, find_packages
-from azure.functions.extension.blob import __version__
+from azure.functions.extension.blob.__version__ import __version__
 
 # TODO: pin to ext base version after published
 

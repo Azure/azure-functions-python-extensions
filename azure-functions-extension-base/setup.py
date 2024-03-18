@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 from setuptools import setup, find_packages
-from azure.functions.extension.base import __version__
+from azure.functions.extension.base.__version__ import __version__
 
 EXTRA_REQUIRES = {
     'dev': [
