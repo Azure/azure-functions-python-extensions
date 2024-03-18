@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 from setuptools import setup, find_packages
-from azure.functions.extension.base.__version__ import __version__
+from azure.functions.extension.base.version import VERSION
 
 EXTRA_REQUIRES = {
     'dev': [
@@ -19,7 +19,7 @@ EXTRA_REQUIRES = {
 
 setup(
     name='azure-functions-extension-base',
-    version=__version__,
+    version=VERSION,
     author='Azure Functions team at Microsoft Corp.',
     author_email='azurefunctions@microsoft.com',
     description='Base Python worker extension for Azure Functions.',
