@@ -10,7 +10,6 @@ from . import sdkType
 
 from typing import Any, Dict, List, Optional, Mapping, Union, Tuple
 
-BINDING_REGISTRY_SET = False
 
 class Datum:
     def __init__(self, value: Any, type: Optional[str]):
@@ -182,11 +181,9 @@ class OutConverter(_BaseConverter, binding=None):
 
 
 def get_binding_registry():
-    global BINDING_REGISTRY_SET
-    BINDING_REGISTRY_SET = True
     return _ConverterMeta
 
 
-def check_deferred_bindings_enabled(cls, pytype: type) -> bool:
-    return (BINDING_REGISTRY_SET
+def check_deferred_bindings_enabled(cls, sdk_binding_registry: _ConverterMeta, pytype: type) -> bool:
+    return (sdk_binding_registry is not None
             and _ConverterMeta.check_supported_type(pytype))
