@@ -52,13 +52,30 @@ jobs:
         name: codecov
         fail_ci_if_error: false
 
-    - name: Notify dedicated teams channel
-      uses: jdcargile/ms-teams-notification@v1.4
-      if: failure()
-      with:
-        github-token: ${{ github.token }} # this will use the runner's token.
-        ms-teams-webhook-uri: ${{ secrets.MS_TEAMS_WEBHOOK_URI }}
-        notification-summary: "Python Extension Blob UT CI Failed for Python ${{ matrix.python-version }}"
-        notification-color: 17a2b8
-        timezone: America/Denver
-        verbose-logging: false
+
+  send-notification:
+    runs-on: ubuntu-latest
+    needs: build
+    if: always()
+    steps:
+      - name: Notify dedicated teams channel on failure
+        if: ${{ always() && needs.build.result == 'failure' }}
+        uses: jdcargile/ms-teams-notification@v1.4
+        with:
+          github-token: ${{ github.token }}
+          ms-teams-webhook-uri: ${{ secrets.MS_TEAMS_WEBHOOK_URI }}
+          notification-summary: "Python Extension Blob UT CI Failed"
+          notification-color: FF0000
+          timezone: America/Denver
+          verbose-logging: false
+
+      - name: Notify dedicated teams channel on success
+        if: ${{ always() && needs.build.result == 'success' }}
+        uses: jdcargile/ms-teams-notification@v1.4
+        with:
+          github-token: ${{ github.token }}
+          ms-teams-webhook-uri: ${{ secrets.MS_TEAMS_WEBHOOK_URI }}
+          notification-summary: "Python Extension Blob UT CI Passed"
+          notification-color: 008000
+          timezone: America/Denver
+          verbose-logging: false
