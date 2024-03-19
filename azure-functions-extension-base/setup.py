@@ -18,7 +18,7 @@ EXTRA_REQUIRES = {
 
 setup(
     name='azure-functions-extension-base',
-    version='1.0.0a1',
+    version='1.0.0a2',
     author='Azure Functions team at Microsoft Corp.',
     author_email='azurefunctions@microsoft.com',
     description='Base Python worker extension for Azure Functions.',
@@ -31,6 +31,8 @@ setup(
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
         'Operating System :: Microsoft :: Windows',
         'Operating System :: POSIX',
         'Operating System :: MacOS :: MacOS X',

@@ -2,8 +2,6 @@
 # Licensed under the MIT License.
 
 from abc import abstractmethod
-import sys
-from typing import Any, Dict, Optional
 
 class SdkType:
     def __init__(self, *, data: dict = None):
