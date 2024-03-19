@@ -20,7 +20,7 @@ EXTRA_REQUIRES = {
 
 setup(
     name='azure-functions-extension-fastapi',
-    version='0.0.1',
+    version='1.0.0a1',
     author='Azure Functions team at Microsoft Corp.',
     author_email='azurefunctions@microsoft.com',
     description='FastApi Python worker extension for Azure Functions.',
