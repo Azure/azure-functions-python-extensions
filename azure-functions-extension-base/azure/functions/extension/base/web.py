@@ -1,5 +1,6 @@
 from abc import abstractmethod
 from enum import Enum
+import inspect
 from typing import Callable
 
 base_extension_module = __name__
@@ -53,7 +54,9 @@ class RequestTrackerMeta(type):
 
     @classmethod
     def check_type(cls, pytype: type) -> bool:
-        return cls._request_type is not None and issubclass(pytype, cls._request_type)
+        if pytype is not None and inspect.isclass(pytype):
+            return cls._request_type is not None and issubclass(pytype, cls._request_type)
+        return False
 
 
 class ResponseTrackerMeta(type):
@@ -87,8 +90,10 @@ class ResponseTrackerMeta(type):
 
     @classmethod
     def check_type(cls, pytype: type) -> bool:
-        return cls._response_types is not None and any(issubclass(pytype, response_type)
-                                                        for response_type in cls._response_types.values())
+        if pytype is not None and inspect.isclass(pytype):
+            return cls._response_types is not None and any(issubclass(pytype, response_type)
+                                                            for response_type in cls._response_types.values())
+        return False
 
 class WebApp(metaclass=ModuleTrackerMeta):
     @abstractmethod
