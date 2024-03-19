@@ -1,4 +1,4 @@
-name: UT CI Run for Python Extension FastApi
+name: CI Run for Python Extension FastApi
 
 on:
     push:
@@ -61,7 +61,7 @@ jobs:
         with:
           github-token: ${{ github.token }}
           ms-teams-webhook-uri: ${{ secrets.MS_TEAMS_WEBHOOK_URI }}
-          notification-summary: "Python Extension FastApi UT CI Failed"
+          notification-summary: "Python Extension FastApi CI Failed"
           notification-color: FF0000
           timezone: America/Denver
           verbose-logging: false
@@ -72,7 +72,7 @@ jobs:
         with:
           github-token: ${{ github.token }}
           ms-teams-webhook-uri: ${{ secrets.MS_TEAMS_WEBHOOK_URI }}
-          notification-summary: "Python Extension FastApi UT CI Passed"
+          notification-summary: "Python Extension FastApi CI Passed"
           notification-color: 008000
           timezone: America/Denver
           verbose-logging: false

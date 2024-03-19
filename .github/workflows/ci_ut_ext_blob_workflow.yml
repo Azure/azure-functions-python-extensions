@@ -1,4 +1,4 @@
-name: UT CI Run for Python Extension Blob
+name: CI Run for Python Extension Blob
 
 on:
     push:
@@ -14,7 +14,7 @@ on:
 
 jobs:
   build:
-    name: "Python Extension Blob UT CI Run"
+    name: "Python Extension Blob CI Run"
     runs-on: ubuntu-latest
     strategy:
         fail-fast: false
@@ -64,7 +64,7 @@ jobs:
         with:
           github-token: ${{ github.token }}
           ms-teams-webhook-uri: ${{ secrets.MS_TEAMS_WEBHOOK_URI }}
-          notification-summary: "Python Extension Blob UT CI Failed"
+          notification-summary: "Python Extension Blob CI Failed"
           notification-color: FF0000
           timezone: America/Denver
           verbose-logging: false
@@ -75,7 +75,7 @@ jobs:
         with:
           github-token: ${{ github.token }}
           ms-teams-webhook-uri: ${{ secrets.MS_TEAMS_WEBHOOK_URI }}
-          notification-summary: "Python Extension Blob UT CI Passed"
+          notification-summary: "Python Extension Blob CI Passed"
           notification-color: 008000
           timezone: America/Denver
           verbose-logging: false
