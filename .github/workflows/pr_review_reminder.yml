@@ -17,5 +17,5 @@ jobs:
         webhook-url: '${{ secrets.MS_TEAMS_WEBHOOK_URI }}' # Required
         provider: 'msteams' # Required (slack, rocket or msteams)
         channel: '' # Optional, eg: #general
-        github-provider-map: '' # Optional, eg: DavideViolante:UEABCDEFG,foobar:UAABCDEFG
+        github-provider-map: 'vrdmr:vameru@microsoft.com' # Optional, eg: DavideViolante:UEABCDEFG,foobar:UAABCDEFG
         ignore-label: '' # Optional, eg: no-reminder,ignore me
