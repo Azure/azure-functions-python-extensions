@@ -38,3 +38,5 @@ __all__ = [
     'WebServer',
     'WebApp'
 ]
+
+__version__ = "1.0.0a2"
