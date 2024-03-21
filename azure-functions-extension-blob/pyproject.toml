@@ -31,14 +31,15 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-        'flake8~=4.0.1',
-        'flake8-logging-format',
-        'mypy',
-        'pytest',
-        'pytest-cov',
-        'requests==2.*',
-        'coverage',
-        'pytest-instafail'
+    'flake8~=4.0.1',
+    'flake8-logging-format',
+    'mypy',
+    'pytest',
+    'pytest-cov',
+    'requests==2.*',
+    'coverage',
+    'pytest-instafail',
+    'pre-commit'
     ]
 
 [tool.setuptools.dynamic]

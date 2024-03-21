@@ -34,7 +34,8 @@ dev = [
         'pytest-cov',
         'requests==2.*',
         'coverage',
-        'pytest-instafail'
+        'pytest-instafail',
+        'pre-commit'
     ]
 
 [tool.setuptools.dynamic]
