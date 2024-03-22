@@ -27,10 +27,8 @@ classifiers= [
 
 [project.optional-dependencies]
 dev = [
-        'mypy',
         'pytest',
         'pytest-cov',
-        'requests==2.*',
         'coverage',
         'pytest-instafail',
         'pre-commit'
