@@ -6,5 +6,10 @@ from .containerClient import ContainerClient
 from .storageStreamDownloader import StorageStreamDownloader
 from .blobClientConverter import BlobClientConverter
 
-__all__ = ['BlobClient', 'ContainerClient', 'StorageStreamDownloader',
-           'BlobClientConverter']
+__all__ = [
+    'BlobClient',
+    'ContainerClient',
+    'StorageStreamDownloader',
+    'BlobClientConverter']
+
+__version__ = "1.0.0a1"

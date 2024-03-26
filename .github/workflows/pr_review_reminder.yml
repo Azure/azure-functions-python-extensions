@@ -1,9 +1,9 @@
 name: PRs reviews reminder
 
 on:
-  # schedule:
-    # Every weekday every 2 hours during working hours, send notification
-    # - cron: "0 8-17/2 * * 1-5"
+  schedule:
+    # Runs daily at 19 UTC time
+    - cron: "0 19 * * *"
   workflow_dispatch:
 
 jobs:
@@ -17,5 +17,5 @@ jobs:
         webhook-url: '${{ secrets.MS_TEAMS_WEBHOOK_URI }}' # Required
         provider: 'msteams' # Required (slack, rocket or msteams)
         channel: '' # Optional, eg: #general
-        github-provider-map: '' # Optional, eg: DavideViolante:UEABCDEFG,foobar:UAABCDEFG
+        github-provider-map: '${{ secrets.PR_REMINDER_USER_MAPPING }}' # Optional, eg: DavideViolante:UEABCDEFG,foobar:UAABCDEFG
         ignore-label: '' # Optional, eg: no-reminder,ignore me
