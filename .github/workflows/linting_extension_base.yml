@@ -22,11 +22,15 @@ on:
       - dev
       - main
       - 'release/*'
+    paths:
+      - 'azure-functions-extension-base/**'
   pull_request:
     branches:
       - dev
       - main
       - 'release/*'
+    paths:
+      - 'azure-functions-extension-base/**'
 
 ###############
 # Set the Job #

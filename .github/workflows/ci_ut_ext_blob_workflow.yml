@@ -4,12 +4,10 @@ on:
     push:
       branches: [ dev, master, main, release/* ]
       paths:
-        - 'azure-functions-extension-base/**'
         - 'azure-functions-extension-blob/**'
     pull_request:
         branches: [ dev, master, main, release/* ]
         paths:
-          - 'azure-functions-extension-base/**'
           - 'azure-functions-extension-blob/**'
 
 jobs:
@@ -35,7 +33,6 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         python -m pip install -U -e .[dev]
-        python -m pip install -e ../azure-functions-extension-base
 
     - name: Run Unit Tests
       working-directory: azure-functions-extension-blob
