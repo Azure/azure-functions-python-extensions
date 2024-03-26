@@ -56,6 +56,7 @@ jobs:
         uses: super-linter/super-linter@v6.3.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_SHA: ${{ github.sha }}
           VALIDATE_PYTHON: true
           # VALIDATE_PYTHON_FLAKE8: false
           # VALIDATE_PYTHON_PYLINT: false # disable pylint, as we have not configure it
