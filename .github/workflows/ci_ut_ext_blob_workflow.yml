@@ -2,11 +2,11 @@ name: CI Run for Python Extension Blob
 
 on:
     push:
-      branches: [ dev, master, main, release/* ]
+      branches: [ dev, main, release/* ]
       paths:
         - 'azure-functions-extension-blob/**'
     pull_request:
-        branches: [ dev, master, main, release/* ]
+        branches: [ dev, main, release/* ]
         paths:
           - 'azure-functions-extension-blob/**'
 
