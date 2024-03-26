@@ -66,3 +66,30 @@ jobs:
           FILTER_REGEX_INCLUDE: azure-functions-extension-*/.*
           FILTER_REGEX_EXCLUDE: tests/.*
           DEFAULT_BRANCH: dev
+
+  send-notification:
+    runs-on: ubuntu-latest
+    needs: build
+    if: always()
+    steps:
+      - name: Notify dedicated teams channel on failure
+        if: ${{ always() && needs.build.result == 'failure' }}
+        uses: jdcargile/ms-teams-notification@v1.4
+        with:
+          github-token: ${{ github.token }}
+          ms-teams-webhook-uri: ${{ secrets.MS_TEAMS_WEBHOOK_URI }}
+          notification-summary: "Python Extension Blob CI Failed"
+          notification-color: FF0000
+          timezone: America/Denver
+          verbose-logging: false
+
+      - name: Notify dedicated teams channel on success
+        if: ${{ always() && needs.build.result == 'success' }}
+        uses: jdcargile/ms-teams-notification@v1.4
+        with:
+          github-token: ${{ github.token }}
+          ms-teams-webhook-uri: ${{ secrets.MS_TEAMS_WEBHOOK_URI }}
+          notification-summary: "Python Extension Blob CI Passed"
+          notification-color: 008000
+          timezone: America/Denver
+          verbose-logging: false
