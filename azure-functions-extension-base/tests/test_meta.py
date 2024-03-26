@@ -132,6 +132,14 @@ class TestMeta(unittest.TestCase):
         datum_hash = str_datum.__hash__()
         self.assertIsInstance(datum_hash, int)
 
+    def test_repr(self):
+        str_datum = meta.Datum(value="awesome", type="string")
+        self.assertEqual(str_datum.__repr__(), "<Datum string 'awesome'>")
+
+        long_str_datum = meta.Datum(value="awesome string", type="string")
+        self.assertEqual(long_str_datum.__repr__(),
+                         "<Datum string 'awesome s...>")
+
     def test_registry(self):
         registry = meta.get_binding_registry()
         self.assertIsInstance(registry, type(meta._ConverterMeta))
@@ -175,7 +183,7 @@ class TestMeta(unittest.TestCase):
         datum_coerce_fail = meta.Datum(value='{}', type='model_binding_data')
         with self.assertRaises(ValueError):
             meta._BaseConverter._decode_typed_data(
-                datum_coerce_fail, python_type=dict)
+                datum_coerce_fail, python_type=(tuple, list, dict))
 
         # Case 6: attempt coerce & fail
         datum_attempt_coerce = meta.Datum(value=1, type='model_binding_data')

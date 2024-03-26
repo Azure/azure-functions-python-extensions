@@ -19,6 +19,21 @@ class MockFunction(ABC):
         self._bindings = bindings
 
 
+class MockInitParams(utils.Binding):
+    def __init__(self, name, direction, data_type,
+                 type, init_params):
+        self.type = 'blob'
+        self.name = name
+        self._direction = direction
+        self._data_type = data_type
+        self._dict = {
+            "direction": self._direction,
+            "dataType": self._data_type,
+            "type": self.type
+        }
+        self.init_params = init_params
+
+
 class TestUtils(unittest.TestCase):
     # Test Utils class
     def test_get_dict_repr_sdk(self):
@@ -68,6 +83,42 @@ class TestUtils(unittest.TestCase):
                           '"dataType": null, "type": "blob", '
                           '"properties": '
                           '{"SupportsDeferredBinding": false}}'])
+
+    def test_get_dict_repr_init_params(self):
+        # Create mock blob
+        meta._ConverterMeta._bindings = {"blob"}
+
+        # Create test binding
+        mock_blob = MockInitParams(name="client",
+                                   direction=utils.BindingDirection.IN,
+                                   data_type=None, type='blob',
+                                   init_params=['test', 'type', 'direction'])
+
+        # Create test input_types dict
+        mock_input_types = {"client": MockParamTypeInfo(
+            binding_name='blobTrigger', pytype=sdkType.SdkType)}
+
+        # Create test indexed_function
+        mock_indexed_functions = MockFunction(bindings=[mock_blob])
+
+        dict_repr = utils.get_raw_bindings(mock_indexed_functions,
+                                           mock_input_types)
+        self.assertEqual(dict_repr,
+                         ['{"direction": "IN", "dataType": null, '
+                          '"type": "blob", "test": null, "properties": '
+                          '{"SupportsDeferredBinding": true}}'])
+
+    def test_binding_data_type(self):
+        mock_blob = utils.Binding(name="blob",
+                                  direction=utils.BindingDirection.IN,
+                                  data_type=None, type='blob')
+        self.assertIsNone(mock_blob.data_type)
+
+        mock_data_type = utils.Binding(name="blob",
+                                       direction=utils.BindingDirection.IN,
+                                       data_type=utils.DataType.STRING,
+                                       type='blob')
+        self.assertEqual(mock_data_type.data_type, 1)
 
     def test_to_camel_case(self):
         test_str = ""
