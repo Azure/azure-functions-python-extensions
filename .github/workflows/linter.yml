@@ -53,7 +53,7 @@ jobs:
       # Run Linter against code base #
       ################################
       - name: Lint Code Base
-        uses: github/super-linter@v4
+        uses: github/super-linter@v6.3.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VALIDATE_PYTHON: true
@@ -64,8 +64,8 @@ jobs:
           PYTHON_BLACK_CONFIG_FILE: .isort.cfg
           PYTHON_ISORT_CONFIG_FILE: .isort.cfg
           # PYTHON_FLAKE8_CONFIG_FILE: tox.ini
-          # FILTER_REGEX_INCLUDE: '^(azure-functions-extension-[^/]+)/.*'
-          # FILTER_REGEX_EXCLUDE: '^(azure-functions-extension-[^/]+)/tests/.*'
+          FILTER_REGEX_INCLUDE: '^(azure-functions-extension-[^/]+/).*'
+          FILTER_REGEX_EXCLUDE: '^(azure-functions-extension-[^/]+/tests/).*'          
           DEFAULT_BRANCH: dev
 
   send-notification:
