@@ -261,6 +261,22 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(getattr(test_obj, "dummy1", None), "dummy1")
         self.assertEqual(getattr(test_obj, "dummy2", None), "dummy2")
 
+    def test_add_to_dict_duplicate(self):
+        class TestDict:
+            @utils.BuildDictMeta.add_to_dict
+            def __init__(self, arg1, arg2, **kwargs):
+                self.arg1 = arg1
+                self.arg2 = arg2
+                self.arg3 = arg1
+
+        test_obj = TestDict('val1', 'val2', arg3="dummy1")
+
+        self.assertCountEqual(getattr(test_obj, 'init_params'),
+                              {'self', 'arg1', 'arg2', 'kwargs', 'arg3'})
+        self.assertEqual(getattr(test_obj, "arg1", None), "val1")
+        self.assertEqual(getattr(test_obj, "arg2", None), "val2")
+        self.assertEqual(getattr(test_obj, "arg3", None), "val1")
+
     def test_build_dict_meta(self):
         class TestBuildDict(metaclass=utils.BuildDictMeta):
             def __init__(self, arg1, arg2):
