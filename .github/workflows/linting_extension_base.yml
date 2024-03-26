@@ -73,13 +73,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VALIDATE_PYTHON: true
-          # VALIDATE_PYTHON_FLAKE8: false
-          # VALIDATE_PYTHON_PYLINT: false # disable pylint, as we have not configure it
           VALIDATE_PYTHON_BLACK: true # same as above
           VALIDATE_PYTHON_ISORT: true # same as above
-          # PYTHON_BLACK_CONFIG_FILE: .isort.cfg
           PYTHON_ISORT_CONFIG_FILE: .isort.cfg
-          # PYTHON_FLAKE8_CONFIG_FILE: tox.ini
           FILTER_REGEX_INCLUDE: azure-functions-extension-base/.*      
           DEFAULT_BRANCH: origin/dev
 
