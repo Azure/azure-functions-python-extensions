@@ -56,10 +56,13 @@ jobs:
         uses: github/super-linter@v4
         env:
           VALIDATE_PYTHON: true
-          VALIDATE_PYTHON_FLAKE8: true
+          # VALIDATE_PYTHON_FLAKE8: false
           # VALIDATE_PYTHON_PYLINT: false # disable pylint, as we have not configure it
-          # VALIDATE_PYTHON_BLACK: false # same as above
-          PYTHON_FLAKE8_CONFIG_FILE: tox.ini
+          VALIDATE_PYTHON_BLACK: true # same as above
+          VALIDATE_PYTHON_ISORT: true # same as above
+          PYTHON_BLACK_CONFIG_FILE: .isort.cfg
+          PYTHON_ISORT_CONFIG_FILE: .isort.cfg
+          # PYTHON_FLAKE8_CONFIG_FILE: tox.ini
           FILTER_REGEX_INCLUDE: azure-functions-extension-*/.*
           FILTER_REGEX_EXCLUDE: tests/.*
-          DEFAULT_BRANCH: main
+          DEFAULT_BRANCH: dev
