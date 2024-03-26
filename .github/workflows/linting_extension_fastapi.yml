@@ -5,7 +5,7 @@
 ###########################
 ###########################
 
-name: Lint Code Base
+name: Lint azure-functions-extension-fastapi
 
 #
 # Documentation:
@@ -34,7 +34,7 @@ on:
 jobs:
   build:
     # Name the Job
-    name: Lint Code Base
+    name: Lint Extension Base
     # Set the agent to run on
     runs-on: ubuntu-latest
     permissions:
@@ -76,9 +76,9 @@ jobs:
           # PYTHON_BLACK_CONFIG_FILE: .isort.cfg
           PYTHON_ISORT_CONFIG_FILE: .isort.cfg
           # PYTHON_FLAKE8_CONFIG_FILE: tox.ini
-          # FILTER_REGEX_INCLUDE: '^(azure-functions-extension-[^/]+/).*'
+          FILTER_REGEX_INCLUDE: azure-functions-extension-fastapi/*
           # FILTER_REGEX_EXCLUDE: '^(azure-functions-extension-[^/]+/tests/).*'          
-          DEFAULT_BRANCH: dev
+          DEFAULT_BRANCH: origin/dev
 
   send-notification:
     runs-on: ubuntu-latest
@@ -91,7 +91,7 @@ jobs:
         with:
           github-token: ${{ github.token }}
           ms-teams-webhook-uri: ${{ secrets.MS_TEAMS_WEBHOOK_URI }}
-          notification-summary: "Python Extension Linter CI Failed"
+          notification-summary: "Python Extension Lint azure-functions-extension-fastapi Failed"
           notification-color: FF0000
           timezone: America/Denver
           verbose-logging: false
@@ -102,7 +102,7 @@ jobs:
         with:
           github-token: ${{ github.token }}
           ms-teams-webhook-uri: ${{ secrets.MS_TEAMS_WEBHOOK_URI }}
-          notification-summary: "Python Extension Linter CI Passed"
+          notification-summary: "Python Extension Lint azure-functions-extension-fastapi Passed"
           notification-color: 008000
           timezone: America/Denver
           verbose-logging: false
