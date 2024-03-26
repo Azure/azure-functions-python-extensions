@@ -1,9 +1,9 @@
 name: PRs reviews reminder
 
 on:
-  # schedule:
-    # Every weekday every 2 hours during working hours, send notification
-    # - cron: "0 8-17/2 * * 1-5"
+  schedule:
+    # Runs daily at 19 UTC time
+    - cron: "0 19 * * *"
   workflow_dispatch:
 
 jobs:
