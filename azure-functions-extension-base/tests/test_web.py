@@ -1,10 +1,15 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-from azure.functions.extension.base import (ModuleTrackerMeta,
-                                            RequestTrackerMeta, ResponseLabels,
-                                            ResponseTrackerMeta, WebApp,
-                                            WebServer, http_v2_enabled)
+from azure.functions.extension.base import (
+    ModuleTrackerMeta,
+    RequestTrackerMeta,
+    ResponseLabels,
+    ResponseTrackerMeta,
+    WebApp,
+    WebServer,
+    http_v2_enabled,
+)
 
 
 class TestModuleTrackerMeta(unittest.TestCase):
