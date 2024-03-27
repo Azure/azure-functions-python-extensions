@@ -1,4 +1,4 @@
-name: UT CI Run for Python Extension Base
+name: CI Run for Python Extension Base
 
 on:
   push:

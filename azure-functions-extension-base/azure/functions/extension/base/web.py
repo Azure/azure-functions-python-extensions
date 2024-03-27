@@ -115,10 +115,10 @@ class WebServer(metaclass=ModuleTrackerMeta):
     async def serve(self):
         pass
 
-
-def http_v2_enabled() -> bool:
-    return ModuleTrackerMeta.module_imported()
-
+class HttpV2FeatureChecker:
+    @staticmethod
+    def http_v2_enabled():
+        return ModuleTrackerMeta.module_imported()
 
 class ResponseLabels(Enum):
     STANDARD = 'standard'

@@ -1,0 +1,21 @@
+name: PRs reviews reminder
+
+on:
+  schedule:
+    # Runs daily at 19 UTC time
+    - cron: "0 19 * * *"
+  workflow_dispatch:
+
+jobs:
+  pr-reviews-reminder:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: davideviolante/pr-reviews-reminder-action@v2.7.0
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        webhook-url: '${{ secrets.MS_TEAMS_WEBHOOK_URI }}' # Required
+        provider: 'msteams' # Required (slack, rocket or msteams)
+        channel: '' # Optional, eg: #general
+        github-provider-map: '${{ secrets.PR_REMINDER_USER_MAPPING }}' # Optional, eg: DavideViolante:UEABCDEFG,foobar:UAABCDEFG
+        ignore-label: '' # Optional, eg: no-reminder,ignore me
