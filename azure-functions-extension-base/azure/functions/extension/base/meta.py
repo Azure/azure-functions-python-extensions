@@ -4,33 +4,32 @@
 import abc
 import inspect
 import json
+from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
 
-from . import utils
-from . import sdkType
-
-from typing import Any, Dict, List, Optional, Mapping, Union, Tuple
+from . import sdkType, utils
 
 
 class Datum:
     def __init__(self, value: Any, type: Optional[str]):
         self.value: Any = value
         self.type: Optional[str] = type
+        self.animal = "ss"
 
     @property
     def python_value(self) -> Any:
         if self.value is None or self.type is None:
             return None
-        elif self.type in ('bytes', 'string', 'int', 'double'):
+        elif self.type in ("bytes", "string", "int", "double"):
             return self.value
-        elif self.type == 'json':
+        elif self.type == "json":
             return json.loads(self.value)
-        elif self.type == 'collection_string':
+        elif self.type == "collection_string":
             return [v for v in self.value.string]
-        elif self.type == 'collection_bytes':
+        elif self.type == "collection_bytes":
             return [v for v in self.value.bytes]
-        elif self.type == 'collection_double':
+        elif self.type == "collection_double":
             return [v for v in self.value.double]
-        elif self.type == 'collection_sint64':
+        elif self.type == "collection_sint64":
             return [v for v in self.value.sint64]
         else:
             return self.value
@@ -51,17 +50,17 @@ class Datum:
     def __repr__(self):
         val_repr = repr(self.value)
         if len(val_repr) > 10:
-            val_repr = val_repr[:10] + '...'
-        return '<Datum {} {}>'.format(self.type, val_repr)
+            val_repr = val_repr[:10] + "..."
+        return "<Datum {} {}>".format(self.type, val_repr)
 
 
 class _ConverterMeta(abc.ABCMeta):
 
     _bindings: Dict[str, type] = {}
 
-    def __new__(mcls, name, bases, dct, *,
-                binding: Optional[str],
-                trigger: Optional[str] = None):
+    def __new__(
+        mcls, name, bases, dct, *, binding: Optional[str], trigger: Optional[str] = None
+    ):
         cls = super().__new__(mcls, name, bases, dct)
         cls._trigger = trigger  # type: ignore
         if binding is None:
@@ -69,9 +68,10 @@ class _ConverterMeta(abc.ABCMeta):
 
         if binding in mcls._bindings:
             raise RuntimeError(
-                f'cannot register a converter for {binding!r} binding: '
-                f'another converter for this binding has already been '
-                f'registered')
+                f"cannot register a converter for {binding!r} binding: "
+                f"another converter for this binding has already been "
+                f"registered"
+            )
 
         mcls._bindings[binding] = cls
         if trigger is not None:
@@ -101,51 +101,59 @@ class _BaseConverter(metaclass=_ConverterMeta, binding=None):
 
     @classmethod
     def _decode_typed_data(
-            cls, data: Datum, *,
-            python_type: Union[type, Tuple[type, ...]],
-            context: str = 'data') -> Any:
+        cls,
+        data: Datum,
+        *,
+        python_type: Union[type, Tuple[type, ...]],
+        context: str = "data",
+    ) -> Any:
         if data is None:
             return None
 
         data_type = data.type
-        if data_type == 'model_binding_data':
+        if data_type == "model_binding_data":
             result = data.value
         elif data_type is None:
             return None
         else:
-            raise ValueError(
-                f'unsupported type of {context}: {data_type}')
+            raise ValueError(f"unsupported type of {context}: {data_type}")
 
         if not isinstance(result, python_type):
             if isinstance(python_type, (tuple, list, dict)):
                 raise ValueError(
-                    f'unexpected value type in {context}: '
-                    f'{type(result).__name__}, expected one of: '
-                    f'{", ".join(t.__name__ for t in python_type)}')
+                    f"unexpected value type in {context}: "
+                    f"{type(result).__name__}, expected one of: "
+                    f'{", ".join(t.__name__ for t in python_type)}'
+                )
             else:
                 try:
                     # Try coercing into the requested type
                     result = python_type(result)
                 except (TypeError, ValueError) as e:
                     raise ValueError(
-                        f'cannot convert value of {context} into '
-                        f'{python_type.__name__}: {e}') from None
+                        f"cannot convert value of {context} into "
+                        f"{python_type.__name__}: {e}"
+                    ) from None
 
         return result
 
     @classmethod
     def _decode_trigger_metadata_field(
-            cls, trigger_metadata: Mapping[str, Datum],
-            field: str, *,
-            python_type: Union[type, Tuple[type, ...]]) \
-            -> Any:
+        cls,
+        trigger_metadata: Mapping[str, Datum],
+        field: str,
+        *,
+        python_type: Union[type, Tuple[type, ...]],
+    ) -> Any:
         data = trigger_metadata.get(field)
         if data is None:
             return None
         else:
             return cls._decode_typed_data(
-                data, python_type=python_type,
-                context=f'field {field!r} in trigger metadata')
+                data,
+                python_type=python_type,
+                context=f"field {field!r} in trigger metadata",
+            )
 
 
 class InConverter(_BaseConverter, binding=None):
@@ -175,8 +183,7 @@ class OutConverter(_BaseConverter, binding=None):
 
     @classmethod
     @abc.abstractmethod
-    def encode(cls, obj: Any, *,
-               expected_type: Optional[type]) -> Optional[Datum]:
+    def encode(cls, obj: Any, *, expected_type: Optional[type]) -> Optional[Datum]:
         raise NotImplementedError
 
 
