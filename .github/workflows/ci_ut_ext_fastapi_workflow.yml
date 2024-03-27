@@ -43,6 +43,8 @@ jobs:
 
     - name: Upload Coverage to Codecov
       uses: codecov/codecov-action@v4
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
       with:
         file: ./azure-functions-extension-fastapi/coverage.xml
         flags: unittests
