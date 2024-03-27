@@ -8,7 +8,6 @@ from .meta import (
     InConverter,
     OutConverter,
     get_binding_registry,
-    check_deferred_bindings_enabled
 )
 from .sdkType import SdkType
 from .web import (
@@ -29,7 +28,6 @@ __all__ = [
     'OutConverter',
     'SdkType',
     'get_binding_registry',
-    'check_deferred_bindings_enabled',
     'ModuleTrackerMeta',
     'RequestTrackerMeta',
     'ResponseTrackerMeta',
