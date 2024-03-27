@@ -48,13 +48,13 @@ jobs:
           python -m pytest -q --instafail --cov=. --cov-report xml --cov-branch --ignore tests/ tests
 
       - name: Upload Coverage to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           file: ./azure-functions-extension-base/coverage.xml
           flags: unittests
           name: codecov
           fail_ci_if_error: false
-          config: .github/codecov/.codecov_base.yml
+          codecov_yml_path: .github/codecov/.codecov_base.yml
 
   send-notification:
     runs-on: ubuntu-latest
