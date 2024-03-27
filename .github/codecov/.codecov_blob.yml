@@ -1,0 +1,2 @@
+ignore:
+    - "azure-functions-extension-blob/tests"
