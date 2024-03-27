@@ -1,16 +1,16 @@
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from azure.functions.extension.base import (ModuleTrackerMeta, RequestTrackerMeta,
                          ResponseTrackerMeta, WebApp, WebServer,
-                         http_v2_enabled, ResponseLabels)
+                         HttpV2FeatureChecker, ResponseLabels)
 
 
 class TestModuleTrackerMeta(unittest.TestCase):
     def setUp(self):
         # Reset the _module attribute after each test
         ModuleTrackerMeta._module = None
-        self.assertFalse(http_v2_enabled())
+        self.assertFalse(HttpV2FeatureChecker.http_v2_enabled())
 
     def test_classes_imported_from_same_module(self):
         class TestClass1(metaclass=ModuleTrackerMeta):
@@ -20,14 +20,14 @@ class TestModuleTrackerMeta(unittest.TestCase):
 
         self.assertEqual(ModuleTrackerMeta.get_module(), __name__)
         self.assertTrue(ModuleTrackerMeta.module_imported())
-        self.assertTrue(http_v2_enabled())
+        self.assertTrue(HttpV2FeatureChecker.http_v2_enabled())
 
     def test_class_imported_from_a_module(self):
         class TestClass1(metaclass=ModuleTrackerMeta):
             pass
         self.assertEqual(ModuleTrackerMeta.get_module(), __name__)
         self.assertTrue(ModuleTrackerMeta.module_imported())
-        self.assertTrue(http_v2_enabled())
+        self.assertTrue(HttpV2FeatureChecker.http_v2_enabled())
 
     def test_classes_imported_from_different_modules(self):
         class TestClass1(metaclass=ModuleTrackerMeta):
@@ -210,7 +210,7 @@ class TestHttpV2Enabled(unittest.TestCase):
     @patch('azure.functions.extension.base.ModuleTrackerMeta.module_imported')
     def test_http_v2_enabled(self, mock_module_imported):
         mock_module_imported.return_value = True
-        self.assertTrue(http_v2_enabled())
+        self.assertTrue(HttpV2FeatureChecker.http_v2_enabled())
 
         mock_module_imported.return_value = False
-        self.assertFalse(http_v2_enabled())
+        self.assertFalse(HttpV2FeatureChecker.http_v2_enabled())

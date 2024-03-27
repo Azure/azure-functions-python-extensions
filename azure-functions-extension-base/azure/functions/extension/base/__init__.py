@@ -17,7 +17,7 @@ from .web import (
     ModuleTrackerMeta,
     RequestTrackerMeta,
     ResponseTrackerMeta,
-    http_v2_enabled,
+    HttpV2FeatureChecker,
     ResponseLabels
 )
 
@@ -33,7 +33,7 @@ __all__ = [
     'ModuleTrackerMeta',
     'RequestTrackerMeta',
     'ResponseTrackerMeta',
-    'http_v2_enabled',
+    'HttpV2FeatureChecker',
     'ResponseLabels',
     'WebServer',
     'WebApp'
