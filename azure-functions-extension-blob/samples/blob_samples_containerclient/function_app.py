@@ -7,6 +7,7 @@
 # --------------------------------------------------------------------------
 
 import logging
+
 import azure.functions as func
 import azure.functions.extension.blob as blob
 
@@ -27,19 +28,19 @@ USAGE:
 """
 
 
-@app.blob_trigger(arg_name="client",
-                  path="CONTAINER",
-                  connection="AzureWebJobsStorage")
+@app.blob_trigger(arg_name="client", path="CONTAINER", connection="AzureWebJobsStorage")
 def blob_trigger(client: blob.ContainerClient):
-    logging.info(f"Python blob trigger function processed blob \n"
-                 f"Properties: {client.get_container_properties()}\n")
+    logging.info(
+        f"Python blob trigger function processed blob \n"
+        f"Properties: {client.get_container_properties()}\n"
+    )
 
 
 @app.route(route="file")
-@app.blob_input(arg_name="client",
-                path="CONTAINER",
-                connection="AzureWebJobsStorage")
+@app.blob_input(arg_name="client", path="CONTAINER", connection="AzureWebJobsStorage")
 def blob_input(req: func.HttpRequest, client: blob.BlobClient):
-    logging.info(f"Python blob trigger function processed blob \n"
-                 f"Properties: {client.get_container_properties()}\n")
+    logging.info(
+        f"Python blob trigger function processed blob \n"
+        f"Properties: {client.get_container_properties()}\n"
+    )
     return "ok"
