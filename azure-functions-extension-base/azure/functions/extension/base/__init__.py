@@ -7,18 +7,15 @@ from .meta import (
     OutConverter,
     _BaseConverter,
     _ConverterMeta,
-    check_deferred_bindings_enabled,
     get_binding_registry,
 )
 from .sdkType import SdkType
 from .web import (
+    HttpV2FeatureChecker,
     ModuleTrackerMeta,
     RequestTrackerMeta,
     ResponseLabels,
     ResponseTrackerMeta,
-    WebApp,
-    WebServer,
-    http_v2_enabled,
 )
 
 __all__ = [
@@ -29,11 +26,10 @@ __all__ = [
     "OutConverter",
     "SdkType",
     "get_binding_registry",
-    "check_deferred_bindings_enabled",
     "ModuleTrackerMeta",
     "RequestTrackerMeta",
     "ResponseTrackerMeta",
-    "http_v2_enabled",
+    "HttpV2FeatureChecker",
     "ResponseLabels",
     "WebServer",
     "WebApp",

@@ -3,8 +3,8 @@
 
 import json
 import unittest
-from typing import Optional
 from enum import Enum
+from typing import Optional
 
 from azure.functions.extension.base import Datum
 from azure.functions.extension.blob import BlobClient, BlobClientConverter
@@ -13,8 +13,7 @@ from azure.storage.blob import BlobClient as BlobClientSdk
 
 # Mock classes for testing
 class MockMBD:
-    def __init__(self, version: str, source: str,
-                 content_type: str, content: str):
+    def __init__(self, version: str, source: str, content_type: str, content: str):
         self.version = version
         self.source = source
         self.content_type = content_type
@@ -28,10 +27,13 @@ class MockBindingDirection(Enum):
 
 
 class MockBinding:
-    def __init__(self, name: str,
-                 direction: MockBindingDirection,
-                 data_type=None,
-                 type: Optional[str] = None):  # NoQa
+    def __init__(
+        self,
+        name: str,
+        direction: MockBindingDirection,
+        data_type=None,
+        type: Optional[str] = None,
+    ):  # NoQa
         self.type = type
         self.name = name
         self._direction = direction
@@ -39,7 +41,7 @@ class MockBinding:
         self._dict = {
             "direction": self._direction,
             "dataType": self._data_type,
-            "type": self.type
+            "type": self.type,
         }
 
     @property
@@ -72,38 +74,42 @@ class TestBlobClient(unittest.TestCase):
 
     def test_input_none(self):
         result = BlobClientConverter.decode(
-            data=None, trigger_metadata=None, pytype=BlobClient)
+            data=None, trigger_metadata=None, pytype=BlobClient
+        )
         self.assertIsNone(result)
 
     def test_input_incorrect_type(self):
-        datum: Datum = Datum(value=b'string_content', type='bytearray')
+        datum: Datum = Datum(value=b"string_content", type="bytearray")
         with self.assertRaises(ValueError):
-            BlobClientConverter.decode(data=datum,
-                                       trigger_metadata=None,
-                                       pytype=BlobClient)
+            BlobClientConverter.decode(
+                data=datum, trigger_metadata=None, pytype=BlobClient
+            )
 
     def test_input_empty(self):
-        datum: Datum = Datum(value={}, type='model_binding_data')
+        datum: Datum = Datum(value={}, type="model_binding_data")
         result: BlobClient = BlobClientConverter.decode(
-            data=datum, trigger_metadata=None, pytype=BlobClient)
+            data=datum, trigger_metadata=None, pytype=BlobClient
+        )
         self.assertIsNone(result)
 
     def test_input_populated(self):
         content = {
             "Connection": "AzureWebJobsStorage",
             "ContainerName": "test-blob",
-            "BlobName": "text.txt"
+            "BlobName": "text.txt",
         }
 
-        sample_mbd = MockMBD(version="1.0",
-                             source="AzureStorageBlobs",
-                             content_type="application/json",
-                             content=json.dumps(content))
+        sample_mbd = MockMBD(
+            version="1.0",
+            source="AzureStorageBlobs",
+            content_type="application/json",
+            content=json.dumps(content),
+        )
 
-        datum: Datum = Datum(value=sample_mbd, type='model_binding_data')
-        result: BlobClient = BlobClientConverter.decode(data=datum,
-                                                        trigger_metadata=None,
-                                                        pytype=BlobClient)
+        datum: Datum = Datum(value=sample_mbd, type="model_binding_data")
+        result: BlobClient = BlobClientConverter.decode(
+            data=datum, trigger_metadata=None, pytype=BlobClient
+        )
 
         self.assertIsNotNone(result)
         self.assertIsInstance(result, BlobClientSdk)
@@ -115,44 +121,59 @@ class TestBlobClient(unittest.TestCase):
 
     def test_blob_client_invalid_creation(self):
         # Create test binding
-        mock_blob = MockBinding(name="blob",
-                                direction=MockBindingDirection.IN,
-                                data_type=None, type='blob')
+        mock_blob = MockBinding(
+            name="blob", direction=MockBindingDirection.IN, data_type=None, type="blob"
+        )
 
         # Create test input_types dict
-        mock_input_types = {"blob": MockParamTypeInfo(
-            binding_name='blobTrigger', pytype=bytes)}
+        mock_input_types = {
+            "blob": MockParamTypeInfo(binding_name="blobTrigger", pytype=bytes)
+        }
 
         # Create test indexed_function
         mock_indexed_functions = MockFunction(bindings=[mock_blob])
 
         dict_repr = BlobClientConverter.get_raw_bindings(
-            mock_indexed_functions, mock_input_types)
+            mock_indexed_functions, mock_input_types
+        )
 
-        self.assertEqual(dict_repr,
-                         ['{"direction": "MockBindingDirection.IN", '
-                          '"dataType": null, "type": "blob", '
-                          '"properties": '
-                          '{"SupportsDeferredBinding": false}}'])
+        self.assertEqual(
+            dict_repr,
+            [
+                '{"direction": "MockBindingDirection.IN", '
+                '"dataType": null, "type": "blob", '
+                '"properties": '
+                '{"SupportsDeferredBinding": false}}'
+            ],
+        )
 
     def test_blob_client_valid_creation(self):
         # Create test binding
-        mock_blob = MockBinding(name="client",
-                                direction=MockBindingDirection.IN,
-                                data_type=None, type='blob')
+        mock_blob = MockBinding(
+            name="client",
+            direction=MockBindingDirection.IN,
+            data_type=None,
+            type="blob",
+        )
 
         # Create test input_types dict
-        mock_input_types = {"client": MockParamTypeInfo(
-            binding_name='blobTrigger', pytype=BlobClient)}
+        mock_input_types = {
+            "client": MockParamTypeInfo(binding_name="blobTrigger", pytype=BlobClient)
+        }
 
         # Create test indexed_function
         mock_indexed_functions = MockFunction(bindings=[mock_blob])
 
         dict_repr = BlobClientConverter.get_raw_bindings(
-            mock_indexed_functions, mock_input_types)
+            mock_indexed_functions, mock_input_types
+        )
 
-        self.assertEqual(dict_repr,
-                         ['{"direction": "MockBindingDirection.IN", '
-                          '"dataType": null, "type": "blob", '
-                          '"properties": '
-                          '{"SupportsDeferredBinding": true}}'])
+        self.assertEqual(
+            dict_repr,
+            [
+                '{"direction": "MockBindingDirection.IN", '
+                '"dataType": null, "type": "blob", '
+                '"properties": '
+                '{"SupportsDeferredBinding": true}}'
+            ],
+        )

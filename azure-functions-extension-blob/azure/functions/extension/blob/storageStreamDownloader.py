@@ -3,10 +3,10 @@
 
 import json
 import os
+from typing import Union
 
 from azure.functions.extension.base import Datum, SdkType
 from azure.storage.blob import BlobClient as BlobClientSdk
-from typing import Union
 
 
 class StorageStreamDownloader(SdkType):
@@ -36,7 +36,8 @@ class StorageStreamDownloader(SdkType):
             blob_client = BlobClientSdk.from_connection_string(
                 conn_str=self._connection,
                 container_name=self._containerName,
-                blob_name=self._blobName)
+                blob_name=self._blobName,
+            )
             # download_blob() returns a StorageStreamDownloader object
             return blob_client.download_blob()
         else:

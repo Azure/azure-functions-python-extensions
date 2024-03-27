@@ -188,11 +188,3 @@ class OutConverter(_BaseConverter, binding=None):
 
 def get_binding_registry():
     return _ConverterMeta
-
-
-def check_deferred_bindings_enabled(
-    cls, sdk_binding_registry: _ConverterMeta, pytype: type
-) -> bool:
-    return sdk_binding_registry is not None and _ConverterMeta.check_supported_type(
-        pytype
-    )
