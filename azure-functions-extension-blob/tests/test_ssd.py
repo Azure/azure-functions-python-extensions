@@ -7,7 +7,8 @@ from enum import Enum
 from typing import Optional
 
 from azure.functions.extension.base import Datum
-from azure.functions.extension.blob import BlobClientConverter, StorageStreamDownloader
+from azure.functions.extension.blob import (BlobClientConverter,
+                                            StorageStreamDownloader)
 from azure.storage.blob import StorageStreamDownloader as SSDSdk
 
 
@@ -78,9 +79,10 @@ class TestStorageStreamDownloader(unittest.TestCase):
         )
         self.assertIsNone(result)
 
-        datum: Datum = Datum(value=b'string_content', type=None)
+        datum: Datum = Datum(value=b"string_content", type=None)
         result = BlobClientConverter.decode(
-            data=datum, trigger_metadata=None, pytype=StorageStreamDownloader)
+            data=datum, trigger_metadata=None, pytype=StorageStreamDownloader
+        )
         self.assertIsNone(result)
 
     def test_input_incorrect_type(self):
@@ -128,18 +130,20 @@ class TestStorageStreamDownloader(unittest.TestCase):
         content = {
             "Connection": "AzureWebJobsStorage",
             "ContainerName": "test-blob",
-            "BlobName": "text.txt"
+            "BlobName": "text.txt",
         }
 
-        sample_mbd = MockMBD(version="1.0",
-                             source="AzureStorageBlobs",
-                             content_type="application/json",
-                             content=json.dumps(content))
+        sample_mbd = MockMBD(
+            version="1.0",
+            source="AzureStorageBlobs",
+            content_type="application/json",
+            content=json.dumps(content),
+        )
 
-        datum: Datum = Datum(value=sample_mbd, type='model_binding_data')
-        result: StorageStreamDownloader = BlobClientConverter.decode(data=datum,
-                                                                     trigger_metadata=None,
-                                                                     pytype="str")
+        datum: Datum = Datum(value=sample_mbd, type="model_binding_data")
+        result: StorageStreamDownloader = BlobClientConverter.decode(
+            data=datum, trigger_metadata=None, pytype="str"
+        )
 
         self.assertIsNone(result)
 

@@ -78,9 +78,10 @@ class TestContainerClient(unittest.TestCase):
         )
         self.assertIsNone(result)
 
-        datum: Datum = Datum(value=b'string_content', type=None)
+        datum: Datum = Datum(value=b"string_content", type=None)
         result = BlobClientConverter.decode(
-            data=datum, trigger_metadata=None, pytype=ContainerClient)
+            data=datum, trigger_metadata=None, pytype=ContainerClient
+        )
         self.assertIsNone(result)
 
     def test_input_incorrect_type(self):
@@ -126,18 +127,20 @@ class TestContainerClient(unittest.TestCase):
         content = {
             "Connection": "AzureWebJobsStorage",
             "ContainerName": "test-blob",
-            "BlobName": "text.txt"
+            "BlobName": "text.txt",
         }
 
-        sample_mbd = MockMBD(version="1.0",
-                             source="AzureStorageBlobs",
-                             content_type="application/json",
-                             content=json.dumps(content))
+        sample_mbd = MockMBD(
+            version="1.0",
+            source="AzureStorageBlobs",
+            content_type="application/json",
+            content=json.dumps(content),
+        )
 
-        datum: Datum = Datum(value=sample_mbd, type='model_binding_data')
-        result: ContainerClient = BlobClientConverter.decode(data=datum,
-                                                             trigger_metadata=None,
-                                                             pytype="str")
+        datum: Datum = Datum(value=sample_mbd, type="model_binding_data")
+        result: ContainerClient = BlobClientConverter.decode(
+            data=datum, trigger_metadata=None, pytype="str"
+        )
 
         self.assertIsNone(result)
 
