@@ -16,6 +16,8 @@ from .web import (
     RequestTrackerMeta,
     ResponseLabels,
     ResponseTrackerMeta,
+    WebApp,
+    WebServer,
 )
 
 __all__ = [
