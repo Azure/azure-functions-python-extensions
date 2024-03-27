@@ -48,6 +48,7 @@ jobs:
         flags: unittests
         name: codecov
         fail_ci_if_error: false
+        config: .github/codecov/.codecov_fastapi.yml
 
   send-notification:
     runs-on: ubuntu-latest
