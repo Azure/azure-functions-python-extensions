@@ -50,7 +50,7 @@ jobs:
         flags: unittests
         name: codecov
         fail_ci_if_error: false
-        codecov_yml_path: .github/codecov/.codecov_fastapi.yml
+        # codecov_yml_path: .github/codecov/.codecov_fastapi.yml
 
   send-notification:
     runs-on: ubuntu-latest
