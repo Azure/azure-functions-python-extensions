@@ -42,7 +42,7 @@ jobs:
         python -m pytest -q --instafail --cov=. --cov-report xml --cov-branch --ignore tests/ tests
 
     - name: Upload Coverage to Codecov
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v4
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
       with:
