@@ -45,7 +45,7 @@ jobs:
         env:
           AzureWebJobsStorage: ${{ secrets.AzureWebJobsStorage }}
         run: |
-          python -m pytest -q --instafail --cov=. --cov-report xml --cov-branch --cov-exclude="tests" tests
+          python -m pytest -q --instafail --cov=. --cov-report xml --cov-branch --ignore tests/ tests
 
       - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v3
