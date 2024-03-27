@@ -7,9 +7,8 @@ from enum import Enum
 from typing import Optional
 
 from azure.functions.extension.base import Datum
-from azure.storage.blob import ContainerClient as ContainerClientSdk
-
 from azure.functions.extension.blob import BlobClientConverter, ContainerClient
+from azure.storage.blob import ContainerClient as ContainerClientSdk
 
 
 # Mock classes for testing
