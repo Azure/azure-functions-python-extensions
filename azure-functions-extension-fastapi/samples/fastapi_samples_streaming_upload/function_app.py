@@ -3,9 +3,10 @@
 # processing continuous data streams, or handling IoT device data.
 
 import azure.functions as func
-from azure.functions.extension.fastapi import Request, JSONResponse
+from azure.functions.extension.fastapi import JSONResponse, Request
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
+
 
 @app.route(route="streaming_upload", methods=[func.HttpMethod.POST])
 async def streaming_upload(req: Request) -> JSONResponse:
@@ -16,6 +17,7 @@ async def streaming_upload(req: Request) -> JSONResponse:
 
     # Once all data is received, return a JSON response indicating successful processing
     return JSONResponse({"status": "Data uploaded and processed successfully"})
+
 
 def process_data_chunk(chunk: bytes):
     """Process each data chunk."""
