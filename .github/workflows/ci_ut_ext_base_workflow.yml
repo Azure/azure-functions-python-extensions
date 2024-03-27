@@ -45,15 +45,19 @@ jobs:
         env:
           AzureWebJobsStorage: ${{ secrets.AzureWebJobsStorage }}
         run: |
-          python -m pytest -q --instafail --cov=. --cov-report xml --cov-branch tests
+          python -m pytest -q --instafail --cov=. --cov-report xml --cov-branch --ignore tests/ tests
 
       - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v3
+        # env:
+        #   CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         with:
           file: ./azure-functions-extension-base/coverage.xml
           flags: unittests
           name: codecov
           fail_ci_if_error: false
+          # TODO: upgrade to v4 when it is not breaking https://github.com/codecov/codecov-action/issues/1336
+          # codecov_yml_path: .github/codecov/.codecov_base.yml
 
   send-notification:
     runs-on: ubuntu-latest
