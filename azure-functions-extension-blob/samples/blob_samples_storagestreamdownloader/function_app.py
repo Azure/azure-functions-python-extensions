@@ -27,21 +27,25 @@ USAGE:
 """
 
 
-@app.blob_trigger(arg_name="stream",
-                  path="PATH/TO/BLOB",
-                  connection="AzureWebJobsStorage")
+@app.blob_trigger(
+    arg_name="stream", path="PATH/TO/BLOB", connection="AzureWebJobsStorage"
+)
 def blob_trigger(stream: blob.StorageStreamDownloader):
     for chunk in stream.chunks():
-        logging.info(f"Python blob trigger function processed blob chunk \n"
-                     f"Chunk: {chunk.decode()}")
+        logging.info(
+            f"Python blob trigger function processed blob chunk \n"
+            f"Chunk: {chunk.decode()}"
+        )
 
 
 @app.route(route="file")
-@app.blob_input(arg_name="stream",
-                path="PATH/TO/BLOB",
-                connection="AzureWebJobsStorage")
+@app.blob_input(
+    arg_name="stream", path="PATH/TO/BLOB", connection="AzureWebJobsStorage"
+)
 def blob_input(req: func.HttpRequest, stream: blob.StorageStreamDownloader):
     for chunk in stream.chunks():
-        logging.info(f"Python blob trigger function processed blob chunk \n"
-                     f"Chunk: {chunk.decode()}")
+        logging.info(
+            f"Python blob trigger function processed blob chunk \n"
+            f"Chunk: {chunk.decode()}"
+        )
     return "ok"

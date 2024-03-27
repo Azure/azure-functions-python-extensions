@@ -35,7 +35,7 @@ class BlobClient(SdkType):
             return BlobClientSdk.from_connection_string(
                 conn_str=self._connection,
                 container_name=self._containerName,
-                blob_name=self._blobName
+                blob_name=self._blobName,
             )
         else:
             return None

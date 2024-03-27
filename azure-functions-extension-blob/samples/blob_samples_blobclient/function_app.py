@@ -27,21 +27,25 @@ USAGE:
 """
 
 
-@app.blob_trigger(arg_name="client",
-                  path="PATH/TO/BLOB",
-                  connection="AzureWebJobsStorage")
+@app.blob_trigger(
+    arg_name="client", path="PATH/TO/BLOB", connection="AzureWebJobsStorage"
+)
 def blob_trigger(client: blob.BlobClient):
-    logging.info(f"Python blob trigger function processed blob \n"
-                 f"Properties: {client.get_blob_properties()}\n"
-                 f"Blob content: {client.download_blob().readall()}")
+    logging.info(
+        f"Python blob trigger function processed blob \n"
+        f"Properties: {client.get_blob_properties()}\n"
+        f"Blob content: {client.download_blob().readall()}"
+    )
 
 
 @app.route(route="file")
-@app.blob_input(arg_name="client",
-                path="PATH/TO/BLOB",
-                connection="AzureWebJobsStorage")
+@app.blob_input(
+    arg_name="client", path="PATH/TO/BLOB", connection="AzureWebJobsStorage"
+)
 def blob_input(req: func.HttpRequest, client: blob.BlobClient):
-    logging.info(f"Python blob trigger function processed blob \n"
-                 f"Properties: {client.get_blob_properties()}\n"
-                 f"Blob content: {client.download_blob().readall()}")
+    logging.info(
+        f"Python blob trigger function processed blob \n"
+        f"Properties: {client.get_blob_properties()}\n"
+        f"Blob content: {client.download_blob().readall()}"
+    )
     return "ok"
