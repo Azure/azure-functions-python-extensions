@@ -1,0 +1,4 @@
+ignore:
+    - "azure-functions-extension-base/tests"
+    - "azure-functions-extension-blob/tests"
+    - "azure-functions-extension-fastapi/tests"
