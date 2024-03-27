@@ -3,6 +3,7 @@
 
 from abc import abstractmethod
 
+
 class SdkType:
     def __init__(self, *, data: dict = None):
         self._data = data or {}
