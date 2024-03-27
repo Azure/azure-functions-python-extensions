@@ -7,8 +7,7 @@ from enum import Enum
 from typing import Optional
 
 from azure.functions.extension.base import Datum
-from azure.functions.extension.blob import (BlobClientConverter,
-                                            StorageStreamDownloader)
+from azure.functions.extension.blob import BlobClientConverter, StorageStreamDownloader
 from azure.storage.blob import StorageStreamDownloader as SSDSdk
 
 
