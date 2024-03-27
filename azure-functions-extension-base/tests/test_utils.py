@@ -2,10 +2,9 @@
 # Licensed under the MIT License.
 
 import unittest
-
 from abc import ABC
 
-from azure.functions.extension.base import meta, utils, sdkType
+from azure.functions.extension.base import meta, sdkType, utils
 
 
 class MockParamTypeInfo:
@@ -26,57 +25,71 @@ class TestUtils(unittest.TestCase):
         meta._ConverterMeta._bindings = {"blob"}
 
         # Create test binding
-        mock_blob = utils.Binding(name="client",
-                                  direction=utils.BindingDirection.IN,
-                                  data_type=None, type='blob')
+        mock_blob = utils.Binding(
+            name="client",
+            direction=utils.BindingDirection.IN,
+            data_type=None,
+            type="blob",
+        )
 
         # Create test input_types dict
-        mock_input_types = {"client": MockParamTypeInfo(
-            binding_name='blobTrigger', pytype=sdkType.SdkType)}
+        mock_input_types = {
+            "client": MockParamTypeInfo(
+                binding_name="blobTrigger", pytype=sdkType.SdkType
+            )
+        }
 
         # Create test indexed_function
         mock_indexed_functions = MockFunction(bindings=[mock_blob])
 
-        dict_repr = utils.get_raw_bindings(mock_indexed_functions,
-                                           mock_input_types)
-        self.assertEqual(dict_repr,
-                         ['{"direction": "IN", '
-                          '"dataType": null, "type": "blob", '
-                          '"properties": '
-                          '{"SupportsDeferredBinding": true}}'])
+        dict_repr = utils.get_raw_bindings(mock_indexed_functions, mock_input_types)
+        self.assertEqual(
+            dict_repr,
+            [
+                '{"direction": "IN", '
+                '"dataType": null, "type": "blob", '
+                '"properties": '
+                '{"SupportsDeferredBinding": true}}'
+            ],
+        )
 
     def test_get_dict_repr_non_sdk(self):
         # Create mock blob
         meta._ConverterMeta._bindings = {"blob"}
 
         # Create test binding
-        mock_blob = utils.Binding(name="blob",
-                                  direction=utils.BindingDirection.IN,
-                                  data_type=None, type='blob')
+        mock_blob = utils.Binding(
+            name="blob",
+            direction=utils.BindingDirection.IN,
+            data_type=None,
+            type="blob",
+        )
 
         # Create test input_types dict
-        mock_input_types = {"blob": MockParamTypeInfo(
-            binding_name='blobTrigger', pytype=bytes)}
+        mock_input_types = {
+            "blob": MockParamTypeInfo(binding_name="blobTrigger", pytype=bytes)
+        }
 
         # Create test indexed_function
         mock_indexed_functions = MockFunction(bindings=[mock_blob])
 
-        dict_repr = utils.get_raw_bindings(mock_indexed_functions,
-                                           mock_input_types)
-        self.assertEqual(dict_repr,
-                         ['{"direction": "IN", '
-                          '"dataType": null, "type": "blob", '
-                          '"properties": '
-                          '{"SupportsDeferredBinding": false}}'])
+        dict_repr = utils.get_raw_bindings(mock_indexed_functions, mock_input_types)
+        self.assertEqual(
+            dict_repr,
+            [
+                '{"direction": "IN", '
+                '"dataType": null, "type": "blob", '
+                '"properties": '
+                '{"SupportsDeferredBinding": false}}'
+            ],
+        )
 
     def test_to_camel_case(self):
         test_str = ""
-        self.assertRaises(ValueError,
-                          utils.to_camel_case, test_str)
+        self.assertRaises(ValueError, utils.to_camel_case, test_str)
 
         test_str = "1iAmNotAWord"
-        self.assertRaises(ValueError,
-                          utils.to_camel_case, test_str)
+        self.assertRaises(ValueError, utils.to_camel_case, test_str)
 
         test_str = utils.to_camel_case("string_in_correct_format")
         self.assertEqual(test_str, "stringInCorrectFormat")
