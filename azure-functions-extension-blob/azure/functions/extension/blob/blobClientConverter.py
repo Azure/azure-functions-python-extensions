@@ -4,20 +4,24 @@
 from typing import Any
 
 from azure.functions.extension.base import Datum, InConverter, OutConverter
+
 from .blobClient import BlobClient
 from .containerClient import ContainerClient
 from .storageStreamDownloader import StorageStreamDownloader
 
 
-class BlobClientConverter(InConverter,
-                          OutConverter,
-                          binding='blob',
-                          trigger='blobTrigger',):
+class BlobClientConverter(
+    InConverter,
+    OutConverter,
+    binding="blob",
+    trigger="blobTrigger",
+):
 
     @classmethod
     def check_input_type_annotation(cls, pytype: type) -> bool:
-        return issubclass(pytype, (BlobClient, ContainerClient,
-                                   StorageStreamDownloader))
+        return issubclass(
+            pytype, (BlobClient, ContainerClient, StorageStreamDownloader)
+        )
 
     @classmethod
     def decode(cls, data: Datum, *, trigger_metadata, pytype) -> Any:
@@ -26,12 +30,12 @@ class BlobClientConverter(InConverter,
 
         data_type = data.type
 
-        if data_type == 'model_binding_data':
+        if data_type == "model_binding_data":
             data = data.value
         else:
             raise ValueError(
                 f'unexpected type of data received for the "blob" binding '
-                f': {data_type!r}'
+                f": {data_type!r}"
             )
 
         # Determines which sdk type to return based on pytype
