@@ -4,6 +4,7 @@
 from typing import Any
 
 from azure.functions.extension.base import Datum, InConverter, OutConverter
+
 from .blobClient import BlobClient
 from .containerClient import ContainerClient
 from .storageStreamDownloader import StorageStreamDownloader

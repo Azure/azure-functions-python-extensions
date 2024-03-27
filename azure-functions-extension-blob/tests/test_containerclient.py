@@ -3,12 +3,13 @@
 
 import json
 import unittest
-from typing import Optional
 from enum import Enum
+from typing import Optional
 
 from azure.functions.extension.base import Datum
-from azure.functions.extension.blob import ContainerClient, BlobClientConverter
 from azure.storage.blob import ContainerClient as ContainerClientSdk
+
+from azure.functions.extension.blob import BlobClientConverter, ContainerClient
 
 
 # Mock classes for testing

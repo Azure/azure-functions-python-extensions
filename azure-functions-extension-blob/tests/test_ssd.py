@@ -3,12 +3,13 @@
 
 import json
 import unittest
-from typing import Optional
 from enum import Enum
+from typing import Optional
 
 from azure.functions.extension.base import Datum
-from azure.functions.extension.blob import StorageStreamDownloader, BlobClientConverter
 from azure.storage.blob import StorageStreamDownloader as SSDSdk
+
+from azure.functions.extension.blob import BlobClientConverter, StorageStreamDownloader
 
 
 # Mock classes for testing

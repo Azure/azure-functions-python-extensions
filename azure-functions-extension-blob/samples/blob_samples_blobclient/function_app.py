@@ -7,6 +7,7 @@
 # --------------------------------------------------------------------------
 
 import logging
+
 import azure.functions as func
 import azure.functions.extension.blob as blob
 
