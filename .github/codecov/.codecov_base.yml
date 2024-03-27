@@ -1,3 +1,2 @@
-codecov:
-  ignore:
-    - azure-functions-extension-base/tests
+ignore:
+    - "azure-functions-extension-base/tests"
