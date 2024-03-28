@@ -4,15 +4,14 @@
 import inspect
 import json
 import re
-
 from abc import ABC
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional
 
 from . import meta
 
-SNAKE_CASE_RE = re.compile(r'^([a-zA-Z]+\d*_|_+[a-zA-Z\d])\w*$')
-WORD_RE = re.compile(r'^([a-zA-Z]+\d*)$')
+SNAKE_CASE_RE = re.compile(r"^([a-zA-Z]+\d*_|_+[a-zA-Z\d])\w*$")
+WORD_RE = re.compile(r"^([a-zA-Z]+\d*)$")
 
 
 class StringifyEnum(Enum):
@@ -38,10 +37,8 @@ class BuildDictMeta(type):
         value fields. It is needed for enabling binding param optionality.
         """
         cls = super().__new__(mcs, name, bases, dct)
-        setattr(cls, '__init__',
-                cls.add_to_dict(getattr(cls, '__init__')))
-        setattr(cls, 'get_dict_repr',
-                cls.skip_none(getattr(cls, 'get_dict_repr')))
+        setattr(cls, "__init__", cls.add_to_dict(getattr(cls, "__init__")))
+        setattr(cls, "get_dict_repr", cls.skip_none(getattr(cls, "get_dict_repr")))
         return cls
 
     @staticmethod
@@ -57,8 +54,9 @@ class BuildDictMeta(type):
         def wrapper(*args, **kwargs):
             if args is None or len(args) == 0:
                 raise ValueError(
-                    f'{func.__name__} has no args. Please ensure func is an '
-                    f'object method.')
+                    f"{func.__name__} has no args. Please ensure func is an "
+                    f"object method."
+                )
 
             func(*args, **kwargs)
 
@@ -70,7 +68,7 @@ class BuildDictMeta(type):
                 if not hasattr(self, key):
                     setattr(self, key, kwargs[key])
 
-            setattr(self, 'init_params', init_params)
+            setattr(self, "init_params", init_params)
 
         return wrapper
 
@@ -82,8 +80,7 @@ class BuildDictMeta(type):
         the result as a new dictionary or list.
         """
         if isinstance(value, list):
-            return [BuildDictMeta.clean_nones(x) for x in value if
-                    x is not None]
+            return [BuildDictMeta.clean_nones(x) for x in value if x is not None]
         elif isinstance(value, dict):
             return {
                 key: BuildDictMeta.clean_nones(val)
@@ -97,6 +94,7 @@ class BuildDictMeta(type):
 # Enums
 class BindingDirection(StringifyEnum):
     """Direction of the binding used in function.json"""
+
     IN = 0
     """Input binding direction."""
     OUT = 1
@@ -107,6 +105,7 @@ class BindingDirection(StringifyEnum):
 
 class DataType(StringifyEnum):
     """Data type of the binding used in function.json"""
+
     """Parse binding argument as undefined."""
     UNDEFINED = 0
     """Parse binding argument as string."""
@@ -123,30 +122,34 @@ class Binding(ABC):
     every binding, the only restriction is ***ENSURE*** __init__ parameter
     names of any binding class are snake case form of corresponding
     attribute in function.json when new binding classes are created.
-    Ref: https://aka.ms/azure-function-binding-http """
+    Ref: https://aka.ms/azure-function-binding-http"""
 
-    EXCLUDED_INIT_PARAMS = {'self', 'kwargs', 'type', 'data_type', 'direction'}
+    EXCLUDED_INIT_PARAMS = {"self", "kwargs", "type", "data_type", "direction"}
 
     @staticmethod
     def get_binding_name() -> str:
         pass
 
-    def __init__(self, name: str,
-                 direction: BindingDirection,
-                 data_type: Optional[DataType] = None,
-                 type: Optional[str] = None):  # NoQa
+    def __init__(
+        self,
+        name: str,
+        direction: BindingDirection,
+        data_type: Optional[DataType] = None,
+        type: Optional[str] = None,
+    ):  # NoQa
         # For natively supported bindings, get_binding_name is always
         # implemented, and for generic bindings, type is a required argument
         # in decorator functions.
-        self.type = self.get_binding_name() \
-            if self.get_binding_name() is not None else type
+        self.type = (
+            self.get_binding_name() if self.get_binding_name() is not None else type
+        )
         self.name = name
         self._direction = direction
         self._data_type = data_type
         self._dict = {
             "direction": self._direction,
             "dataType": self._data_type,
-            "type": self.type
+            "type": self.type,
         }
 
     @property
@@ -166,7 +169,7 @@ class Binding(ABC):
 
         :return: Dictionary representation of the binding.
         """
-        params = list(dict.fromkeys(getattr(binding, 'init_params', [])))
+        params = list(dict.fromkeys(getattr(binding, "init_params", [])))
         for p in params:
             if p not in Binding.EXCLUDED_INIT_PARAMS:
                 binding._dict[to_camel_case(p)] = getattr(binding, p, None)
@@ -175,10 +178,13 @@ class Binding(ABC):
         # 1. check if the binding is a supported type (blob, blobTrigger)
         # 2. check if the binding is an input binding
         # 3. check if the defined type is an SdkType
-        if (binding.type in meta._ConverterMeta._bindings
-                and binding.direction == 0
-                and meta._ConverterMeta.check_supported_type(
-                    input_types.get(binding.name).pytype)):
+        if (
+            binding.type in meta._ConverterMeta._bindings
+            and binding.direction == 0
+            and meta._ConverterMeta.check_supported_type(
+                input_types.get(binding.name).pytype
+            )
+        ):
             binding._dict["properties"] = {"SupportsDeferredBinding": True}
         # if it isn't, we set the flag to false
         else:
@@ -189,15 +195,15 @@ class Binding(ABC):
 
 def to_camel_case(snake_case_str: str):
     if snake_case_str is None or len(snake_case_str) == 0:
-        raise ValueError(
-            f"Please ensure arg name {snake_case_str} is not empty!")
+        raise ValueError(f"Please ensure arg name {snake_case_str} is not empty!")
 
     if not is_snake_case(snake_case_str) and not is_word(snake_case_str):
         raise ValueError(
             f"Please ensure {snake_case_str} is a word or snake case "
-            f"string with underscore as separator.")
-    words = snake_case_str.split('_')
-    return words[0] + ''.join([ele.title() for ele in words[1:]])
+            f"string with underscore as separator."
+        )
+    words = snake_case_str.split("_")
+    return words[0] + "".join([ele.title() for ele in words[1:]])
 
 
 def is_snake_case(input_string: str) -> bool:
@@ -233,6 +239,7 @@ def is_word(input_string: str) -> bool:
 
 
 def get_raw_bindings(indexed_function, input_types) -> List[str]:
-    return [json.dumps(Binding.get_dict_repr(b, input_types),
-                       cls=StringifyEnumJsonEncoder)
-            for b in indexed_function._bindings]
+    return [
+        json.dumps(Binding.get_dict_repr(b, input_types), cls=StringifyEnumJsonEncoder)
+        for b in indexed_function._bindings
+    ]
