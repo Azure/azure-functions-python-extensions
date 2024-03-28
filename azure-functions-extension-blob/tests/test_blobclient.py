@@ -78,6 +78,12 @@ class TestBlobClient(unittest.TestCase):
         )
         self.assertIsNone(result)
 
+        datum: Datum = Datum(value=b"string_content", type=None)
+        result = BlobClientConverter.decode(
+            data=datum, trigger_metadata=None, pytype=BlobClient
+        )
+        self.assertIsNone(result)
+
     def test_input_incorrect_type(self):
         datum: Datum = Datum(value=b"string_content", type="bytearray")
         with self.assertRaises(ValueError):
@@ -118,6 +124,27 @@ class TestBlobClient(unittest.TestCase):
 
         self.assertIsNotNone(sdk_result)
         self.assertIsInstance(sdk_result, BlobClientSdk)
+
+    def test_input_invalid_pytype(self):
+        content = {
+            "Connection": "AzureWebJobsStorage",
+            "ContainerName": "test-blob",
+            "BlobName": "text.txt",
+        }
+
+        sample_mbd = MockMBD(
+            version="1.0",
+            source="AzureStorageBlobs",
+            content_type="application/json",
+            content=json.dumps(content),
+        )
+
+        datum: Datum = Datum(value=sample_mbd, type="model_binding_data")
+        result: BlobClient = BlobClientConverter.decode(
+            data=datum, trigger_metadata=None, pytype="str"
+        )
+
+        self.assertIsNone(result)
 
     def test_blob_client_invalid_creation(self):
         # Create test binding
