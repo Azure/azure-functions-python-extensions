@@ -8,15 +8,15 @@ from azure.functions.extension.base import sdkType
 class TestSdkType(unittest.TestCase):
 
     def test_init(self):
-        data_populated = sdkType.SdkType(data={'key': 'value'})
-        self.assertEqual(data_populated._data, {'key': 'value'})
+        data_populated = sdkType.SdkType(data={"key": "value"})
+        self.assertEqual(data_populated._data, {"key": "value"})
 
         data_empty = sdkType.SdkType()
         self.assertEqual(data_empty._data, {})
 
     def test_get_sdk_type(self):
         class MockSdkType(sdkType.SdkType):
-            _sample = ''
+            _sample = ""
 
         mock_type = MockSdkType()
         self.assertIsNone(mock_type.get_sdk_type())
