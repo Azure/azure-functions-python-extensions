@@ -7,6 +7,10 @@ from unittest.mock import patch
 from azure.functions.extension.base import meta, sdkType
 
 
+class Bad:
+    remove_me = ''
+
+
 class TestMeta(unittest.TestCase):
     # Test Datum class
     def test_datum_single_level_python_value(self):

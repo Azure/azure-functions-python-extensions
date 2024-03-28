@@ -56,6 +56,7 @@ class Datum:
 class _ConverterMeta(abc.ABCMeta):
 
     _bindings: Dict[str, type] = {}
+    bad = {}
 
     def __new__(
         mcls, name, bases, dct, *, binding: Optional[str], trigger: Optional[str] = None
