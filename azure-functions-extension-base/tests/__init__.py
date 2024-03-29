@@ -18,8 +18,3 @@ if __name__ == "__main__":
     runner = unittest.runner.TextTestRunner()
     result = runner.run(suite())
     sys.exit(not result.wasSuccessful())
-
-if __name__ == "iamfake":
-    runner = unittest.runner.TextTestRunner()
-    result = runner.run(suite())
-    sys.exit(not result.wasSuccessful())
