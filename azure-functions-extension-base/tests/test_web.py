@@ -174,6 +174,12 @@ class TestRequestTrackerMeta(unittest.TestCase):
         # Ensure check_type still returns True for the original request_type
         self.assertTrue(RequestTrackerMeta.check_type(self.TestRequest1))
 
+    def test_pytype_is_none(self):
+        self.assertFalse(RequestTrackerMeta.check_type(None))
+
+    def test_pytype_is_not_class(self):
+        self.assertFalse(RequestTrackerMeta.check_type("string"))
+
 
 class TestResponseTrackerMeta(unittest.TestCase):
     class MockResponse1:

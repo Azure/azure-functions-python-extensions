@@ -78,7 +78,7 @@ class RequestTrackerMeta(type):
 class RequestSynchronizer(abc.ABC):
     @abstractmethod
     def sync_route_params(self, request, path_params):
-        pass
+        pass  # pragma: no cover
 
 
 class ResponseTrackerMeta(type):
@@ -128,11 +128,11 @@ class ResponseTrackerMeta(type):
 class WebApp(metaclass=ModuleTrackerMeta):
     @abstractmethod
     def route(self, func: Callable):
-        pass
+        pass  # pragma: no cover
 
     @abstractmethod
     def get_app(self):
-        pass
+        pass  # pragma: no cover
 
 
 class WebServer(metaclass=ModuleTrackerMeta):
@@ -143,7 +143,7 @@ class WebServer(metaclass=ModuleTrackerMeta):
 
     @abstractmethod
     async def serve(self):
-        pass
+        pass  # pragma: no cover
 
 
 class HttpV2FeatureChecker:
