@@ -86,6 +86,18 @@ class TestRequestTrackerMeta(unittest.TestCase):
             str(context.exception), "Request type not provided for class TestClass"
         )
 
+    def test_request_synchronizer_not_provided(self):
+        # Define a class without providing the synchronizer attribute
+        with self.assertRaises(Exception) as context:
+
+            class TestClass(metaclass=RequestTrackerMeta):
+                request_type = self.TestRequest1
+
+        self.assertEqual(
+            str(context.exception),
+            "Request synchronizer not provided for class TestClass",
+        )
+
     def test_single_request_type(self):
         # Define a class providing a request_type attribute
         class TestClass(metaclass=RequestTrackerMeta):
@@ -99,6 +111,7 @@ class TestRequestTrackerMeta(unittest.TestCase):
         )
         # Ensure check_type returns True for the provided request_type
         self.assertTrue(RequestTrackerMeta.check_type(self.TestRequest1))
+        self.assertFalse(RequestTrackerMeta.check_type(self.TestRequest2))
 
     def test_multiple_request_types_same(self):
         # Define a class providing the same request_type attribute
@@ -238,6 +251,26 @@ class TestResponseTrackerMeta(unittest.TestCase):
         )
         self.assertTrue(ResponseTrackerMeta.check_type(self.MockResponse1))
         self.assertTrue(ResponseTrackerMeta.check_type(self.MockResponse2))
+
+    def test_response_label_not_provided(self):
+        with self.assertRaises(Exception) as context:
+
+            class TestResponse(metaclass=ResponseTrackerMeta):
+                response_type = self.MockResponse1
+
+        self.assertEqual(
+            str(context.exception), "Response label not provided for class TestResponse"
+        )
+
+    def test_response_type_not_provided(self):
+        with self.assertRaises(Exception) as context:
+
+            class TestResponse(metaclass=ResponseTrackerMeta):
+                label = "test_label_1"
+
+        self.assertEqual(
+            str(context.exception), "Response type not provided for class TestResponse"
+        )
 
 
 class TestWebApp(unittest.TestCase):
