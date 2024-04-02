@@ -51,7 +51,6 @@ jobs:
         name: codecov
         fail_ci_if_error: false
         # TODO: upgrade to v4 when it is not breaking https://github.com/codecov/codecov-action/issues/1336
-        # codecov_yml_path: .github/codecov/.codecov_blob.yml
 
 
   send-notification:
