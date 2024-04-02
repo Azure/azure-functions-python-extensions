@@ -1,3 +1,4 @@
+import abc
 import inspect
 from abc import abstractmethod
 from enum import Enum
@@ -34,6 +35,7 @@ class ModuleTrackerMeta(type):
 
 class RequestTrackerMeta(type):
     _request_type = None
+    _synchronizer: None
 
     def __new__(cls, name, bases, dct, **kwargs):
         new_class = super().__new__(cls, name, bases, dct)
@@ -49,6 +51,10 @@ class RequestTrackerMeta(type):
                 f"but found {cls._request_type} and {request_type}"
             )
         cls._request_type = request_type
+        cls._synchronizer = dct.get("synchronizer")
+
+        if cls._synchronizer is None:
+            raise Exception(f"Request synchronizer not provided for class {name}")
 
         return new_class
 
@@ -57,12 +63,22 @@ class RequestTrackerMeta(type):
         return cls._request_type
 
     @classmethod
+    def get_synchronizer(cls):
+        return cls._synchronizer
+
+    @classmethod
     def check_type(cls, pytype: type) -> bool:
         if pytype is not None and inspect.isclass(pytype):
             return cls._request_type is not None and issubclass(
                 pytype, cls._request_type
             )
         return False
+
+
+class RequestSynchronizer(abc.ABC):
+    @abstractmethod
+    def sync_route_params(self, request, path_params):
+        pass
 
 
 class ResponseTrackerMeta(type):
@@ -146,3 +162,10 @@ class ResponseLabels(Enum):
     PLAIN_TEXT = "plain_text"
     REDIRECT = "redirect"
     UJSON = "ujson"
+    INT = "int"
+    FLOAT = "float"
+    STR = "str"
+    LIST = "list"
+    DICT = "dict"
+    BOOL = "bool"
+    PYDANTIC = "pydantic"

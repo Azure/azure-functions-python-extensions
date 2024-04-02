@@ -4,6 +4,7 @@ from unittest.mock import patch
 from azure.functions.extension.base import (
     HttpV2FeatureChecker,
     ModuleTrackerMeta,
+    RequestSynchronizer,
     RequestTrackerMeta,
     ResponseLabels,
     ResponseTrackerMeta,
@@ -66,6 +67,10 @@ class TestRequestTrackerMeta(unittest.TestCase):
     class TestRequest3:
         pass
 
+    class Syncronizer(RequestSynchronizer):
+        def sync_route_params(self, request, path_params):
+            pass
+
     def setUp(self):
         # Reset _request_type before each test
         RequestTrackerMeta._request_type = None
@@ -85,9 +90,13 @@ class TestRequestTrackerMeta(unittest.TestCase):
         # Define a class providing a request_type attribute
         class TestClass(metaclass=RequestTrackerMeta):
             request_type = self.TestRequest1
+            synchronizer = self.Syncronizer()
 
         # Ensure the request_type is correctly recorded
         self.assertEqual(RequestTrackerMeta.get_request_type(), self.TestRequest1)
+        self.assertTrue(
+            isinstance(RequestTrackerMeta.get_synchronizer(), RequestSynchronizer)
+        )
         # Ensure check_type returns True for the provided request_type
         self.assertTrue(RequestTrackerMeta.check_type(self.TestRequest1))
 
@@ -95,18 +104,26 @@ class TestRequestTrackerMeta(unittest.TestCase):
         # Define a class providing the same request_type attribute
         class TestClass1(metaclass=RequestTrackerMeta):
             request_type = self.TestRequest1
+            synchronizer = self.Syncronizer()
 
         # Ensure the request_type is correctly recorded
         self.assertEqual(RequestTrackerMeta.get_request_type(), self.TestRequest1)
+        self.assertTrue(
+            isinstance(RequestTrackerMeta.get_synchronizer(), RequestSynchronizer)
+        )
         # Ensure check_type returns True for the provided request_type
         self.assertTrue(RequestTrackerMeta.check_type(self.TestRequest1))
 
         # Define another class providing the same request_type attribute
         class TestClass2(metaclass=RequestTrackerMeta):
             request_type = self.TestRequest1
+            synchronizer = self.Syncronizer()
 
         # Ensure the request_type remains the same
         self.assertEqual(RequestTrackerMeta.get_request_type(), self.TestRequest1)
+        self.assertTrue(
+            isinstance(RequestTrackerMeta.get_synchronizer(), RequestSynchronizer)
+        )
         # Ensure check_type still returns True for the original request_type
         self.assertTrue(RequestTrackerMeta.check_type(self.TestRequest1))
 
@@ -114,9 +131,13 @@ class TestRequestTrackerMeta(unittest.TestCase):
         # Define a class providing a different request_type attribute
         class TestClass1(metaclass=RequestTrackerMeta):
             request_type = self.TestRequest1
+            synchronizer = self.Syncronizer()
 
         # Ensure the request_type is correctly recorded
         self.assertEqual(RequestTrackerMeta.get_request_type(), self.TestRequest1)
+        self.assertTrue(
+            isinstance(RequestTrackerMeta.get_synchronizer(), RequestSynchronizer)
+        )
         # Ensure check_type returns True for the provided request_type
         self.assertTrue(RequestTrackerMeta.check_type(self.TestRequest1))
 
@@ -134,6 +155,9 @@ class TestRequestTrackerMeta(unittest.TestCase):
 
         # Ensure the request_type remains the same after the exception
         self.assertEqual(RequestTrackerMeta.get_request_type(), self.TestRequest1)
+        self.assertTrue(
+            isinstance(RequestTrackerMeta.get_synchronizer(), RequestSynchronizer)
+        )
         # Ensure check_type still returns True for the original request_type
         self.assertTrue(RequestTrackerMeta.check_type(self.TestRequest1))
 
@@ -253,3 +277,23 @@ class TestHttpV2Enabled(unittest.TestCase):
 
         mock_module_imported.return_value = False
         self.assertFalse(HttpV2FeatureChecker.http_v2_enabled())
+
+
+class TestResponseLabels(unittest.TestCase):
+    def test_enum_values(self):
+        self.assertEqual(ResponseLabels.STANDARD.value, "standard")
+        self.assertEqual(ResponseLabels.STREAMING.value, "streaming")
+        self.assertEqual(ResponseLabels.FILE.value, "file")
+        self.assertEqual(ResponseLabels.HTML.value, "html")
+        self.assertEqual(ResponseLabels.JSON.value, "json")
+        self.assertEqual(ResponseLabels.ORJSON.value, "orjson")
+        self.assertEqual(ResponseLabels.PLAIN_TEXT.value, "plain_text")
+        self.assertEqual(ResponseLabels.REDIRECT.value, "redirect")
+        self.assertEqual(ResponseLabels.UJSON.value, "ujson")
+        self.assertEqual(ResponseLabels.INT.value, "int")
+        self.assertEqual(ResponseLabels.FLOAT.value, "float")
+        self.assertEqual(ResponseLabels.STR.value, "str")
+        self.assertEqual(ResponseLabels.LIST.value, "list")
+        self.assertEqual(ResponseLabels.DICT.value, "dict")
+        self.assertEqual(ResponseLabels.BOOL.value, "bool")
+        self.assertEqual(ResponseLabels.PYDANTIC.value, "pydantic")
