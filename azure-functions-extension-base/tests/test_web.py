@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from azure.functions.extension.base import (
     HttpV2FeatureChecker,
@@ -252,6 +252,9 @@ class TestResponseTrackerMeta(unittest.TestCase):
             self.MockResponse1,
         )
         self.assertEqual(
+            ResponseTrackerMeta.get_standard_response_type(), self.MockResponse1
+        )
+        self.assertEqual(
             ResponseTrackerMeta.get_response_type(ResponseLabels.STREAMING),
             self.MockResponse2,
         )
@@ -291,6 +294,34 @@ class TestWebApp(unittest.TestCase):
         app = MockWebApp()
         self.assertEqual(app.get_app(), "MockApp")
 
+    def test_route_method_raises_not_implemented_error(self):
+        class MockWebApp(WebApp):
+            def get_app(self):
+                pass
+
+            def route(self, func):
+                super().route(func)
+
+        with self.assertRaises(NotImplementedError):
+            # Create a mock WebApp instance
+            mock_web_app = MockWebApp()
+            # Call the route method
+            mock_web_app.route(None)
+
+    def test_get_app_method_raises_not_implemented_error(self):
+        class MockWebApp(WebApp):
+            def route(self, func):
+                pass
+
+            def get_app(self):
+                super().get_app()
+
+        with self.assertRaises(NotImplementedError):
+            # Create a mock WebApp instance
+            mock_web_app = MockWebApp()
+            # Call the get_app method
+            mock_web_app.get_app()
+
 
 class TestWebServer(unittest.TestCase):
     def test_web_server_initialization(self):
@@ -301,11 +332,35 @@ class TestWebServer(unittest.TestCase):
             def get_app(self):
                 return "MockApp"
 
+        class MockWebServer(WebServer):
+            async def serve(self):
+                pass
+
         mock_web_app = MockWebApp()
-        server = WebServer("localhost", 8080, mock_web_app)
+        server = MockWebServer("localhost", 8080, mock_web_app)
         self.assertEqual(server.hostname, "localhost")
         self.assertEqual(server.port, 8080)
         self.assertEqual(server.web_app, "MockApp")
+
+    async def test_serve_method_raises_not_implemented_error(self):
+        # Create a mock WebApp instance
+        class MockWebApp(WebApp):
+            def route(self, func):
+                pass
+
+            def get_app(self):
+                pass
+
+        class MockWebServer(WebServer):
+            async def serve(self):
+                super().serve()
+
+        # Create a WebServer instance with the mock WebApp
+        server = MockWebServer("localhost", 8080, MockWebApp())
+
+        # Ensure that calling the serve method raises NotImplementedError
+        with self.assertRaises(NotImplementedError):
+            await server.serve()
 
 
 class TestHttpV2Enabled(unittest.TestCase):

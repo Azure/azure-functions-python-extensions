@@ -43,10 +43,10 @@ class RequestTrackerMeta(type):
         request_type = dct.get("request_type")
 
         if request_type is None:
-            raise Exception(f"Request type not provided for class {name}")
+            raise TypeError(f"Request type not provided for class {name}")
 
         if cls._request_type is not None and cls._request_type != request_type:
-            raise Exception(
+            raise TypeError(
                 f"Only one request type shall be recorded for class {name} "
                 f"but found {cls._request_type} and {request_type}"
             )
@@ -54,7 +54,7 @@ class RequestTrackerMeta(type):
         cls._synchronizer = dct.get("synchronizer")
 
         if cls._synchronizer is None:
-            raise Exception(f"Request synchronizer not provided for class {name}")
+            raise TypeError(f"Request synchronizer not provided for class {name}")
 
         return new_class
 
@@ -78,7 +78,7 @@ class RequestTrackerMeta(type):
 class RequestSynchronizer(abc.ABC):
     @abstractmethod
     def sync_route_params(self, request, path_params):
-        pass  # pragma: no cover
+        raise NotImplementedError()
 
 
 class ResponseTrackerMeta(type):
@@ -91,14 +91,14 @@ class ResponseTrackerMeta(type):
         response_type = dct.get("response_type")
 
         if label is None:
-            raise Exception(f"Response label not provided for class {name}")
+            raise TypeError(f"Response label not provided for class {name}")
         if response_type is None:
-            raise Exception(f"Response type not provided for class {name}")
+            raise TypeError(f"Response type not provided for class {name}")
         if (
             cls._response_types.get(label) is not None
             and cls._response_types.get(label) != response_type
         ):
-            raise Exception(
+            raise TypeError(
                 f"Only one response type shall be recorded for class {name} "
                 f"but found {cls._response_types.get(label)} and {response_type}"
             )
@@ -125,17 +125,21 @@ class ResponseTrackerMeta(type):
         return False
 
 
-class WebApp(metaclass=ModuleTrackerMeta):
+class ABCModuleTrackerMeta(abc.ABCMeta, ModuleTrackerMeta):
+    pass
+
+
+class WebApp(metaclass=ABCModuleTrackerMeta):
     @abstractmethod
     def route(self, func: Callable):
-        pass  # pragma: no cover
+        raise NotImplementedError()
 
     @abstractmethod
     def get_app(self):
-        pass  # pragma: no cover
+        raise NotImplementedError()
 
 
-class WebServer(metaclass=ModuleTrackerMeta):
+class WebServer(metaclass=ABCModuleTrackerMeta):
     def __init__(self, hostname, port, web_app: WebApp):
         self.hostname = hostname
         self.port = port
@@ -143,7 +147,7 @@ class WebServer(metaclass=ModuleTrackerMeta):
 
     @abstractmethod
     async def serve(self):
-        pass  # pragma: no cover
+        raise NotImplementedError()
 
 
 class HttpV2FeatureChecker:
