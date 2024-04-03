@@ -13,6 +13,7 @@ from .sdkType import SdkType
 from .web import (
     HttpV2FeatureChecker,
     ModuleTrackerMeta,
+    RequestSynchronizer,
     RequestTrackerMeta,
     ResponseLabels,
     ResponseTrackerMeta,
@@ -35,6 +36,7 @@ __all__ = [
     "ResponseLabels",
     "WebServer",
     "WebApp",
+    "RequestSynchronizer",
 ]
 
 __version__ = "1.0.0a2"
