@@ -180,6 +180,18 @@ class TestRequestTrackerMeta(unittest.TestCase):
     def test_pytype_is_not_class(self):
         self.assertFalse(RequestTrackerMeta.check_type("string"))
 
+    def test_sync_route_params_raises_not_implemented_error(self):
+        class MockSyncronizer(RequestSynchronizer):
+            def sync_route_params(self, request, path_params):
+                super().sync_route_params(request, path_params)
+
+        # Create an instance of RequestSynchronizer
+        synchronizer = MockSyncronizer()
+
+        # Ensure that calling sync_route_params raises NotImplementedError
+        with self.assertRaises(NotImplementedError):
+            synchronizer.sync_route_params(None, None)
+
 
 class TestResponseTrackerMeta(unittest.TestCase):
     class MockResponse1:
