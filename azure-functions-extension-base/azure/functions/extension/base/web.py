@@ -147,7 +147,7 @@ class WebServer(metaclass=ABCModuleTrackerMeta):
 
     @abstractmethod
     async def serve(self):
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
 
 class HttpV2FeatureChecker:
