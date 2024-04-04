@@ -125,21 +125,17 @@ class ResponseTrackerMeta(type):
         return False
 
 
-class ABCModuleTrackerMeta(abc.ABCMeta, ModuleTrackerMeta):
-    pass
-
-
-class WebApp(metaclass=ABCModuleTrackerMeta):
+class WebApp(metaclass=ModuleTrackerMeta):
     @abstractmethod
     def route(self, func: Callable):
         raise NotImplementedError()
 
     @abstractmethod
     def get_app(self):
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
 
-class WebServer(metaclass=ABCModuleTrackerMeta):
+class WebServer(metaclass=ModuleTrackerMeta):
     def __init__(self, hostname, port, web_app: WebApp):
         self.hostname = hostname
         self.port = port
