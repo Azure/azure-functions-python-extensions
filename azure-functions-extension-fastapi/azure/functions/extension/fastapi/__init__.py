@@ -10,13 +10,14 @@ from fastapi.responses import (
     UJSONResponse,
 )
 
-from .web import WebApp, WebServer
+from .web import RequestSynchronizer, WebApp, WebServer
 
 __all__ = [
     "WebServer",
     "WebApp",
     "Request",
     "Response",
+    "RequestSynchronizer",
     "StreamingResponse",
     "HTMLResponse",
     "PlainTextResponse",
