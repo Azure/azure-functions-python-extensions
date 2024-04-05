@@ -1,9 +1,10 @@
 import unittest
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from azure.functions.extension.base import (
     HttpV2FeatureChecker,
     ModuleTrackerMeta,
+    RequestSynchronizer,
     RequestTrackerMeta,
     ResponseLabels,
     ResponseTrackerMeta,
@@ -66,6 +67,10 @@ class TestRequestTrackerMeta(unittest.TestCase):
     class TestRequest3:
         pass
 
+    class Syncronizer(RequestSynchronizer):
+        def sync_route_params(self, request, path_params):
+            pass
+
     def setUp(self):
         # Reset _request_type before each test
         RequestTrackerMeta._request_type = None
@@ -81,32 +86,57 @@ class TestRequestTrackerMeta(unittest.TestCase):
             str(context.exception), "Request type not provided for class TestClass"
         )
 
+    def test_request_synchronizer_not_provided(self):
+        # Define a class without providing the synchronizer attribute
+        with self.assertRaises(Exception) as context:
+
+            class TestClass(metaclass=RequestTrackerMeta):
+                request_type = self.TestRequest1
+
+        self.assertEqual(
+            str(context.exception),
+            "Request synchronizer not provided for class TestClass",
+        )
+
     def test_single_request_type(self):
         # Define a class providing a request_type attribute
         class TestClass(metaclass=RequestTrackerMeta):
             request_type = self.TestRequest1
+            synchronizer = self.Syncronizer()
 
         # Ensure the request_type is correctly recorded
         self.assertEqual(RequestTrackerMeta.get_request_type(), self.TestRequest1)
+        self.assertTrue(
+            isinstance(RequestTrackerMeta.get_synchronizer(), RequestSynchronizer)
+        )
         # Ensure check_type returns True for the provided request_type
         self.assertTrue(RequestTrackerMeta.check_type(self.TestRequest1))
+        self.assertFalse(RequestTrackerMeta.check_type(self.TestRequest2))
 
     def test_multiple_request_types_same(self):
         # Define a class providing the same request_type attribute
         class TestClass1(metaclass=RequestTrackerMeta):
             request_type = self.TestRequest1
+            synchronizer = self.Syncronizer()
 
         # Ensure the request_type is correctly recorded
         self.assertEqual(RequestTrackerMeta.get_request_type(), self.TestRequest1)
+        self.assertTrue(
+            isinstance(RequestTrackerMeta.get_synchronizer(), RequestSynchronizer)
+        )
         # Ensure check_type returns True for the provided request_type
         self.assertTrue(RequestTrackerMeta.check_type(self.TestRequest1))
 
         # Define another class providing the same request_type attribute
         class TestClass2(metaclass=RequestTrackerMeta):
             request_type = self.TestRequest1
+            synchronizer = self.Syncronizer()
 
         # Ensure the request_type remains the same
         self.assertEqual(RequestTrackerMeta.get_request_type(), self.TestRequest1)
+        self.assertTrue(
+            isinstance(RequestTrackerMeta.get_synchronizer(), RequestSynchronizer)
+        )
         # Ensure check_type still returns True for the original request_type
         self.assertTrue(RequestTrackerMeta.check_type(self.TestRequest1))
 
@@ -114,9 +144,13 @@ class TestRequestTrackerMeta(unittest.TestCase):
         # Define a class providing a different request_type attribute
         class TestClass1(metaclass=RequestTrackerMeta):
             request_type = self.TestRequest1
+            synchronizer = self.Syncronizer()
 
         # Ensure the request_type is correctly recorded
         self.assertEqual(RequestTrackerMeta.get_request_type(), self.TestRequest1)
+        self.assertTrue(
+            isinstance(RequestTrackerMeta.get_synchronizer(), RequestSynchronizer)
+        )
         # Ensure check_type returns True for the provided request_type
         self.assertTrue(RequestTrackerMeta.check_type(self.TestRequest1))
 
@@ -134,8 +168,29 @@ class TestRequestTrackerMeta(unittest.TestCase):
 
         # Ensure the request_type remains the same after the exception
         self.assertEqual(RequestTrackerMeta.get_request_type(), self.TestRequest1)
+        self.assertTrue(
+            isinstance(RequestTrackerMeta.get_synchronizer(), RequestSynchronizer)
+        )
         # Ensure check_type still returns True for the original request_type
         self.assertTrue(RequestTrackerMeta.check_type(self.TestRequest1))
+
+    def test_pytype_is_none(self):
+        self.assertFalse(RequestTrackerMeta.check_type(None))
+
+    def test_pytype_is_not_class(self):
+        self.assertFalse(RequestTrackerMeta.check_type("string"))
+
+    def test_sync_route_params_raises_not_implemented_error(self):
+        class MockSyncronizer(RequestSynchronizer):
+            def sync_route_params(self, request, path_params):
+                super().sync_route_params(request, path_params)
+
+        # Create an instance of RequestSynchronizer
+        synchronizer = MockSyncronizer()
+
+        # Ensure that calling sync_route_params raises NotImplementedError
+        with self.assertRaises(NotImplementedError):
+            synchronizer.sync_route_params(None, None)
 
 
 class TestResponseTrackerMeta(unittest.TestCase):
@@ -209,11 +264,34 @@ class TestResponseTrackerMeta(unittest.TestCase):
             self.MockResponse1,
         )
         self.assertEqual(
+            ResponseTrackerMeta.get_standard_response_type(), self.MockResponse1
+        )
+        self.assertEqual(
             ResponseTrackerMeta.get_response_type(ResponseLabels.STREAMING),
             self.MockResponse2,
         )
         self.assertTrue(ResponseTrackerMeta.check_type(self.MockResponse1))
         self.assertTrue(ResponseTrackerMeta.check_type(self.MockResponse2))
+
+    def test_response_label_not_provided(self):
+        with self.assertRaises(Exception) as context:
+
+            class TestResponse(metaclass=ResponseTrackerMeta):
+                response_type = self.MockResponse1
+
+        self.assertEqual(
+            str(context.exception), "Response label not provided for class TestResponse"
+        )
+
+    def test_response_type_not_provided(self):
+        with self.assertRaises(Exception) as context:
+
+            class TestResponse(metaclass=ResponseTrackerMeta):
+                label = "test_label_1"
+
+        self.assertEqual(
+            str(context.exception), "Response type not provided for class TestResponse"
+        )
 
 
 class TestWebApp(unittest.TestCase):
@@ -228,6 +306,34 @@ class TestWebApp(unittest.TestCase):
         app = MockWebApp()
         self.assertEqual(app.get_app(), "MockApp")
 
+    def test_route_method_raises_not_implemented_error(self):
+        class MockWebApp(WebApp):
+            def get_app(self):
+                pass
+
+            def route(self, func):
+                super().route(func)
+
+        with self.assertRaises(NotImplementedError):
+            # Create a mock WebApp instance
+            mock_web_app = MockWebApp()
+            # Call the route method
+            mock_web_app.route(None)
+
+    def test_get_app_method_raises_not_implemented_error(self):
+        class MockWebApp(WebApp):
+            def route(self, func):
+                pass
+
+            def get_app(self):
+                super().get_app()
+
+        with self.assertRaises(NotImplementedError):
+            # Create a mock WebApp instance
+            mock_web_app = MockWebApp()
+            # Call the get_app method
+            mock_web_app.get_app()
+
 
 class TestWebServer(unittest.TestCase):
     def test_web_server_initialization(self):
@@ -238,11 +344,35 @@ class TestWebServer(unittest.TestCase):
             def get_app(self):
                 return "MockApp"
 
+        class MockWebServer(WebServer):
+            async def serve(self):
+                pass
+
         mock_web_app = MockWebApp()
-        server = WebServer("localhost", 8080, mock_web_app)
+        server = MockWebServer("localhost", 8080, mock_web_app)
         self.assertEqual(server.hostname, "localhost")
         self.assertEqual(server.port, 8080)
         self.assertEqual(server.web_app, "MockApp")
+
+    async def test_serve_method_raises_not_implemented_error(self):
+        # Create a mock WebApp instance
+        class MockWebApp(WebApp):
+            def route(self, func):
+                pass
+
+            def get_app(self):
+                pass
+
+        class MockWebServer(WebServer):
+            async def serve(self):
+                super().serve()
+
+        # Create a WebServer instance with the mock WebApp
+        server = MockWebServer("localhost", 8080, MockWebApp())
+
+        # Ensure that calling the serve method raises NotImplementedError
+        with self.assertRaises(NotImplementedError):
+            await server.serve()
 
 
 class TestHttpV2Enabled(unittest.TestCase):
@@ -253,3 +383,23 @@ class TestHttpV2Enabled(unittest.TestCase):
 
         mock_module_imported.return_value = False
         self.assertFalse(HttpV2FeatureChecker.http_v2_enabled())
+
+
+class TestResponseLabels(unittest.TestCase):
+    def test_enum_values(self):
+        self.assertEqual(ResponseLabels.STANDARD.value, "standard")
+        self.assertEqual(ResponseLabels.STREAMING.value, "streaming")
+        self.assertEqual(ResponseLabels.FILE.value, "file")
+        self.assertEqual(ResponseLabels.HTML.value, "html")
+        self.assertEqual(ResponseLabels.JSON.value, "json")
+        self.assertEqual(ResponseLabels.ORJSON.value, "orjson")
+        self.assertEqual(ResponseLabels.PLAIN_TEXT.value, "plain_text")
+        self.assertEqual(ResponseLabels.REDIRECT.value, "redirect")
+        self.assertEqual(ResponseLabels.UJSON.value, "ujson")
+        self.assertEqual(ResponseLabels.INT.value, "int")
+        self.assertEqual(ResponseLabels.FLOAT.value, "float")
+        self.assertEqual(ResponseLabels.STR.value, "str")
+        self.assertEqual(ResponseLabels.LIST.value, "list")
+        self.assertEqual(ResponseLabels.DICT.value, "dict")
+        self.assertEqual(ResponseLabels.BOOL.value, "bool")
+        self.assertEqual(ResponseLabels.PYDANTIC.value, "pydantic")

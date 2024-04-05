@@ -1,3 +1,4 @@
+import abc
 import inspect
 from abc import abstractmethod
 from enum import Enum
@@ -34,6 +35,7 @@ class ModuleTrackerMeta(type):
 
 class RequestTrackerMeta(type):
     _request_type = None
+    _synchronizer: None
 
     def __new__(cls, name, bases, dct, **kwargs):
         new_class = super().__new__(cls, name, bases, dct)
@@ -41,14 +43,18 @@ class RequestTrackerMeta(type):
         request_type = dct.get("request_type")
 
         if request_type is None:
-            raise Exception(f"Request type not provided for class {name}")
+            raise TypeError(f"Request type not provided for class {name}")
 
         if cls._request_type is not None and cls._request_type != request_type:
-            raise Exception(
+            raise TypeError(
                 f"Only one request type shall be recorded for class {name} "
                 f"but found {cls._request_type} and {request_type}"
             )
         cls._request_type = request_type
+        cls._synchronizer = dct.get("synchronizer")
+
+        if cls._synchronizer is None:
+            raise TypeError(f"Request synchronizer not provided for class {name}")
 
         return new_class
 
@@ -57,12 +63,22 @@ class RequestTrackerMeta(type):
         return cls._request_type
 
     @classmethod
+    def get_synchronizer(cls):
+        return cls._synchronizer
+
+    @classmethod
     def check_type(cls, pytype: type) -> bool:
         if pytype is not None and inspect.isclass(pytype):
             return cls._request_type is not None and issubclass(
                 pytype, cls._request_type
             )
         return False
+
+
+class RequestSynchronizer(abc.ABC):
+    @abstractmethod
+    def sync_route_params(self, request, path_params):
+        raise NotImplementedError()
 
 
 class ResponseTrackerMeta(type):
@@ -75,14 +91,14 @@ class ResponseTrackerMeta(type):
         response_type = dct.get("response_type")
 
         if label is None:
-            raise Exception(f"Response label not provided for class {name}")
+            raise TypeError(f"Response label not provided for class {name}")
         if response_type is None:
-            raise Exception(f"Response type not provided for class {name}")
+            raise TypeError(f"Response type not provided for class {name}")
         if (
             cls._response_types.get(label) is not None
             and cls._response_types.get(label) != response_type
         ):
-            raise Exception(
+            raise TypeError(
                 f"Only one response type shall be recorded for class {name} "
                 f"but found {cls._response_types.get(label)} and {response_type}"
             )
@@ -109,17 +125,21 @@ class ResponseTrackerMeta(type):
         return False
 
 
-class WebApp(metaclass=ModuleTrackerMeta):
+class ABCModuleTrackerMeta(abc.ABCMeta, ModuleTrackerMeta):
+    pass
+
+
+class WebApp(metaclass=ABCModuleTrackerMeta):
     @abstractmethod
     def route(self, func: Callable):
-        pass
+        raise NotImplementedError()
 
     @abstractmethod
     def get_app(self):
-        pass
+        raise NotImplementedError()
 
 
-class WebServer(metaclass=ModuleTrackerMeta):
+class WebServer(metaclass=ABCModuleTrackerMeta):
     def __init__(self, hostname, port, web_app: WebApp):
         self.hostname = hostname
         self.port = port
@@ -127,7 +147,7 @@ class WebServer(metaclass=ModuleTrackerMeta):
 
     @abstractmethod
     async def serve(self):
-        pass
+        raise NotImplementedError()  # pragma: no cover
 
 
 class HttpV2FeatureChecker:
@@ -146,3 +166,10 @@ class ResponseLabels(Enum):
     PLAIN_TEXT = "plain_text"
     REDIRECT = "redirect"
     UJSON = "ujson"
+    INT = "int"
+    FLOAT = "float"
+    STR = "str"
+    LIST = "list"
+    DICT = "dict"
+    BOOL = "bool"
+    PYDANTIC = "pydantic"

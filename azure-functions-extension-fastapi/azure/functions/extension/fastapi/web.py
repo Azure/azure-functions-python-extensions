@@ -5,6 +5,7 @@ from typing import Callable
 
 import uvicorn
 from azure.functions.extension.base import (
+    RequestSynchronizer,
     RequestTrackerMeta,
     ResponseLabels,
     ResponseTrackerMeta,
@@ -22,10 +23,24 @@ from fastapi.responses import PlainTextResponse as FastApiPlainTextResponse
 from fastapi.responses import RedirectResponse as FastApiRedirectResponse
 from fastapi.responses import StreamingResponse as FastApiStreamingResponse
 from fastapi.responses import UJSONResponse as FastApiUJSONResponse
+from pydantic import BaseModel
+
+
+class RequestSynchronizer(RequestSynchronizer):
+    def sync_route_params(self, request, path_params):
+        # add null checks for request and path_params
+        if request is None:
+            raise TypeError("Request object is None")
+        if path_params is None:
+            raise TypeError("Path parameters are None")
+
+        request.path_params.clear()
+        request.path_params.update(path_params)
 
 
 class Request(metaclass=RequestTrackerMeta):
     request_type = FastApiRequest
+    synchronizer = RequestSynchronizer()
 
 
 class Response(metaclass=ResponseTrackerMeta):
@@ -71,6 +86,41 @@ class ORJSONResponse(metaclass=ResponseTrackerMeta):
 class FileResponse(metaclass=ResponseTrackerMeta):
     label = ResponseLabels.FILE
     response_type = FastApiFileResponse
+
+
+class StrResponse(metaclass=ResponseTrackerMeta):
+    label = ResponseLabels.STR
+    response_type = str
+
+
+class DictResponse(metaclass=ResponseTrackerMeta):
+    label = ResponseLabels.DICT
+    response_type = dict
+
+
+class BoolResponse(metaclass=ResponseTrackerMeta):
+    label = ResponseLabels.BOOL
+    response_type = bool
+
+
+class PydanticResponse(metaclass=ResponseTrackerMeta):
+    label = ResponseLabels.PYDANTIC
+    response_type = BaseModel
+
+
+class IntResponse(metaclass=ResponseTrackerMeta):
+    label = ResponseLabels.INT
+    response_type = int
+
+
+class FloatResponse(metaclass=ResponseTrackerMeta):
+    label = ResponseLabels.FLOAT
+    response_type = float
+
+
+class ListResponse(metaclass=ResponseTrackerMeta):
+    label = ResponseLabels.LIST
+    response_type = list
 
 
 class WebApp(WebApp):
