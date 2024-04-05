@@ -250,11 +250,6 @@ def get_raw_bindings(indexed_function, input_types):
     bindings_logs = {}
     for b in indexed_function._bindings:
         dict_repr, logs = Binding.get_dict_repr(b, input_types)
-        binding_dict_repr.append(json.dumps(dict_repr,  cls=StringifyEnumJsonEncoder))
+        binding_dict_repr.append(json.dumps(dict_repr, cls=StringifyEnumJsonEncoder))
         bindings_logs.update(logs)
     return binding_dict_repr, bindings_logs
-
-    # return [
-    #     json.dumps(Binding.get_dict_repr(b, input_types), cls=StringifyEnumJsonEncoder)
-    #     for b in indexed_function._bindings
-    # ]

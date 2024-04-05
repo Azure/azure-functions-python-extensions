@@ -146,7 +146,7 @@ class TestMeta(unittest.TestCase):
             _bindings = {}
             _trigger = None
 
-        self.assertEqual(registry.get_raw_bindings(MockIndexedFunction, []), [])
+        self.assertEqual(registry.get_raw_bindings(MockIndexedFunction, []), ([], {}))
 
         self.assertFalse(registry.check_supported_type(None))
         self.assertFalse(registry.check_supported_type("hello"))
