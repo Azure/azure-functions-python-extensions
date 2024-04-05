@@ -56,7 +56,8 @@ class TestUtils(unittest.TestCase):
         # Create test indexed_function
         mock_indexed_functions = MockFunction(bindings=[mock_blob])
 
-        dict_repr = utils.get_raw_bindings(mock_indexed_functions, mock_input_types)
+        dict_repr = utils.get_raw_bindings(mock_indexed_functions,
+                                                 mock_input_types)
         self.assertEqual(
             dict_repr,
             [
@@ -96,6 +97,42 @@ class TestUtils(unittest.TestCase):
                 '"properties": '
                 '{"SupportsDeferredBinding": false}}'
             ],
+        )
+
+    def test_get_dict_repr_binding_name_none(self):
+        # Create mock blob
+        meta._ConverterMeta._bindings = {"blob"}
+
+        # Create test binding
+        mock_blob = utils.Binding(
+            name="blob",
+            direction=utils.BindingDirection.IN,
+            data_type=None,
+            type="blob",
+        )
+
+        mock_http = utils.Binding(
+            name="$return",
+            direction=utils.BindingDirection.OUT,
+            data_type=None,
+            type="httpResponse",
+        )
+
+        # Create test input_types dict
+        mock_input_types = {
+            "blob": MockParamTypeInfo(binding_name="blobTrigger", pytype=bytes)
+        }
+
+        # Create test indexed_function
+        mock_indexed_functions = MockFunction(bindings=[mock_blob, mock_http])
+
+        dict_repr = utils.get_raw_bindings(mock_indexed_functions, mock_input_types)
+        self.assertEqual(
+            dict_repr,
+            ['{"direction": "IN", "dataType": null, "type": "blob", '
+             '"properties": {"SupportsDeferredBinding": false}}',
+             '{"direction": "OUT", "dataType": null, "type": "httpResponse", '
+             '"properties": {"SupportsDeferredBinding": false}}'],
         )
 
     def test_get_dict_repr_init_params(self):

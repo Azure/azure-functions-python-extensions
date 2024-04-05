@@ -160,20 +160,27 @@ class Binding(ABC):
     def direction(self) -> int:
         return self._direction.value
 
-    def get_dict_repr(binding, input_types) -> Dict:
+    def get_dict_repr(binding, input_types):
         """Build a dictionary of a particular binding. The keys are camel
         cased binding field names defined in `init_params` list and
         :class:`Binding` class. \n
         This method is invoked in function :meth:`get_raw_bindings` of class
         :class:`Function` to generate json dict for each binding.
 
-        :return: Dictionary representation of the binding.
+        :return: Dictionary representation of the binding. Tuple representation
+        of the binding in the format:
+        ((binding type, pytype), deferred bindings enabled)
         """
         params = list(dict.fromkeys(getattr(binding, "init_params", [])))
+        binding_logs = {}
         for p in params:
             if p not in Binding.EXCLUDED_INIT_PARAMS:
                 binding._dict[to_camel_case(p)] = getattr(binding, p, None)
 
+        if input_types.get(binding.name) is not None:
+            pytype = input_types.get(binding.name).pytype
+        else:
+            pytype = None
         # Adding flag to signal to the host to send MBD object
         # 1. check if the binding is a supported type (blob, blobTrigger)
         # 2. check if the binding is an input binding
@@ -181,16 +188,16 @@ class Binding(ABC):
         if (
             binding.type in meta._ConverterMeta._bindings
             and binding.direction == 0
-            and meta._ConverterMeta.check_supported_type(
-                input_types.get(binding.name).pytype
-            )
+            and meta._ConverterMeta.check_supported_type(pytype)
         ):
             binding._dict["properties"] = {"SupportsDeferredBinding": True}
+            binding_logs = {binding.name: (pytype, "True")}
         # if it isn't, we set the flag to false
         else:
             binding._dict["properties"] = {"SupportsDeferredBinding": False}
+            binding_logs = {binding.name: (pytype, "False")}
 
-        return binding._dict
+        return binding._dict, binding_logs
 
 
 def to_camel_case(snake_case_str: str):
@@ -238,8 +245,16 @@ def is_word(input_string: str) -> bool:
     return WORD_RE.match(input_string) is not None
 
 
-def get_raw_bindings(indexed_function, input_types) -> List[str]:
-    return [
-        json.dumps(Binding.get_dict_repr(b, input_types), cls=StringifyEnumJsonEncoder)
-        for b in indexed_function._bindings
-    ]
+def get_raw_bindings(indexed_function, input_types):
+    binding_dict_repr = []
+    bindings_logs = {}
+    for b in indexed_function._bindings:
+        dict_repr, logs = Binding.get_dict_repr(b, input_types)
+        binding_dict_repr.append(json.dumps(dict_repr,  cls=StringifyEnumJsonEncoder))
+        bindings_logs.update(logs)
+    return binding_dict_repr, bindings_logs
+
+    # return [
+    #     json.dumps(Binding.get_dict_repr(b, input_types), cls=StringifyEnumJsonEncoder)
+    #     for b in indexed_function._bindings
+    # ]

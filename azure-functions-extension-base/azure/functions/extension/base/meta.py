@@ -83,7 +83,7 @@ class _ConverterMeta(abc.ABCMeta):
         return cls._bindings.get(binding_name)
 
     @classmethod
-    def get_raw_bindings(cls, indexed_function, input_types) -> List[str]:
+    def get_raw_bindings(cls, indexed_function, input_types):
         return utils.get_raw_bindings(indexed_function, input_types)
 
     @classmethod
