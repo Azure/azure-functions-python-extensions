@@ -172,7 +172,7 @@ class Binding(ABC):
         ((binding type, pytype), deferred bindings enabled)
         """
         params = list(dict.fromkeys(getattr(binding, "init_params", [])))
-        binding_logs = {}
+        binding_info = {}
         for p in params:
             if p not in Binding.EXCLUDED_INIT_PARAMS:
                 binding._dict[to_camel_case(p)] = getattr(binding, p, None)
@@ -191,13 +191,13 @@ class Binding(ABC):
             and meta._ConverterMeta.check_supported_type(pytype)
         ):
             binding._dict["properties"] = {"SupportsDeferredBinding": True}
-            binding_logs = {binding.name: (pytype, "True")}
+            binding_info = {binding.name: {pytype: "True"}}
         # if it isn't, we set the flag to false
         else:
             binding._dict["properties"] = {"SupportsDeferredBinding": False}
-            binding_logs = {binding.name: (pytype, "False")}
+            binding_info = {binding.name: (pytype, "False")}
 
-        return binding._dict, binding_logs
+        return binding._dict, binding_info
 
 
 def to_camel_case(snake_case_str: str):
