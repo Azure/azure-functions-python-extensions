@@ -59,6 +59,9 @@ class TestUtils(unittest.TestCase):
         dict_repr, logs = utils.get_raw_bindings(
             mock_indexed_functions, mock_input_types
         )
+        dict_repr, logs = utils.get_raw_bindings(
+            mock_indexed_functions, mock_input_types
+        )
         self.assertEqual(
             dict_repr,
             [
@@ -91,6 +94,9 @@ class TestUtils(unittest.TestCase):
         # Create test indexed_function
         mock_indexed_functions = MockFunction(bindings=[mock_blob])
 
+        dict_repr, logs = utils.get_raw_bindings(
+            mock_indexed_functions, mock_input_types
+        )
         dict_repr, logs = utils.get_raw_bindings(
             mock_indexed_functions, mock_input_types
         )
@@ -169,6 +175,9 @@ class TestUtils(unittest.TestCase):
         # Create test indexed_function
         mock_indexed_functions = MockFunction(bindings=[mock_blob])
 
+        dict_repr, logs = utils.get_raw_bindings(
+            mock_indexed_functions, mock_input_types
+        )
         dict_repr, logs = utils.get_raw_bindings(
             mock_indexed_functions, mock_input_types
         )
