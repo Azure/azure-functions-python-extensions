@@ -4,7 +4,7 @@
 import unittest
 from abc import ABC
 
-from azure.functions.extension.base import meta, sdkType, utils
+from azurefunctions.extension.base import meta, sdkType, utils
 
 
 class MockParamTypeInfo:

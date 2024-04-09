@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-from azure.functions.extension.base import (
+from azurefunctions.extension.base import (
     HttpV2FeatureChecker,
     ModuleTrackerMeta,
     RequestSynchronizer,

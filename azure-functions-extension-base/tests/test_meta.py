@@ -4,7 +4,7 @@ import unittest
 from typing import List, Mapping
 from unittest.mock import patch
 
-from azure.functions.extension.base import meta, sdkType
+from azurefunctions.extension.base import meta, sdkType
 
 
 class TestMeta(unittest.TestCase):

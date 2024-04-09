@@ -35,8 +35,8 @@ dev = [
     ]
 
 [tool.setuptools.dynamic]
-version = {attr = "azure.functions.extension.base.__version__"}
+version = {attr = "azurefunctions.extension.base.__version__"}
 
 [tool.setuptools.packages.find]
-exclude = ['azure.functions.extension', 'azure.functions', 'azure', 'tests']
+exclude = ['azurefunctions.extension', 'azurefunctions', 'tests']
 
