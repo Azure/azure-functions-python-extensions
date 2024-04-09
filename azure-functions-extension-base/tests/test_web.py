@@ -356,13 +356,15 @@ class TestWebServer(unittest.TestCase):
 
 
 class TestHttpV2Enabled(unittest.TestCase):
-   def test_http_v2_enabled(self):
+    def test_http_v2_enabled(self):
         ModuleTrackerMeta._module = None
 
         class MockClass(metaclass=ModuleTrackerMeta):
             pass
 
         MockClass()
+
+        self.assertTrue(HttpV2FeatureChecker.http_v2_enabled())
 
 
 class TestResponseLabels(unittest.TestCase):
