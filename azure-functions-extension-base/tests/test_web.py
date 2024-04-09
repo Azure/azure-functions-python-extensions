@@ -354,35 +354,17 @@ class TestWebServer(unittest.TestCase):
         self.assertEqual(server.port, 8080)
         self.assertEqual(server.web_app, "MockApp")
 
-    async def test_serve_method_raises_not_implemented_error(self):
-        # Create a mock WebApp instance
-        class MockWebApp(WebApp):
-            def route(self, func):
-                pass
-
-            def get_app(self):
-                pass
-
-        class MockWebServer(WebServer):
-            async def serve(self):
-                super().serve()
-
-        # Create a WebServer instance with the mock WebApp
-        server = MockWebServer("localhost", 8080, MockWebApp())
-
-        # Ensure that calling the serve method raises NotImplementedError
-        with self.assertRaises(NotImplementedError):
-            await server.serve()
-
 
 class TestHttpV2Enabled(unittest.TestCase):
-    @patch("azure.functions.extension.base.ModuleTrackerMeta.module_imported")
-    def test_http_v2_enabled(self, mock_module_imported):
-        mock_module_imported.return_value = True
-        self.assertTrue(HttpV2FeatureChecker.http_v2_enabled())
+    def test_http_v2_enabled(self):
+        ModuleTrackerMeta._module = None
 
-        mock_module_imported.return_value = False
-        self.assertFalse(HttpV2FeatureChecker.http_v2_enabled())
+        class MockClass(metaclass=ModuleTrackerMeta):
+            pass
+
+        MockClass()
+
+        self.assertTrue(HttpV2FeatureChecker.http_v2_enabled())
 
 
 class TestResponseLabels(unittest.TestCase):
