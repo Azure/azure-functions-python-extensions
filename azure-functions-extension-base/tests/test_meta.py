@@ -193,7 +193,7 @@ class TestMeta(unittest.TestCase):
 
         # Case 7: attempt to coerce and pass
         datum_coerce_pass = meta.Datum(value=1, type="model_binding_data")
-        self.assertEquals(
+        self.assertEqual(
             meta._BaseConverter._decode_typed_data(datum_coerce_pass, python_type=str),
             "1",
         )
