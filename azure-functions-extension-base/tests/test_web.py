@@ -376,7 +376,7 @@ class TestWebServer(unittest.TestCase):
 
 
 class TestHttpV2Enabled(unittest.TestCase):
-    @patch("azure.functions.extension.base.ModuleTrackerMeta.module_imported")
+    @patch("azurefunctions.extension.base.ModuleTrackerMeta.module_imported")
     def test_http_v2_enabled(self, mock_module_imported):
         mock_module_imported.return_value = True
         self.assertTrue(HttpV2FeatureChecker.http_v2_enabled())
