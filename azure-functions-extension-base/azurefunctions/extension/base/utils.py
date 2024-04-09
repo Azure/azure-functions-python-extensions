@@ -195,7 +195,7 @@ class Binding(ABC):
         # if it isn't, we set the flag to false
         else:
             binding._dict["properties"] = {"SupportsDeferredBinding": False}
-            binding_info = {binding.name: (pytype, "False")}
+            binding_info = {binding.name: {pytype: "False"}}
 
         return binding._dict, binding_info
 
