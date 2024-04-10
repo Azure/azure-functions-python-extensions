@@ -5,7 +5,7 @@
 ###########################
 ###########################
 
-name: Lint azure-functions-extension-blob
+name: Lint azurefunctions-extensions-bindings-blob
 
 #
 # Documentation:
@@ -23,14 +23,14 @@ on:
       - main
       - 'release/*'
     paths:
-      - 'azure-functions-extension-blob/**'
+      - 'azurefunctions-extensions-bindings-blob/**'
   pull_request:
     branches:
       - dev
       - main
       - 'release/*'
     paths:
-      - 'azure-functions-extension-blob/**'
+      - 'azurefunctions-extensions-bindings-blob/**'
 
 ###############
 # Set the Job #
@@ -38,7 +38,7 @@ on:
 jobs:
   build:
     # Name the Job
-    name: Lint azure-functions-extension-blob
+    name: Lint azurefunctions-extensions-bindings-blob
     # Set the agent to run on
     runs-on: ubuntu-latest
     permissions:
@@ -76,7 +76,7 @@ jobs:
           VALIDATE_PYTHON_BLACK: true # same as above
           VALIDATE_PYTHON_ISORT: true # same as above
           PYTHON_ISORT_CONFIG_FILE: .isort.cfg
-          FILTER_REGEX_INCLUDE: azure-functions-extension-blob/*
+          FILTER_REGEX_INCLUDE: azurefunctions-extensions-bindings-blob/*
           DEFAULT_BRANCH: origin/dev
 
   send-notification:
@@ -90,7 +90,7 @@ jobs:
         with:
           github-token: ${{ github.token }}
           ms-teams-webhook-uri: ${{ secrets.MS_TEAMS_WEBHOOK_URI }}
-          notification-summary: "Python Extension Lint azure-functions-extension-blob Failed"
+          notification-summary: "Python Extension Lint azurefunctions-extensions-bindings-blob Failed"
           notification-color: FF0000
           timezone: America/Denver
           verbose-logging: false
@@ -101,7 +101,7 @@ jobs:
         with:
           github-token: ${{ github.token }}
           ms-teams-webhook-uri: ${{ secrets.MS_TEAMS_WEBHOOK_URI }}
-          notification-summary: "Python Extension Lint azure-functions-extension-blob Passed"
+          notification-summary: "Python Extension Lint azurefunctions-extensions-bindings-blob Passed"
           notification-color: 008000
           timezone: America/Denver
           verbose-logging: false

@@ -5,21 +5,21 @@ import json
 import os
 from typing import Union
 
-from azure.functions.extension.base import Datum, SdkType
-from azure.storage.blob import BlobClient as BlobClientSdk
+from azurefunctions.extensions.base import Datum, SdkType
+from azure.storage.blob import ContainerClient as ContainerClientSdk
 
 
-class BlobClient(SdkType):
+class ContainerClient(SdkType):
     def __init__(self, *, data: Union[bytes, Datum]) -> None:
 
         # model_binding_data properties
         self._data = data
-        self._version = None
-        self._source = None
-        self._content_type = None
-        self._connection = None
-        self._containerName = None
-        self._blobName = None
+        self._version = ""
+        self._source = ""
+        self._content_type = ""
+        self._connection = ""
+        self._containerName = ""
+        self._blobName = ""
         if self._data:
             self._version = data.version
             self._source = data.source
@@ -29,13 +29,11 @@ class BlobClient(SdkType):
             self._containerName = content_json["ContainerName"]
             self._blobName = content_json["BlobName"]
 
-    # Returns a BlobClient
+    # Returns a ContainerClient
     def get_sdk_type(self):
         if self._data:
-            return BlobClientSdk.from_connection_string(
-                conn_str=self._connection,
-                container_name=self._containerName,
-                blob_name=self._blobName,
+            return ContainerClientSdk.from_connection_string(
+                conn_str=self._connection, container_name=self._containerName
             )
         else:
             return None

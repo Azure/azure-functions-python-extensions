@@ -4,11 +4,11 @@ on:
     push:
       branches: [ dev, main, release/* ]
       paths:
-        - 'azure-functions-extension-blob/**'
+        - 'azurefunctions-extensions-bindings-blob/**'
     pull_request:
         branches: [ dev, main, release/* ]
         paths:
-          - 'azure-functions-extension-blob/**'
+          - 'azurefunctions-extensions-bindings-blob/**'
 
 jobs:
   build:
@@ -29,13 +29,13 @@ jobs:
         python-version: ${{ matrix.python-version }}
 
     - name: Install dependencies
-      working-directory: azure-functions-extension-blob
+      working-directory: azurefunctions-extensions-bindings-blob
       run: |
         python -m pip install --upgrade pip
         python -m pip install -U -e .[dev]
 
     - name: Run Unit Tests
-      working-directory: azure-functions-extension-blob
+      working-directory: azurefunctions-extensions-bindings-blob
       env:
         AzureWebJobsStorage: ${{ secrets.AzureWebJobsStorage }}
       run: |
@@ -46,7 +46,7 @@ jobs:
       # env:
       #   CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
       with:
-        file: ./azure-functions-extension-blob/coverage.xml
+        file: ./azurefunctions-extensions-bindings-blob/coverage.xml
         flags: unittests
         name: codecov
         fail_ci_if_error: false

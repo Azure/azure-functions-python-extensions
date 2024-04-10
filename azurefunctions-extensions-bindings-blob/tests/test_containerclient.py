@@ -6,9 +6,9 @@ import unittest
 from enum import Enum
 from typing import Optional
 
-from azure.functions.extension.base import Datum
-from azure.functions.extension.blob import BlobClientConverter, StorageStreamDownloader
-from azure.storage.blob import StorageStreamDownloader as SSDSdk
+from azurefunctions.extensions.base import Datum
+from azurefunctions.extensions.bindings.blob import BlobClientConverter, ContainerClient
+from azure.storage.blob import ContainerClient as ContainerClientSdk
 
 
 # Mock classes for testing
@@ -64,23 +64,23 @@ class MockFunction:
         self._bindings = bindings
 
 
-class TestStorageStreamDownloader(unittest.TestCase):
+class TestContainerClient(unittest.TestCase):
     def test_input_type(self):
         check_input_type = BlobClientConverter.check_input_type_annotation
-        self.assertTrue(check_input_type(StorageStreamDownloader))
+        self.assertTrue(check_input_type(ContainerClient))
         self.assertFalse(check_input_type(str))
         self.assertFalse(check_input_type(bytes))
         self.assertFalse(check_input_type(bytearray))
 
     def test_input_none(self):
         result = BlobClientConverter.decode(
-            data=None, trigger_metadata=None, pytype=StorageStreamDownloader
+            data=None, trigger_metadata=None, pytype=ContainerClient
         )
         self.assertIsNone(result)
 
         datum: Datum = Datum(value=b"string_content", type=None)
         result = BlobClientConverter.decode(
-            data=datum, trigger_metadata=None, pytype=StorageStreamDownloader
+            data=datum, trigger_metadata=None, pytype=ContainerClient
         )
         self.assertIsNone(result)
 
@@ -88,13 +88,13 @@ class TestStorageStreamDownloader(unittest.TestCase):
         datum: Datum = Datum(value=b"string_content", type="bytearray")
         with self.assertRaises(ValueError):
             BlobClientConverter.decode(
-                data=datum, trigger_metadata=None, pytype=StorageStreamDownloader
+                data=datum, trigger_metadata=None, pytype=ContainerClient
             )
 
     def test_input_empty(self):
         datum: Datum = Datum(value={}, type="model_binding_data")
-        result: StorageStreamDownloader = BlobClientConverter.decode(
-            data=datum, trigger_metadata=None, pytype=StorageStreamDownloader
+        result: ContainerClient = BlobClientConverter.decode(
+            data=datum, trigger_metadata=None, pytype=ContainerClient
         )
         self.assertIsNone(result)
 
@@ -104,7 +104,6 @@ class TestStorageStreamDownloader(unittest.TestCase):
             "ContainerName": "test-blob",
             "BlobName": "text.txt",
         }
-
         sample_mbd = MockMBD(
             version="1.0",
             source="AzureStorageBlobs",
@@ -113,17 +112,16 @@ class TestStorageStreamDownloader(unittest.TestCase):
         )
 
         datum: Datum = Datum(value=sample_mbd, type="model_binding_data")
-        result: StorageStreamDownloader = BlobClientConverter.decode(
-            data=datum, trigger_metadata=None, pytype=StorageStreamDownloader
+        result: ContainerClient = BlobClientConverter.decode(
+            data=datum, trigger_metadata=None, pytype=ContainerClient
         )
 
         self.assertIsNotNone(result)
-        self.assertIsInstance(result, SSDSdk)
+        self.assertIsInstance(result, ContainerClientSdk)
 
-        sdk_result = StorageStreamDownloader(data=datum.value).get_sdk_type()
-
+        sdk_result = ContainerClient(data=datum.value).get_sdk_type()
         self.assertIsNotNone(sdk_result)
-        self.assertIsInstance(sdk_result, SSDSdk)
+        self.assertIsInstance(sdk_result, ContainerClientSdk)
 
     def test_input_invalid_pytype(self):
         content = {
@@ -140,13 +138,13 @@ class TestStorageStreamDownloader(unittest.TestCase):
         )
 
         datum: Datum = Datum(value=sample_mbd, type="model_binding_data")
-        result: StorageStreamDownloader = BlobClientConverter.decode(
+        result: ContainerClient = BlobClientConverter.decode(
             data=datum, trigger_metadata=None, pytype="str"
         )
 
         self.assertIsNone(result)
 
-    def test_ssd_invalid_creation(self):
+    def test_container_client_invalid_creation(self):
         # Create test binding
         mock_blob = MockBinding(
             name="blob", direction=MockBindingDirection.IN, data_type=None, type="blob"
@@ -174,7 +172,7 @@ class TestStorageStreamDownloader(unittest.TestCase):
             ],
         )
 
-    def test_ssd_valid_creation(self):
+    def test_container_client_valid_creation(self):
         # Create test binding
         mock_blob = MockBinding(
             name="client",
@@ -186,7 +184,7 @@ class TestStorageStreamDownloader(unittest.TestCase):
         # Create test input_types dict
         mock_input_types = {
             "client": MockParamTypeInfo(
-                binding_name="blobTrigger", pytype=StorageStreamDownloader
+                binding_name="blobTrigger", pytype=ContainerClient
             )
         }
 

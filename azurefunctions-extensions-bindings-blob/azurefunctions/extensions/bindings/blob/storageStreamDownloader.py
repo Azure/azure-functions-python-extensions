@@ -5,7 +5,7 @@ import json
 import os
 from typing import Union
 
-from azure.functions.extension.base import Datum, SdkType
+from azurefunctions.extensions.base import Datum, SdkType
 from azure.storage.blob import BlobClient as BlobClientSdk
 
 
