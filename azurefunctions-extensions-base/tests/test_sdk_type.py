@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 import unittest
 
-from azure.functions.extension.base import sdkType
+from azurefunctions.extensions.base import sdkType
 
 
 class TestSdkType(unittest.TestCase):

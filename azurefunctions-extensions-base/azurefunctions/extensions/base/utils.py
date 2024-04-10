@@ -167,7 +167,7 @@ class Binding(ABC):
         This method is invoked in function :meth:`get_raw_bindings` of class
         :class:`Function` to generate json dict for each binding.
 
-        :return: Dictionary representation of the binding. Tuple representation
+        :return: Dictionary representation of the binding. Dict representation
         of the binding in the format:
         ((binding type, pytype), deferred bindings enabled)
         """
