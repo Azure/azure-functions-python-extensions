@@ -9,8 +9,10 @@ from typing import Optional
 from azure.storage.blob import StorageStreamDownloader as SSDSdk
 from azurefunctions.extensions.base import Datum
 
-from azurefunctions.extensions.bindings.blob import (BlobClientConverter,
-                                                     StorageStreamDownloader)
+from azurefunctions.extensions.bindings.blob import (
+    BlobClientConverter,
+    StorageStreamDownloader,
+)
 
 
 # Mock classes for testing
