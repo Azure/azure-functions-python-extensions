@@ -98,7 +98,7 @@ Several samples are available in this GitHub repository. These samples provide e
     * From BlobTrigger
     * From BlobInput
 
-* [blob_samples_storagestreamdownloader](https://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-bindings-blobb/samples/blob_samples_storagestreamdownloader) - Examples for using the StorageStreamDownloader type:
+* [blob_samples_storagestreamdownloader](https://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-bindings-blob/samples/blob_samples_storagestreamdownloader) - Examples for using the StorageStreamDownloader type:
     * From BlobTrigger
     * From BlobInput
 

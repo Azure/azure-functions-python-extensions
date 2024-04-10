@@ -9,7 +9,7 @@
 import logging
 
 import azure.functions as func
-import azurefunctions.extensions.bindings.blobb as blob
+import azurefunctions.extensions.bindings.blob as blob
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
