@@ -2,12 +2,12 @@ import asyncio
 import unittest
 from unittest.mock import MagicMock, patch
 
-from azure.functions.extension.base import (
+from azurefunctions.extensions.base import (
     RequestTrackerMeta,
     ResponseLabels,
     ResponseTrackerMeta,
 )
-from azure.functions.extension.fastapi import RequestSynchronizer, WebApp, WebServer
+from azurefunctions.extensions.http.fastapi import RequestSynchronizer, WebApp, WebServer
 from fastapi import FastAPI
 from fastapi import Request as FastApiRequest
 from fastapi import Response as FastApiResponse
@@ -179,7 +179,7 @@ class TestRequestSynchronizer(unittest.TestCase):
 
 class TestExtensionClasses(unittest.TestCase):
     def test_request(self):
-        from azure.functions.extension.fastapi.web import Request
+        from azurefunctions.extensions.http.fastapi.web import Request
 
         self.assertEqual(RequestTrackerMeta.get_request_type(), FastApiRequest)
         self.assertTrue(
