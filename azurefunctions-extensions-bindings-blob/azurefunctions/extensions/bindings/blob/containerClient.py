@@ -5,8 +5,8 @@ import json
 import os
 from typing import Union
 
-from azurefunctions.extensions.base import Datum, SdkType
 from azure.storage.blob import ContainerClient as ContainerClientSdk
+from azurefunctions.extensions.base import Datum, SdkType
 
 
 class ContainerClient(SdkType):

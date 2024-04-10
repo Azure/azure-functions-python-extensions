@@ -6,9 +6,13 @@ import unittest
 from enum import Enum
 from typing import Optional
 
-from azurefunctions.extensions.base import Datum
-from azurefunctions.extensions.bindings.blob import BlobClientConverter, StorageStreamDownloader
 from azure.storage.blob import StorageStreamDownloader as SSDSdk
+from azurefunctions.extensions.base import Datum
+
+from azurefunctions.extensions.bindings.blob import (
+    BlobClientConverter,
+    StorageStreamDownloader,
+)
 
 
 # Mock classes for testing
@@ -160,7 +164,7 @@ class TestStorageStreamDownloader(unittest.TestCase):
         # Create test indexed_function
         mock_indexed_functions = MockFunction(bindings=[mock_blob])
 
-        dict_repr = BlobClientConverter.get_raw_bindings(
+        dict_repr, logs = BlobClientConverter.get_raw_bindings(
             mock_indexed_functions, mock_input_types
         )
 
@@ -173,6 +177,8 @@ class TestStorageStreamDownloader(unittest.TestCase):
                 '{"SupportsDeferredBinding": false}}'
             ],
         )
+
+        self.assertEqual(logs, {"blob": {bytes: "False"}})
 
     def test_ssd_valid_creation(self):
         # Create test binding
@@ -193,7 +199,7 @@ class TestStorageStreamDownloader(unittest.TestCase):
         # Create test indexed_function
         mock_indexed_functions = MockFunction(bindings=[mock_blob])
 
-        dict_repr = BlobClientConverter.get_raw_bindings(
+        dict_repr, logs = BlobClientConverter.get_raw_bindings(
             mock_indexed_functions, mock_input_types
         )
 
@@ -206,3 +212,5 @@ class TestStorageStreamDownloader(unittest.TestCase):
                 '{"SupportsDeferredBinding": true}}'
             ],
         )
+
+        self.assertEqual(logs, {"client": {StorageStreamDownloader: "True"}})

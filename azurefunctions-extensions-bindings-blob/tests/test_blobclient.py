@@ -6,9 +6,10 @@ import unittest
 from enum import Enum
 from typing import Optional
 
-from azurefunctions.extensions.base import Datum
-from azurefunctions.extensions.bindings.blob import BlobClient, BlobClientConverter
 from azure.storage.blob import BlobClient as BlobClientSdk
+from azurefunctions.extensions.base import Datum
+
+from azurefunctions.extensions.bindings.blob import BlobClient, BlobClientConverter
 
 
 # Mock classes for testing
@@ -160,7 +161,7 @@ class TestBlobClient(unittest.TestCase):
         # Create test indexed_function
         mock_indexed_functions = MockFunction(bindings=[mock_blob])
 
-        dict_repr = BlobClientConverter.get_raw_bindings(
+        dict_repr, logs = BlobClientConverter.get_raw_bindings(
             mock_indexed_functions, mock_input_types
         )
 
@@ -173,6 +174,8 @@ class TestBlobClient(unittest.TestCase):
                 '{"SupportsDeferredBinding": false}}'
             ],
         )
+
+        self.assertEqual(logs, {"blob": {bytes: "False"}})
 
     def test_blob_client_valid_creation(self):
         # Create test binding
@@ -191,7 +194,7 @@ class TestBlobClient(unittest.TestCase):
         # Create test indexed_function
         mock_indexed_functions = MockFunction(bindings=[mock_blob])
 
-        dict_repr = BlobClientConverter.get_raw_bindings(
+        dict_repr, logs = BlobClientConverter.get_raw_bindings(
             mock_indexed_functions, mock_input_types
         )
 
@@ -204,3 +207,5 @@ class TestBlobClient(unittest.TestCase):
                 '{"SupportsDeferredBinding": true}}'
             ],
         )
+
+        self.assertEqual(logs, {"client": {BlobClient: "True"}})
