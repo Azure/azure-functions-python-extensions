@@ -4,7 +4,7 @@ import unittest
 from typing import List, Mapping
 from unittest.mock import patch
 
-from azurefunctions.extension.base import meta, sdkType
+from azurefunctions.extensions.base import meta, sdkType
 
 
 class TestMeta(unittest.TestCase):
@@ -216,7 +216,7 @@ class TestMeta(unittest.TestCase):
         )
 
     @patch(
-        "azurefunctions.extension.base.meta." "InConverter.__abstractmethods__", set()
+        "azurefunctions.extensions.base.meta." "InConverter.__abstractmethods__", set()
     )
     def test_in_converter(self):
         class MockInConverter(meta.InConverter, binding="test1"):
@@ -231,7 +231,7 @@ class TestMeta(unittest.TestCase):
         self.assertFalse(mock_converter.has_implicit_output())
 
     @patch(
-        "azurefunctions.extension.base.meta." "OutConverter.__abstractmethods__", set()
+        "azurefunctions.extensions.base.meta." "OutConverter.__abstractmethods__", set()
     )
     def test_out_converter(self):
         class MockOutConverter(meta.OutConverter, binding="test2"):
@@ -248,7 +248,7 @@ class TestMeta(unittest.TestCase):
         self.assertEqual(registry, meta._ConverterMeta)
 
     @patch(
-        "azurefunctions.extension.base.meta." "OutConverter.__abstractmethods__", set()
+        "azurefunctions.extensions.base.meta." "OutConverter.__abstractmethods__", set()
     )
     def test_converter_meta(self):
         class BindingNoneConverter(meta.OutConverter, binding=None):
