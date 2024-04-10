@@ -7,7 +7,11 @@ from azurefunctions.extensions.base import (
     ResponseLabels,
     ResponseTrackerMeta,
 )
-from azurefunctions.extensions.http.fastapi import RequestSynchronizer, WebApp, WebServer
+from azurefunctions.extensions.http.fastapi import (
+    RequestSynchronizer,
+    WebApp,
+    WebServer,
+)
 from fastapi import FastAPI
 from fastapi import Request as FastApiRequest
 from fastapi import Response as FastApiResponse
