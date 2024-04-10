@@ -9,8 +9,7 @@ from typing import Optional
 from azure.storage.blob import ContainerClient as ContainerClientSdk
 from azurefunctions.extensions.base import Datum
 
-from azurefunctions.extensions.bindings.blob import (BlobClientConverter,
-                                                     ContainerClient)
+from azurefunctions.extensions.bindings.blob import BlobClientConverter, ContainerClient
 
 
 # Mock classes for testing
