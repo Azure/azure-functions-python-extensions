@@ -42,7 +42,7 @@ version = {attr = "azurefunctions.extensions.bindings.blob.__version__"}
 
 [tool.setuptools.packages.find]
 exclude = [
-    'azure.functions.extension', 'azure.functions',
-    'azure', 'tests', 'samples'
+    'azurefunctions.extensions.bindings','azurefunctions.extensions',
+    'azurefunctions', 'tests', 'samples'
     ]
 

@@ -74,7 +74,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VALIDATE_PYTHON: true
           VALIDATE_PYTHON_BLACK: true # same as above
-          VALIDATE_PYTHON_ISORT: true # same as above
+#          VALIDATE_PYTHON_ISORT: true # same as above TODO: fix conflicting linters
           PYTHON_ISORT_CONFIG_FILE: .isort.cfg
           FILTER_REGEX_INCLUDE: azurefunctions-extensions-bindings-blob/*
           DEFAULT_BRANCH: origin/dev
