@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "azurefunctions-extensions-base"
+dynamic = ["version"]
+requires-python = ">=3.8"
+authors = [{ name = "Azure Functions team at Microsoft Corp.", email = "azurefunctions@microsoft.com"}]
+description = "Base Python worker extension for Azure Functions."
+readme = "README.md"
+license = {text = "MIT License"}
+classifiers= [
+        'License :: OSI Approved :: MIT License',
+        'Intended Audience :: Developers',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
+        'Operating System :: Microsoft :: Windows',
+        'Operating System :: POSIX',
+        'Operating System :: MacOS :: MacOS X',
+        'Environment :: Web Environment',
+        'Development Status :: 5 - Production/Stable',
+    ]
+
+[project.optional-dependencies]
+dev = [
+        'pytest',
+        'pytest-cov',
+        'coverage',
+        'pytest-instafail',
+        'pre-commit'
+    ]
+
+[tool.setuptools.dynamic]
+version = {attr = "azurefunctions.extensions.base.__version__"}
+
+[tool.setuptools.packages.find]
+exclude = ['azurefunctions.extensions', 'azurefunctions', 'tests']
+
