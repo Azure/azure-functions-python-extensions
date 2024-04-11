@@ -3,7 +3,7 @@ requires = ["setuptools >= 61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "azure-functions-extension-blob"
+name = "azurefunctions-extensions-bindings-blob"
 dynamic = ["version"]
 requires-python = ">=3.9"
 authors = [{ name = "Azure Functions team at Microsoft Corp.", email = "azurefunctions@microsoft.com"}]
@@ -24,7 +24,7 @@ classifiers= [
         'Development Status :: 5 - Production/Stable',
     ]
 dependencies = [
-    'azure-functions-extension-base',
+    'azurefunctions-extensions-base',
     'azure-storage-blob==12.19.0'
     ]
 
@@ -38,11 +38,11 @@ dev = [
     ]
 
 [tool.setuptools.dynamic]
-version = {attr = "azure.functions.extension.blob.__version__"}
+version = {attr = "azurefunctions.extensions.bindings.blob.__version__"}
 
 [tool.setuptools.packages.find]
 exclude = [
-    'azure.functions.extension', 'azure.functions',
-    'azure', 'tests', 'samples'
+    'azurefunctions.extensions.bindings','azurefunctions.extensions',
+    'azurefunctions', 'tests', 'samples'
     ]
 

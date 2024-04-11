@@ -7,12 +7,12 @@ Blob client types can be generated from:
 * Blob Triggers
 * Blob Input
 
-[Source code](https://github.com/Azure/azure-functions-python-extensions/tree/main/azure-functions-extension-blob)
+[Source code](https://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-bindings-blob)
 | Package (PyPi)
 | Package (Conda)
 | API reference documentation
 | Product documentation
-| [Samples](hhttps://github.com/Azure/azure-functions-python-extensions/tree/main/azure-functions-extension-blob/samples)
+| [Samples](hhttps://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-bindings-blob/samples)
 
 
 ## Getting started
@@ -27,7 +27,7 @@ Blob client types can be generated from:
 Install the Azure Functions Extension Blob library for Python with pip:
 
 ```bash
-pip install azure-functions-extension-blob
+pip install azurefunctions-extensions-bindings-blob
 ```
 
 ### Create a storage account
@@ -55,7 +55,7 @@ properties and methods available as seen in the Azure Storage Blob library for P
 ```python
 import logging
 import azure.functions as func
-import azure.functions.extension.blob as blob
+import azurefunctions.extensions.bindings.blob as blob
 
 @app.blob_trigger(arg_name="client",
                   path="PATH/TO/BLOB",
@@ -86,19 +86,19 @@ This list can be used for reference to catch thrown exceptions. To get the speci
 
 ### More sample code
 
-Get started with our [Blob samples](hhttps://github.com/Azure/azure-functions-python-extensions/tree/main/azure-functions-extension-blob/samples).
+Get started with our [Blob samples](hhttps://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-bindings-blob/samples).
 
 Several samples are available in this GitHub repository. These samples provide example code for additional scenarios commonly encountered while working with Storage Blobs:
 
-* [blob_samples_blobclient](https://github.com/Azure/azure-functions-python-extensions/tree/main/azure-functions-extension-blob/samples/blob_samples_blobclient)  - Examples for using the BlobClient type:
+* [blob_samples_blobclient](https://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-bindings-blob/samples/blob_samples_blobclient)  - Examples for using the BlobClient type:
     * From BlobTrigger
     * From BlobInput
 
-* [blob_samples_containerclient](https://github.com/Azure/azure-functions-python-extensions/tree/main/azure-functions-extension-blob/samples/blob_samples_containerclient) - Examples for using the ContainerClient type:
+* [blob_samples_containerclient](https://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-bindings-blob/samples/blob_samples_containerclient) - Examples for using the ContainerClient type:
     * From BlobTrigger
     * From BlobInput
 
-* [blob_samples_storagestreamdownloader](https://github.com/Azure/azure-functions-python-extensions/tree/main/azure-functions-extension-blob/samples/blob_samples_storagestreamdownloader) - Examples for using the StorageStreamDownloader type:
+* [blob_samples_storagestreamdownloader](https://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-bindings-blob/samples/blob_samples_storagestreamdownloader) - Examples for using the StorageStreamDownloader type:
     * From BlobTrigger
     * From BlobInput
 

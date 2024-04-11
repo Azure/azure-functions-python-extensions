@@ -5,15 +5,15 @@ import json
 import os
 from typing import Union
 
-from azure.functions.extension.base import Datum, SdkType
-from azure.storage.blob import BlobClient as BlobClientSdk
+from azure.storage.blob import ContainerClient as ContainerClientSdk
+from azurefunctions.extensions.base import Datum, SdkType
 
 
-class StorageStreamDownloader(SdkType):
+class ContainerClient(SdkType):
     def __init__(self, *, data: Union[bytes, Datum]) -> None:
 
         # model_binding_data properties
-        self._data = data or {}
+        self._data = data
         self._version = ""
         self._source = ""
         self._content_type = ""
@@ -29,16 +29,11 @@ class StorageStreamDownloader(SdkType):
             self._containerName = content_json["ContainerName"]
             self._blobName = content_json["BlobName"]
 
-    # Returns a StorageStreamDownloader
+    # Returns a ContainerClient
     def get_sdk_type(self):
         if self._data:
-            # Create BlobClient
-            blob_client = BlobClientSdk.from_connection_string(
-                conn_str=self._connection,
-                container_name=self._containerName,
-                blob_name=self._blobName,
+            return ContainerClientSdk.from_connection_string(
+                conn_str=self._connection, container_name=self._containerName
             )
-            # download_blob() returns a StorageStreamDownloader object
-            return blob_client.download_blob()
         else:
             return None
