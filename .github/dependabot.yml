@@ -13,12 +13,12 @@ updates:
 
   - package-ecosystem: "pip"
     # Files stored in `app` directory
-    directory: "/azurefunctions-extensions-fastapi"
+    directory: "/azurefunctions-extensions-http-fastapi"
     schedule:
       interval: "weekly"
 
   - package-ecosystem: "pip"
     # Files stored in `app` directory
-    directory: "/azurefunctions-extensions-blob"
+    directory: "/azurefunctions-extensions-bindings-blob"
     schedule:
       interval: "weekly"
