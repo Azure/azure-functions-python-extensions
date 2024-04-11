@@ -3,7 +3,7 @@
 # processing continuous data streams, or handling IoT device data.
 
 import azure.functions as func
-from azure.functions.extension.fastapi import JSONResponse, Request
+from azurefunctions.extensions.http.fastapi import JSONResponse, Request
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 

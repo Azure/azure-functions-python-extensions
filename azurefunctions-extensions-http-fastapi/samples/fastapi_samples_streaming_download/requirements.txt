@@ -3,4 +3,4 @@
 # Manually managing azure-functions-worker may cause unexpected issues
 
 azure-functions
-azure-functions-extension-fastapi
+azurefunctions-extensions-http-fastapi
