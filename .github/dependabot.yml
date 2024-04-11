@@ -7,18 +7,18 @@ version: 2
 updates:
   - package-ecosystem: "pip"
     # Files stored in repository root
-    directory: "/azure-functions-extension-base"
+    directory: "/azurefunctions-extensions-base"
     schedule:
       interval: "weekly"
 
   - package-ecosystem: "pip"
     # Files stored in `app` directory
-    directory: "/azure-functions-extension-fastapi"
+    directory: "/azurefunctions-extensions-fastapi"
     schedule:
       interval: "weekly"
 
   - package-ecosystem: "pip"
     # Files stored in `app` directory
-    directory: "/azure-functions-extension-blob"
+    directory: "/azurefunctions-extensions-blob"
     schedule:
       interval: "weekly"
