@@ -4,7 +4,7 @@
 from typing import Callable
 
 import uvicorn
-from azure.functions.extension.base import (
+from azurefunctions.extensions.base import (
     RequestSynchronizer,
     RequestTrackerMeta,
     ResponseLabels,

@@ -1,12 +1,12 @@
 # Azure Functions Extension FastApi library for Python
 This library contains HttpV2 extensions for FastApi Request/Response types to use in your function app code. 
 
-[Source code](https://github.com/Azure/azure-functions-python-extensions/tree/main/azure-functions-extension-fastapi)
+[Source code](https://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-http-fastapi)
 | Package (PyPi)
 | Package (Conda)
 | API reference documentation
 | Product documentation
-| [Samples](hhttps://github.com/Azure/azure-functions-python-extensions/tree/main/azure-functions-extension-fastapi/samples)
+| [Samples](hhttps://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-http-fastapi/samples)
 
 
 ## Getting started
@@ -18,7 +18,7 @@ This library contains HttpV2 extensions for FastApi Request/Response types to us
 ### Instructions
 1. Follow the guide to [create an app](https://learn.microsoft.com/en-us/azure/azure-functions/create-first-function-cli-python?tabs=windows%2Cbash%2Cazure-cli%2Cbrowser).
 2. Ensure your app is using programming model v2 and contains a http trigger function.
-3. Add azure-functions-extension-fastapi to your requirement.txt
+3. Add azurefunctions-extensions-http-fastapi to your requirement.txt
 4. Import Request and different types of responses from azure.functions.extensions.fastapi in your httptrigger functions.
 5. Change the request and response types to ones imported from azure.functions.extensions.fastapi.
 6. Run your function app and try it out!
@@ -33,7 +33,7 @@ The Azure Functions Extension FastApi library for Python allows you to create a 
 # processing continuous data streams, or handling IoT device data.
 
 import azure.functions as func
-from azure.functions.extension.fastapi import Request, JSONResponse
+from azurefunctions.extensions.http.fastapi import Request, JSONResponse
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
@@ -57,13 +57,13 @@ def process_data_chunk(chunk: bytes):
 
 ### More sample code
 
-Get started with our [FastApi samples](hhttps://github.com/Azure/azure-functions-python-extensions/tree/main/azure-functions-extension-fastapi/samples).
+Get started with our [FastApi samples](hhttps://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-http-fastapi/samples).
 
 Several samples are available in this GitHub repository. These samples provide example code for additional scenarios commonly encountered while working with FastApi:
 
-* [fastapi_samples_streaming_upload](https://github.com/Azure/azure-functions-python-extensions/tree/main/azure-functions-extension-fastapi/samples/fastapi_samples_streaming_upload) - An example on how to send and receiving a streaming request within your function.
+* [fastapi_samples_streaming_upload](https://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-http-fastapi/samples/fastapi_samples_streaming_upload) - An example on how to send and receiving a streaming request within your function.
 
-* [fastapi_samples_streaming_download](https://github.com/Azure/azure-functions-python-extensions/tree/main/azure-functions-extension-fastapi/samples/fastapi_samples_streaming_download) - An example on how  to send your http response via streaming to the caller.t
+* [fastapi_samples_streaming_download](https://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-http-fastapi/samples/fastapi_samples_streaming_download) - An example on how  to send your http response via streaming to the caller.t
 
 ## Contributing
 This project welcomes contributions and suggestions.  Most contributions require you to agree to a Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us the rights to use your contribution. For details, visit https://cla.microsoft.com.
