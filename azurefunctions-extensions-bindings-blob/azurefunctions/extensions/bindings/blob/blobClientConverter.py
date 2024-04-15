@@ -5,6 +5,7 @@ from typing import Any
 
 from azurefunctions.extensions.base import Datum, InConverter, OutConverter
 
+from .aioBlobClient import AioBlobClient
 from .blobClient import BlobClient
 from .containerClient import ContainerClient
 from .storageStreamDownloader import StorageStreamDownloader
@@ -20,7 +21,7 @@ class BlobClientConverter(
     @classmethod
     def check_input_type_annotation(cls, pytype: type) -> bool:
         return issubclass(
-            pytype, (BlobClient, ContainerClient, StorageStreamDownloader)
+            pytype, (AioBlobClient, BlobClient, ContainerClient, StorageStreamDownloader)
         )
 
     @classmethod
@@ -39,7 +40,9 @@ class BlobClientConverter(
             )
 
         # Determines which sdk type to return based on pytype
-        if pytype == BlobClient:
+        if pytype == AioBlobClient:
+            return AioBlobClient(data=data).get_sdk_type()
+        elif pytype == BlobClient:
             return BlobClient(data=data).get_sdk_type()
         elif pytype == ContainerClient:
             return ContainerClient(data=data).get_sdk_type()
