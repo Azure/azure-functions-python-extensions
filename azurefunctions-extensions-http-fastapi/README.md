@@ -2,7 +2,7 @@
 This library contains HttpV2 extensions for FastApi Request/Response types to use in your function app code. 
 
 [Source code](https://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-http-fastapi)
-| Package (PyPi)
+| [Package (PyPi)](https://pypi.org/project/azurefunctions-extensions-http-fastapi/)
 | Package (Conda)
 | API reference documentation
 | Product documentation
@@ -18,13 +18,13 @@ This library contains HttpV2 extensions for FastApi Request/Response types to us
 ### Instructions
 1. Follow the guide to [create an app](https://learn.microsoft.com/en-us/azure/azure-functions/create-first-function-cli-python?tabs=windows%2Cbash%2Cazure-cli%2Cbrowser).
 2. Ensure your app is using programming model v2 and contains a http trigger function.
-3. Add azurefunctions-extensions-http-fastapi to your requirement.txt
-4. Import Request and different types of responses from azure.functions.extensions.fastapi in your httptrigger functions.
-5. Change the request and response types to ones imported from azure.functions.extensions.fastapi.
+3. Add ```azurefunctions-extensions-http-fastapi``` to your requirements.txt
+4. Import Request and different types of responses from ```azurefunctions.extensions.http.fastapi``` in your HttpTrigger functions.
+5. Change the request and response types to ones imported from ```azurefunctions.extensions.http.fastapi```.
 6. Run your function app and try it out!
 
 ### Bind to the FastApi-type
-The Azure Functions Extension FastApi library for Python allows you to create a function app with FastApi Request or Response types. When your function runs, you will receive the request of FastApi Request type and you can return a FastApi response type instance. FastApi is one of top popular python web framework which provides elegant and powerful request/response types and functionalities to users. With this integration, you are empowered to use request/response the same way as using them in native FastApi. A good example is you can do http streaming upload and streaming download now! Feel free to check out [Fastapi doc] for further reference (https://fastapi.tiangolo.com/reference/responses/?h=custom)
+The Azure Functions Extensions Http FastApi library for Python allows you to create a function app with FastApi Request or Response types. When your function runs, you will receive the request of FastApi Request type and you can return a FastApi response type instance. FastApi is one of top popular python web framework which provides elegant and powerful request/response types and functionalities to users. With this integration, you are empowered to use request/response the same way as using them in native FastApi. A good example is you can do http streaming upload and streaming download now! Feel free to check out [Fastapi doc] for further reference (https://fastapi.tiangolo.com/reference/responses/?h=custom)
 
 
 ```python
