@@ -40,7 +40,7 @@ def blob_trigger(client: blob.ContainerClient):
 @app.blob_input(arg_name="client", path="CONTAINER", connection="AzureWebJobsStorage")
 def blob_input(req: func.HttpRequest, client: blob.BlobClient):
     logging.info(
-        f"Python blob trigger function processed blob \n"
+        f"Python blob input function processed blob \n"
         f"Properties: {client.get_container_properties()}\n"
     )
     return "ok"

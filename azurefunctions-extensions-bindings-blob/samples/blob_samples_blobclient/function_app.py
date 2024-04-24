@@ -35,7 +35,7 @@ def blob_trigger(client: blob.BlobClient):
     logging.info(
         f"Python blob trigger function processed blob \n"
         f"Properties: {client.get_blob_properties()}\n"
-        f"Blob content: {client.download_blob().readall()}"
+        f"Blob content head: {client.download_blob().read(size=1)}"
     )
 
 
@@ -45,8 +45,8 @@ def blob_trigger(client: blob.BlobClient):
 )
 def blob_input(req: func.HttpRequest, client: blob.BlobClient):
     logging.info(
-        f"Python blob trigger function processed blob \n"
+        f"Python blob input function processed blob \n"
         f"Properties: {client.get_blob_properties()}\n"
-        f"Blob content: {client.download_blob().readall()}"
+        f"Blob content head: {client.download_blob().read(size=1)}"
     )
     return "ok"
