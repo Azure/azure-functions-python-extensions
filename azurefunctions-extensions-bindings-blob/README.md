@@ -8,7 +8,7 @@ Blob client types can be generated from:
 * Blob Input
 
 [Source code](https://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-bindings-blob)
-| Package (PyPi)
+[Package (PyPi)](https://pypi.org/project/azurefunctions-extensions-bindings-blob/)
 | Package (Conda)
 | API reference documentation
 | Product documentation
@@ -24,7 +24,7 @@ Blob client types can be generated from:
 [Azure storage account](https://docs.microsoft.com/azure/storage/common/storage-account-overview) to use this package.
 
 ### Install the package
-Install the Azure Functions Extension Blob library for Python with pip:
+Install the Azure Functions Extensions Bindings Blob library for Python with pip:
 
 ```bash
 pip install azurefunctions-extensions-bindings-blob
@@ -46,7 +46,7 @@ az storage account create -n my-storage-account-name -g my-resource-group
 ```
 
 ### Bind to the SDK-type
-The Azure Functions Extension Blob library for Python allows you to create a function app with a Blob Trigger or
+The Azure Functions Extensions Bindings Blob library for Python allows you to create a function app with a Blob Trigger or
 Blob Input and define the type as a BlobClient, ContainerClient, or StorageStreamDownloader. Instead of receiving
 an InputStream, when the function is executed, the type returned will be the defined SDK-type and have all of the
 properties and methods available as seen in the Azure Storage Blob library for Python.
@@ -63,7 +63,7 @@ import azurefunctions.extensions.bindings.blob as blob
 def blob_trigger(client: blob.BlobClient):
     logging.info(f"Python blob trigger function processed blob \n"
                  f"Properties: {client.get_blob_properties()}\n"
-                 f"Blob content: {client.download_blob(encoding="utf-8").readall()}")
+                 f"Blob content head: {client.download_blob(encoding="utf-8").read(size=1)}")
 
 
 @app.route(route="file")
@@ -73,7 +73,7 @@ def blob_trigger(client: blob.BlobClient):
 def blob_input(req: func.HttpRequest, client: blob.BlobClient):
     logging.info(f"Python blob input function processed blob \n"
                  f"Properties: {client.get_blob_properties()}\n"
-                 f"Blob content: {client.download_blob(encoding="utf-8").readall()}")
+                 f"Blob content head: {client.download_blob(encoding="utf-8").read(size=1)}")
 ```
 
 ## Troubleshooting
