@@ -5,10 +5,13 @@ from typing import Any
 
 from azurefunctions.extensions.base import Datum, InConverter, OutConverter
 
-from .aioBlobClient import AioBlobClient
 from .blobClient import BlobClient
 from .containerClient import ContainerClient
 from .storageStreamDownloader import StorageStreamDownloader
+
+from .aio.blobClient import BlobClient as AioBlobClient
+from .aio.containerClient import ContainerClient as AioContainerClient
+from .aio.storageStreamDownloader import StorageStreamDownloader as AioStorageStreamDownloader
 
 
 class BlobClientConverter(
@@ -21,7 +24,8 @@ class BlobClientConverter(
     @classmethod
     def check_input_type_annotation(cls, pytype: type) -> bool:
         return issubclass(
-            pytype, (AioBlobClient, BlobClient, ContainerClient, StorageStreamDownloader)
+            pytype, (BlobClient, ContainerClient, StorageStreamDownloader,
+                     AioBlobClient, AioContainerClient, AioStorageStreamDownloader)
         )
 
     @classmethod
@@ -40,13 +44,17 @@ class BlobClientConverter(
             )
 
         # Determines which sdk type to return based on pytype
-        if pytype == AioBlobClient:
-            return AioBlobClient(data=data).get_sdk_type()
-        elif pytype == BlobClient:
+        if pytype == BlobClient:
             return BlobClient(data=data).get_sdk_type()
         elif pytype == ContainerClient:
             return ContainerClient(data=data).get_sdk_type()
         elif pytype == StorageStreamDownloader:
             return StorageStreamDownloader(data=data).get_sdk_type()
+        elif pytype == AioBlobClient:
+            return AioBlobClient(data=data).get_sdk_type()
+        elif pytype == AioContainerClient:
+            return AioContainerClient(data=data).get_sdk_type()
+        elif pytype == AioStorageStreamDownloader:
+            return AioStorageStreamDownloader(data=data).get_sdk_type()
         else:
             return None
