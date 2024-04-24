@@ -9,7 +9,6 @@ Blob client types can be generated from:
 
 [Source code](https://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-bindings-blob)
 [Package (PyPi)](https://pypi.org/project/azurefunctions-extensions-bindings-blob/)
-| Package (Conda)
 | API reference documentation
 | Product documentation
 | [Samples](hhttps://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-bindings-blob/samples)
