@@ -3,7 +3,6 @@ This library contains HttpV2 extensions for FastApi Request/Response types to us
 
 [Source code](https://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-http-fastapi)
 | [Package (PyPi)](https://pypi.org/project/azurefunctions-extensions-http-fastapi/)
-| Package (Conda)
 | API reference documentation
 | Product documentation
 | [Samples](hhttps://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-http-fastapi/samples)
@@ -24,7 +23,7 @@ This library contains HttpV2 extensions for FastApi Request/Response types to us
 6. Run your function app and try it out!
 
 ### Bind to the FastApi-type
-The Azure Functions Extensions Http FastApi library for Python allows you to create a function app with FastApi Request or Response types. When your function runs, you will receive the request of FastApi Request type and you can return a FastApi response type instance. FastApi is one of top popular python web framework which provides elegant and powerful request/response types and functionalities to users. With this integration, you are empowered to use request/response the same way as using them in native FastApi. A good example is you can do http streaming upload and streaming download now! Feel free to check out [Fastapi doc] for further reference (https://fastapi.tiangolo.com/reference/responses/?h=custom)
+The Azure Functions Extensions Http FastApi library for Python allows you to create a function app with FastApi Request or Response types. When your function runs, you will receive the request of FastApi Request type and you can return a FastApi response type instance. FastApi is one of top popular python web framework which provides elegant and powerful request/response types and functionalities to users. With this integration, you are empowered to use request/response the same way as using them in native FastApi. A good example is you can do http streaming upload and streaming download now! Feel free to check out [Fastapi doc](https://fastapi.tiangolo.com/reference/responses/?h=custom) for further reference. 
 
 
 ```python
