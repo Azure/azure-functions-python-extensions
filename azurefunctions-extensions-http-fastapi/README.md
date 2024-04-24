@@ -1,4 +1,4 @@
-# Azure Functions Extension FastApi library for Python
+# Azure Functions Extensions Http FastApi library for Python
 This library contains HttpV2 extensions for FastApi Request/Response types to use in your function app code. 
 
 [Source code](https://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-http-fastapi)
