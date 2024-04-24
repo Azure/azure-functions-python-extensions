@@ -1,4 +1,4 @@
-# Azure Functions Extension Blob library for Python
+# Azure Functions Extensions Bindings Blob library for Python
 This library allows Blob Trigger and Blob Input bindings in Python Function Apps to recognize and bind to client types from the
 Azure Storage Blob sdk.
 
