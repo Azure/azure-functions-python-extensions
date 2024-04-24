@@ -13,4 +13,4 @@ __all__ = [
     "BlobClientConverter",
 ]
 
-__version__ = "1.0.0a2"
+__version__ = "1.0.0a1"
