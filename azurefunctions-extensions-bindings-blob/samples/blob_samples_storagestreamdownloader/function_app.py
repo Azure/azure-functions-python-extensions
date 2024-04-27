@@ -46,7 +46,7 @@ def blob_trigger(stream: blob.StorageStreamDownloader):
 def blob_input(req: func.HttpRequest, stream: blob.StorageStreamDownloader):
     for chunk in stream.chunks():
         logging.info(
-            f"Python blob trigger function processed blob chunk \n"
+            f"Python blob input function processed blob chunk \n"
             f"Chunk: {chunk.decode()}"
         )
     return "ok"
