@@ -36,6 +36,9 @@ dev = [
     'pytest-instafail',
     'pre-commit'
     ]
+aio = [
+    'azure-storage-blob[aio]==12.19.1'
+    ]
 
 [tool.setuptools.dynamic]
 version = {attr = "azurefunctions.extensions.bindings.blob.__version__"}

@@ -11,7 +11,9 @@ from .storageStreamDownloader import StorageStreamDownloader
 
 from .aio.blobClient import BlobClient as AioBlobClient
 from .aio.containerClient import ContainerClient as AioContainerClient
-from .aio.storageStreamDownloader import StorageStreamDownloader as AioStorageStreamDownloader
+from .aio.storageStreamDownloader import (
+    StorageStreamDownloader as AioStorageStreamDownloader,
+)
 
 
 class BlobClientConverter(
@@ -20,12 +22,18 @@ class BlobClientConverter(
     binding="blob",
     trigger="blobTrigger",
 ):
-
     @classmethod
     def check_input_type_annotation(cls, pytype: type) -> bool:
         return issubclass(
-            pytype, (BlobClient, ContainerClient, StorageStreamDownloader,
-                     AioBlobClient, AioContainerClient, AioStorageStreamDownloader)
+            pytype,
+            (
+                BlobClient,
+                ContainerClient,
+                StorageStreamDownloader,
+                AioBlobClient,
+                AioContainerClient,
+                AioStorageStreamDownloader,
+            ),
         )
 
     @classmethod

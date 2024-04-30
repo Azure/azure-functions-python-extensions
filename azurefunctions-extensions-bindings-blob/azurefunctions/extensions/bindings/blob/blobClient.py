@@ -11,7 +11,6 @@ from azurefunctions.extensions.base import Datum, SdkType
 
 class BlobClient(SdkType):
     def __init__(self, *, data: Union[bytes, Datum]) -> None:
-
         # model_binding_data properties
         self._data = data
         self._version = None
