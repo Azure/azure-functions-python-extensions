@@ -29,7 +29,7 @@ class StorageStreamDownloader(SdkType):
             self._blobName = content_json["BlobName"]
 
     # Returns a StorageStreamDownloader
-    def get_sdk_type(self):
+    async def get_sdk_type(self):
         if self._data:
             # Create BlobClient
             blob_client = AioBlobClientSdk.from_connection_string(
@@ -38,6 +38,6 @@ class StorageStreamDownloader(SdkType):
                 blob_name=self._blobName,
             )
             # download_blob() returns a StorageStreamDownloader object
-            return blob_client.download_blob()
+            return await blob_client.download_blob()
         else:
             return None
