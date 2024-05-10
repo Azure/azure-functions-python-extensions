@@ -24,12 +24,25 @@ class StorageStreamDownloader(SdkType):
             self._source = data.source
             self._content_type = data.content_type
             content_json = json.loads(data.content)
-            self._connection = os.getenv(content_json["Connection"])
+            self._connection = content_json["Connection"]
             self._containerName = content_json["ContainerName"]
             self._blobName = content_json["BlobName"]
 
+    def validate_connection_string(self):
+        """
+        Validates the connection string. If the connection string is
+        not an App Setting, an error will be thrown.
+        """
+        if not os.getenv(self._connection):
+            raise ValueError(
+                f"Storage account connection string {self._connection} does not exist. "
+                f"Please make sure that it is a defined App Setting."
+            )
+        self._connection = os.getenv(self._connection)
+
     # Returns a StorageStreamDownloader
     def get_sdk_type(self):
+        StorageStreamDownloader.validate_connection_string(self)
         if self._data:
             # Create BlobClient
             blob_client = BlobClientSdk.from_connection_string(

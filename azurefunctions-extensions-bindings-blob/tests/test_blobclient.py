@@ -146,7 +146,7 @@ class TestBlobClient(unittest.TestCase):
                 data=datum, trigger_metadata=None, pytype=BlobClient
             )
         self.assertEqual(
-            e.exception,
+            e.exception.args[0],
             "Storage account connection string NotARealConnectionString does not exist. "
             "Please make sure that it is a defined App Setting.",
         )
