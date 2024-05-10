@@ -38,6 +38,8 @@ jobs:
       working-directory: azurefunctions-extensions-bindings-blob
       env:
         AzureWebJobsStorage: ${{ secrets.AzureWebJobsStorage }}
+        input: ${{ secrets.input____serviceUri }}
+        trigger: ${{ secrets.trigger__blobServiceUri }}
       run: |
         python -m pytest -q --instafail --cov=. --cov-report xml --cov-branch --ignore tests/ tests
 
