@@ -10,7 +10,6 @@ from azurefunctions.extensions.base import Datum, SdkType
 
 
 class BlobClient(SdkType):
-
     def __init__(self, *, data: Union[bytes, Datum]) -> None:
         # model_binding_data properties
         self._data = data
@@ -26,13 +25,15 @@ class BlobClient(SdkType):
             self._source = data.source
             self._content_type = data.content_type
             content_json = json.loads(data.content)
-            self._using_managed_identity = using_managed_identity(content_json["Connection"])
+            self._using_managed_identity = using_managed_identity(
+                content_json["Connection"]
+            )
             self._connection = validate_connection_string(content_json["Connection"])
             self._containerName = content_json["ContainerName"]
             self._blobName = content_json["BlobName"]
 
     def get_sdk_type(self):
-        '''
+        """
         When using Managed Identity, the only way to create a BlobClient is
         through a BlobServiceClient. There are two ways to create a
         BlobServiceClient:
@@ -40,7 +41,7 @@ class BlobClient(SdkType):
         2. Through from_connection_string: this is the only option when not using Managed Identity
 
         We track if Managed Identity is being used through a flag.
-        '''
+        """
         if self._data:
             if self._using_managed_identity:
                 blob_service_client = BlobServiceClient(account_url=self._connection)
@@ -49,7 +50,9 @@ class BlobClient(SdkType):
                     blob=self._blobName,
                 )
             else:
-                blob_service_client = BlobServiceClient.from_connection_string(self._connection)
+                blob_service_client = BlobServiceClient.from_connection_string(
+                    self._connection
+                )
                 return blob_service_client.get_blob_client(
                     container=self._containerName,
                     blob=self._blobName,
@@ -59,8 +62,9 @@ class BlobClient(SdkType):
 
 
 def using_managed_identity(connection_name: str) -> bool:
-    return ((os.getenv(connection_name + "__serviceUri") is not None)
-            or (os.getenv(connection_name + "__blobServiceUri") is not None))
+    return (os.getenv(connection_name + "__serviceUri") is not None) or (
+        os.getenv(connection_name + "__blobServiceUri") is not None
+    )
 
 
 def validate_connection_string(connection_string: str) -> str:
