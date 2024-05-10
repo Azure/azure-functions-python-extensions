@@ -16,7 +16,6 @@ class BlobClientConverter(
     binding="blob",
     trigger="blobTrigger",
 ):
-
     @classmethod
     def check_input_type_annotation(cls, pytype: type) -> bool:
         return issubclass(
