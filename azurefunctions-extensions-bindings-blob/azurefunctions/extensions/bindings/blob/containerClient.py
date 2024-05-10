@@ -30,7 +30,6 @@ class ContainerClient(SdkType):
 
     # Returns a ContainerClient
     def get_sdk_type(self):
-        ContainerClient.validate_connection_string(self)
         if self._data:
             return ContainerClientSdk.from_connection_string(
                 conn_str=self._connection, container_name=self._containerName

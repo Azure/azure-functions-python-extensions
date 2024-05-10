@@ -30,7 +30,6 @@ class StorageStreamDownloader(SdkType):
 
     # Returns a StorageStreamDownloader
     def get_sdk_type(self):
-        StorageStreamDownloader.validate_connection_string(self)
         if self._data:
             # Create BlobClient
             blob_client = BlobClientSdk.from_connection_string(
