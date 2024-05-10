@@ -6,7 +6,6 @@ import os
 from typing import Union
 
 from azure.storage.blob import BlobClient as BlobClientSdk
-from azure.storage.blob import BlobServiceClient
 from azurefunctions.extensions.base import Datum, SdkType
 
 
