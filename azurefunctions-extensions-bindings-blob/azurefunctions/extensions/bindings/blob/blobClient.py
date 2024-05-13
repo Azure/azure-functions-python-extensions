@@ -78,8 +78,6 @@ def validate_connection_string(connection_string: str) -> str:
     The variable received will be <CONNECTION_NAME_PREFIX>. Therefore, we need to append
     the suffix to obtain the storage URI and create the client.
 
-    If managed identity is being used, we set the using_managed_identity property to True.
-
     There are four cases:
     1. Not using managed identity: the environment variable exists as is
     2. Using managed identity for blob input: __serviceUri must be appended
