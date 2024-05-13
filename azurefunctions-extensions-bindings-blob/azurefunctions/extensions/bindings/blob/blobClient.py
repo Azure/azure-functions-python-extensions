@@ -2,11 +2,11 @@
 #  Licensed under the MIT License.
 
 import json
-import os
 from typing import Union
 
 from azure.storage.blob import BlobClient as BlobClientSdk
 from azurefunctions.extensions.base import Datum, SdkType
+from .utils import validate_connection_string
 
 
 class BlobClient(SdkType):
@@ -38,16 +38,3 @@ class BlobClient(SdkType):
             )
         else:
             return None
-
-
-def validate_connection_string(connection_string: str) -> str:
-    """
-    Validates the connection string. If the connection string is
-    not an App Setting, an error will be thrown.
-    """
-    if not os.getenv(connection_string):
-        raise ValueError(
-            f"Storage account connection string {connection_string} does not exist. "
-            f"Please make sure that it is a defined App Setting."
-        )
-    return os.getenv(connection_string)
