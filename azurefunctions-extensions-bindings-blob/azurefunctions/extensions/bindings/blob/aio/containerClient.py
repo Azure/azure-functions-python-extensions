@@ -29,7 +29,7 @@ class ContainerClient(SdkType):
             self._blobName = content_json["BlobName"]
 
     # Returns a ContainerClient
-    def get_sdk_type(self):
+    async def get_sdk_type(self):
         if self._data:
             return AioContainerClientSdk.from_connection_string(
                 conn_str=self._connection, container_name=self._containerName

@@ -37,7 +37,7 @@ class BlobClientConverter(
         )
 
     @classmethod
-    def decode(cls, data: Datum, *, trigger_metadata, pytype) -> Any:
+    async def decode(cls, data: Datum, *, trigger_metadata, pytype) -> Any:
         if data is None or data.type is None:
             return None
 
