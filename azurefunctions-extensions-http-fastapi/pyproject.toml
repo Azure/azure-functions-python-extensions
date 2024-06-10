@@ -28,7 +28,7 @@ dependencies = [
         'azurefunctions-extensions-base',
         'fastapi==0.110.1',
         'uvicorn==0.29.0',
-        'pydantic==2.7.1',
+        'pydantic==2.7.3',
     ]
 
 [project.optional-dependencies]
