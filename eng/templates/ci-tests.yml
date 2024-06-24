@@ -2,13 +2,63 @@ jobs:
   - job: "TestPython"
     displayName: "Run Extension Unit Tests"
 
-    pool:
-      name: 1es-pool-azfunc
-      image: 1es-ubuntu-22.04
-      os: linux
-
     strategy:
       matrix:
         base-38:
           PYTHON_VERSION: '3.8'
           EXTENSION_DIRECTORY: 'azurefunctions-extensions-base'
+          EXTENSION_NAME: 'Base'
+        base-39:
+          PYTHON_VERSION: '3.9'
+          EXTENSION_DIRECTORY: 'azurefunctions-extensions-base'
+          EXTENSION_NAME: 'Base'
+        base-310:
+          PYTHON_VERSION: '3.10'
+          EXTENSION_DIRECTORY: 'azurefunctions-extensions-base'
+          EXTENSION_NAME: 'Base'
+        base-311:
+          PYTHON_VERSION: '3.11'
+          EXTENSION_DIRECTORY: 'azurefunctions-extensions-base'
+          EXTENSION_NAME: 'Base'
+        blob-39:
+          PYTHON_VERSION: '3.9'
+          EXTENSION_DIRECTORY: 'azurefunctions-extensions-blob'
+          EXTENSION_NAME: 'Blob'
+        blob-310:
+          PYTHON_VERSION: '3.10'
+          EXTENSION_DIRECTORY: 'azurefunctions-extensions-blob'
+          EXTENSION_NAME: 'Blob'
+        blob-311:
+          PYTHON_VERSION: '3.11'
+          EXTENSION_DIRECTORY: 'azurefunctions-extensions-blob'
+          EXTENSION_NAME: 'Blob'
+        http-38:
+          PYTHON_VERSION: '3.8'
+          EXTENSION_DIRECTORY: 'azurefunctions-extensions-http'
+          EXTENSION_NAME: 'HTTP'
+        http-39:
+          PYTHON_VERSION: '3.9'
+          EXTENSION_DIRECTORY: 'azurefunctions-extensions-http'
+          EXTENSION_NAME: 'HTTP'
+        http-310:
+          PYTHON_VERSION: '3.10'
+          EXTENSION_DIRECTORY: 'azurefunctions-extensions-http'
+          EXTENSION_NAME: 'HTTP'
+        http-311:
+          PYTHON_VERSION: '3.11'
+          EXTENSION_DIRECTORY: 'azurefunctions-extensions-http'
+          EXTENSION_NAME: 'HTTP'
+
+    steps:
+      - task: UsePythonVersion@0
+        inputs:
+          versionSpec: $(PYTHON_VERSION)
+      - bash: |
+          python -m pip install --upgrade pip
+          python -m pip install -U -e .[dev]
+        displayName: 'Install dependencies'
+      - bash: |
+          python -m pytest -q --instafail --cov=. --cov-report xml --cov-branch --ignore $(EXTENSION_DIRECTORY)/tests/
+        env:
+          AzureWebJobsStorage: $(AzureWebJobsStorage)
+        displayName: "Running $(EXTENSION_NAME) $(PYTHON_VERSION) Python Extension Tests"
