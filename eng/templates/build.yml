@@ -1,0 +1,29 @@
+jobs:
+  - job: "Build"
+    displayName: 'Build Python Extensions'
+
+    strategy:
+      matrix:
+        base_extension:
+          EXTENSION_DIRECTORY: 'azurefunctions-extensions-base'
+          EXTENSION_NAME: 'Base'
+        blob_extension:
+          EXTENSION_DIRECTORY: 'azurefunctions-extensions-bindings-blob'
+          EXTENSION_NAME: 'Blob'
+        http_extension:
+          EXTENSION_DIRECTORY: 'azurefunctions-extensions-http'
+          EXTENSION_NAME: 'Http'
+
+    steps:
+      - task: UsePythonVersion@0
+        inputs:
+          versionSpec: '3.11'
+      - bash: |
+          python --version
+        displayName: 'Check python version'
+      - bash: |
+          python -m pip install -U pip
+          pip install build twine
+          cd $(EXTENSION_DIRECTORY)
+          python -m build
+        displayName: 'Build $(EXTENSION_NAME) Extension'
