@@ -1,0 +1,27 @@
+jobs:
+  - job: "TestPython"
+    displayName: "Run FastApi Tests"
+
+    strategy:
+      matrix:
+        python39:
+          PYTHON_VERSION: '3.9'
+        python310:
+          PYTHON_VERSION: '3.10'
+        python311:
+          PYTHON_VERSION: '3.11'
+
+    steps:
+      - task: UsePythonVersion@0
+        inputs:
+          versionSpec: $(PYTHON_VERSION)
+      - bash: |
+          python -m pip install --upgrade pip
+          cd azurefunctions-extensions-http-fastapi
+          python -m pip install -U -e .[dev]
+        displayName: 'Install dependencies'
+      - bash: |
+          python -m pytest -q --instafail --cov=. --cov-report xml --cov-branch azurefunctions-extensions-http-fastapi/tests/ --ignore='azurefunctions-extensions-base', --ignore='azurefunctions-extensions-bindings-blob'
+        env:
+          AzureWebJobsStorage: $(AzureWebJobsStorage)
+        displayName: "Running FastApi $(PYTHON_VERSION) Python Extension Tests"
