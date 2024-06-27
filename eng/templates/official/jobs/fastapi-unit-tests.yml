@@ -21,7 +21,6 @@ jobs:
           python -m pip install -U -e .[dev]
         displayName: 'Install dependencies'
       - bash: |
-          python -m pytest -q --instafail --cov=. --cov-report xml --cov-branch azurefunctions-extensions-http-fastapi/tests/ --ignore='azurefunctions-extensions-base', --ignore='azurefunctions-extensions-bindings-blob'
+          python -m pytest -q --instafail azurefunctions-extensions-http-fastapi/tests/ --ignore='azurefunctions-extensions-base', --ignore='azurefunctions-extensions-bindings-blob'
         env:
-          AzureWebJobsStorage: $(AzureWebJobsStorage)
         displayName: "Running FastApi $(PYTHON_VERSION) Python Extension Tests"

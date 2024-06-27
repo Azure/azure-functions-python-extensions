@@ -21,7 +21,6 @@ jobs:
           python -m pip install -U -e .[dev]
         displayName: 'Install dependencies'
       - bash: |
-          python -m pytest -q --instafail --cov=. --cov-report xml --cov-branch azurefunctions-extensions-base/tests/ --ignore='azurefunctions-extensions-bindings-blob', --ignore='azurefunctions-extensions-http-fastapi'
+          python -m pytest -q --instafail azurefunctions-extensions-base/tests/ --ignore='azurefunctions-extensions-bindings-blob', --ignore='azurefunctions-extensions-http-fastapi'
         env:
-          AzureWebJobsStorage: $(AzureWebJobsStorage)
         displayName: "Running Base $(PYTHON_VERSION) Python Extension Tests"
