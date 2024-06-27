@@ -22,5 +22,4 @@ jobs:
         displayName: 'Install dependencies'
       - bash: |
           python -m pytest -q --instafail azurefunctions-extensions-http-fastapi/tests/ --ignore='azurefunctions-extensions-base', --ignore='azurefunctions-extensions-bindings-blob'
-        env:
         displayName: "Running FastApi $(PYTHON_VERSION) Python Extension Tests"
