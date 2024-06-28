@@ -34,7 +34,7 @@ extends:
     sdl:
       codeql:
          compiled:
-           enabled: true # only runs for default branch
+           enabled: true # only runs for dev branch
          runSourceLanguagesInSourceAnalysis: true
     settings:
       skipBuildTagsForGitHubPullRequests: $(System.PullRequest.IsFork)
