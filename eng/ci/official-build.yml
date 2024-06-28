@@ -42,9 +42,16 @@ extends:
     stages:
       - stage: Build
         jobs:
-          - template: /eng/templates/build.yml@self
-
-      - stage: RunTests
+          - template: /eng/templates/official/jobs/build-artifacts.yml@self
+      - stage: RunBaseTests
         dependsOn: Build
         jobs:
-          - template: /eng/templates/ci-tests.yml@self
+          - template: /eng/templates/official/jobs/base-unit-tests.yml@self
+      - stage: RunBlobTests
+        dependsOn: Build
+        jobs:
+          - template: /eng/templates/official/jobs/blob-unit-tests.yml@self
+      - stage: RunFastApiTests
+        dependsOn: Build
+        jobs:
+          - template: /eng/templates/official/jobs/fastapi-unit-tests.yml@self

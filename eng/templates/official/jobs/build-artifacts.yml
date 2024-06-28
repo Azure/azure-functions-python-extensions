@@ -10,9 +10,15 @@ jobs:
         blob_extension:
           EXTENSION_DIRECTORY: 'azurefunctions-extensions-bindings-blob'
           EXTENSION_NAME: 'Blob'
-        http_extension:
-          EXTENSION_DIRECTORY: 'azurefunctions-extensions-http'
-          EXTENSION_NAME: 'Http'
+        fastapi_extension:
+          EXTENSION_DIRECTORY: 'azurefunctions-extensions-http-fastapi'
+          EXTENSION_NAME: 'FastAPI'
+    templateContext:
+      outputParentDirectory: $(Build.ArtifactStagingDirectory)
+      outputs:
+        - output: pipelineArtifact
+          targetPath: $(Build.SourcesDirectory)
+          artifactName: "$(EXTENSION_DIRECTORY)"
 
     steps:
       - task: UsePythonVersion@0
