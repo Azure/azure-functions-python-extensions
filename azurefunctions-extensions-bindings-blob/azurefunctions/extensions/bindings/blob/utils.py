@@ -1,11 +1,11 @@
 #  Copyright (c) Microsoft Corporation. All rights reserved.
 #  Licensed under the MIT License.
 import os
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 
 class ConnectionConfig(BaseModel):
-    connection_string: str
+    connection_string: str = Field(..., description="Storage account connection string")
 
     @field_validator("connection_string")
     @classmethod
