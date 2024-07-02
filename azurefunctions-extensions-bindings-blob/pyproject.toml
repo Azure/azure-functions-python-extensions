@@ -25,7 +25,8 @@ classifiers= [
     ]
 dependencies = [
     'azurefunctions-extensions-base',
-    'azure-storage-blob==12.20.0'
+    'azure-storage-blob==12.20.0',
+    'pydantic==2.8.0'
     ]
 
 [project.optional-dependencies]
