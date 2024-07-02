@@ -1,0 +1,27 @@
+jobs:
+  - job: "TestPython"
+    displayName: "Run Base Tests"
+
+    strategy:
+      matrix:
+        python38:
+          PYTHON_VERSION: '3.8'
+        python39:
+          PYTHON_VERSION: '3.9'
+        python310:
+          PYTHON_VERSION: '3.10'
+        python311:
+          PYTHON_VERSION: '3.11'
+
+    steps:
+      - task: UsePythonVersion@0
+        inputs:
+          versionSpec: $(PYTHON_VERSION)
+      - bash: |
+          python -m pip install --upgrade pip
+          cd azurefunctions-extensions-base
+          python -m pip install -U -e .[dev]
+        displayName: 'Install dependencies'
+      - bash: |
+          python -m pytest -q --instafail azurefunctions-extensions-base/tests/ --ignore='azurefunctions-extensions-bindings-blob', --ignore='azurefunctions-extensions-http-fastapi'
+        displayName: "Running Base $(PYTHON_VERSION) Python Extension Tests"
