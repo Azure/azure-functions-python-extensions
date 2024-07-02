@@ -1,0 +1,28 @@
+jobs:
+  - job: "TestPython"
+    displayName: "Run Blob Tests"
+
+    strategy:
+      matrix:
+        python39:
+          PYTHON_VERSION: '3.9'
+        python310:
+          PYTHON_VERSION: '3.10'
+        python311:
+          PYTHON_VERSION: '3.11'
+
+    steps:
+      - task: UsePythonVersion@0
+        inputs:
+          versionSpec: $(PYTHON_VERSION)
+      - bash: |
+          python -m pip install --upgrade pip
+          cd azurefunctions-extensions-bindings-blob
+          python -m pip install -U -e .[dev]
+          python -m pip install -U -e .[aio]
+        displayName: 'Install dependencies'
+      - bash: |
+          python -m pytest -q --instafail azurefunctions-extensions-bindings-blob/tests/ --ignore='azurefunctions-extensions-base', --ignore='azurefunctions-extensions-http-fastapi'
+        env:
+          AzureWebJobsStorage: $(AzureWebJobsStorage)
+        displayName: "Running Blob $(PYTHON_VERSION) Python Extension Tests"
