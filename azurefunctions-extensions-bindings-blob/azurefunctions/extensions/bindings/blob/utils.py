@@ -19,6 +19,11 @@ class ConnectionConfig(BaseModel):
                 f"Storage account connection string cannot be empty. "
                 f"Please provide a connection string."
             )
+        elif str.isspace(cx_connection_string):
+            raise ValueError(
+                f"Storage account connection string cannot contain only whitespace. "
+                f"Please provide a valid connection string."
+            )
         elif not os.getenv(cx_connection_string):
             raise ValueError(
                 f"Storage account connection string {cx_connection_string} does not exist. "

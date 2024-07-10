@@ -199,6 +199,31 @@ class TestBlobClient(unittest.TestCase):
             r"Please provide a connection string.*",
         )
 
+    def test_whitespace_input_populated(self):
+        content = {
+            "Connection": " /t/n",
+            "ContainerName": "test-blob",
+            "BlobName": "text.txt",
+        }
+
+        sample_mbd = MockMBD(
+            version="1.0",
+            source="AzureStorageBlobs",
+            content_type="application/json",
+            content=json.dumps(content),
+        )
+
+        with self.assertRaises(ValidationError) as e:
+            datum: Datum = Datum(value=sample_mbd, type="model_binding_data")
+            result: BlobClient = BlobClientConverter.decode(
+                data=datum, trigger_metadata=None, pytype=BlobClient
+            )
+        self.assertRegex(
+            e.exception.__repr__(),
+            r".*Storage account connection string cannot contain"
+            r" only whitespace. Please provide a valid connection string.*",
+        )
+
     def test_input_invalid_pytype(self):
         content = {
             "Connection": "AzureWebJobsStorage",
