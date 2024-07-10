@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field, field_validator
 
 
 class ConnectionConfig(BaseModel):
-    connection_string: str = Field(..., description="Storage account connection string")
+    connection_string: str = Field(..., description="Storage account connection string name")
 
     @field_validator("connection_string")
     @classmethod
@@ -16,17 +16,18 @@ class ConnectionConfig(BaseModel):
         """
         if cx_connection_string is "":
             raise ValueError(
-                f"Storage account connection string cannot be empty. "
-                f"Please provide a connection string."
+                "Storage account connection string cannot be empty. "
+                "Please provide a connection string."
             )
         elif str.isspace(cx_connection_string):
             raise ValueError(
-                f"Storage account connection string cannot contain only whitespace. "
-                f"Please provide a valid connection string."
+                "Storage account connection string cannot contain only whitespace. "
+                "Please provide a valid connection string."
             )
         elif not os.getenv(cx_connection_string):
             raise ValueError(
-                f"Storage account connection string {cx_connection_string} does not exist. "
-                f"Please make sure that it is a defined App Setting."
+                "Storage account connection string %s does not exist. "
+                "Please make sure that it is a defined App Setting.",
+                cx_connection_string
             )
         return os.getenv(cx_connection_string)
