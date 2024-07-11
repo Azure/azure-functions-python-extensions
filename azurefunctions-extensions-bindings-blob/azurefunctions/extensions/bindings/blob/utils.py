@@ -5,7 +5,9 @@ from pydantic import BaseModel, Field, field_validator
 
 
 class ConnectionConfig(BaseModel):
-    connection_string: str = Field(..., description="Storage account connection string name")
+    connection_string: str = Field(
+        ..., description="Storage account connection string name"
+    )
 
     @field_validator("connection_string")
     @classmethod
@@ -28,6 +30,6 @@ class ConnectionConfig(BaseModel):
             raise ValueError(
                 "Storage account connection string %s does not exist. "
                 "Please make sure that it is a defined App Setting.",
-                cx_connection_string
+                cx_connection_string,
             )
         return os.getenv(cx_connection_string)
