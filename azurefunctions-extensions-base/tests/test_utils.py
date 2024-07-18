@@ -19,7 +19,7 @@ class MockFunction(ABC):
 
 
 class MockInitParams(utils.Binding):
-    def __init__(self, name, direction, data_type, type, init_params):
+    def __init__(self, name, direction, data_type, type, init_params, path=None):
         self.type = "blob"
         self.name = name
         self._direction = direction
@@ -30,6 +30,7 @@ class MockInitParams(utils.Binding):
             "type": self.type,
         }
         self.init_params = init_params
+        self.path = path
 
 
 class TestUtils(unittest.TestCase):
