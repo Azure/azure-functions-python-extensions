@@ -52,18 +52,6 @@ def process_data_chunk(chunk: bytes):
     pass
 ```
 
-## Next steps
-
-### More sample code
-
-Get started with our [FastApi samples](hhttps://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-http-fastapi/samples).
-
-Several samples are available in this GitHub repository. These samples provide example code for additional scenarios commonly encountered while working with FastApi:
-
-* [fastapi_samples_streaming_upload](https://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-http-fastapi/samples/fastapi_samples_streaming_upload) - An example on how to send and receiving a streaming request within your function.
-
-* [fastapi_samples_streaming_download](https://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-http-fastapi/samples/fastapi_samples_streaming_download) - An example on how  to send your http response via streaming to the caller.t
-
 ## Contributing
 This project welcomes contributions and suggestions.  Most contributions require you to agree to a Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us the rights to use your contribution. For details, visit https://cla.microsoft.com.
 
