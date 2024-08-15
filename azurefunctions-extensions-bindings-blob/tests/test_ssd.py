@@ -4,7 +4,6 @@
 import json
 import unittest
 from enum import Enum
-from pydantic import ValidationError
 from typing import Optional
 
 from azure.storage.blob import StorageStreamDownloader as SSDSdk
@@ -144,16 +143,15 @@ class TestStorageStreamDownloader(unittest.TestCase):
             content=json.dumps(content),
         )
 
-        with self.assertRaises(ValidationError) as e:
+        with self.assertRaises(ValueError) as e:
             datum: Datum = Datum(value=sample_mbd, type="model_binding_data")
             result: StorageStreamDownloader = BlobClientConverter.decode(
                 data=datum, trigger_metadata=None, pytype=StorageStreamDownloader
             )
-        self.assertRegex(
-            e.exception.__repr__(),
-            r".*Storage account connection string "
-            r"NotARealConnectionString does not exist. "
-            r".*Please make sure that it is a defined App Setting.*",
+        self.assertEqual(
+            e.exception.args[0],
+            "Storage account connection string NotARealConnectionString does not exist. "
+            "Please make sure that it is a defined App Setting.",
         )
 
     def test_none_input_populated(self):
@@ -170,12 +168,15 @@ class TestStorageStreamDownloader(unittest.TestCase):
             content=json.dumps(content),
         )
 
-        with self.assertRaises(ValidationError) as e:
+        with self.assertRaises(ValueError) as e:
             datum: Datum = Datum(value=sample_mbd, type="model_binding_data")
             result: StorageStreamDownloader = BlobClientConverter.decode(
                 data=datum, trigger_metadata=None, pytype=StorageStreamDownloader
             )
-        self.assertRegex(e.exception.__repr__(), r".*Input should be a valid string.*")
+        self.assertEqual(
+            e.exception.args[0],
+            "Storage account connection string cannot be none. Please provide a connection string.",
+        )
 
     def test_empty_input_populated(self):
         content = {
@@ -191,15 +192,14 @@ class TestStorageStreamDownloader(unittest.TestCase):
             content=json.dumps(content),
         )
 
-        with self.assertRaises(ValidationError) as e:
+        with self.assertRaises(ValueError) as e:
             datum: Datum = Datum(value=sample_mbd, type="model_binding_data")
             result: StorageStreamDownloader = BlobClientConverter.decode(
                 data=datum, trigger_metadata=None, pytype=StorageStreamDownloader
             )
-        self.assertRegex(
-            e.exception.__repr__(),
-            r".*Storage account connection string cannot be empty. "
-            r"Please provide a connection string.*",
+        self.assertEqual(
+            e.exception.args[0],
+            "Storage account connection string cannot be empty. Please provide a connection string.",
         )
 
     def test_whitespace_input_populated(self):
@@ -216,7 +216,7 @@ class TestStorageStreamDownloader(unittest.TestCase):
             content=json.dumps(content),
         )
 
-        with self.assertRaises(ValidationError) as e:
+        with self.assertRaises(ValueError) as e:
             datum: Datum = Datum(value=sample_mbd, type="model_binding_data")
             result: StorageStreamDownloader = BlobClientConverter.decode(
                 data=datum, trigger_metadata=None, pytype=StorageStreamDownloader
