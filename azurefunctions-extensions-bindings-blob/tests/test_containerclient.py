@@ -199,7 +199,7 @@ class TestContainerClient(unittest.TestCase):
 
     def test_whitespace_input_populated(self):
         content = {
-            "Connection": " /t/n",
+            "Connection": " ",
             "ContainerName": "test-blob",
             "BlobName": "text.txt",
         }
@@ -265,7 +265,7 @@ class TestContainerClient(unittest.TestCase):
             dict_repr,
             [
                 '{"direction": "MockBindingDirection.IN", '
-                '"dataType": null, "type": "blob", '
+                '"type": "blob", '
                 '"properties": '
                 '{"SupportsDeferredBinding": false}}'
             ],
@@ -300,7 +300,7 @@ class TestContainerClient(unittest.TestCase):
             dict_repr,
             [
                 '{"direction": "MockBindingDirection.IN", '
-                '"dataType": null, "type": "blob", '
+                '"type": "blob", '
                 '"properties": '
                 '{"SupportsDeferredBinding": true}}'
             ],
