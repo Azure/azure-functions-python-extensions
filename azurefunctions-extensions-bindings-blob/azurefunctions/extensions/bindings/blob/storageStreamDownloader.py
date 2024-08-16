@@ -25,10 +25,10 @@ class StorageStreamDownloader(SdkType):
             self._source = data.source
             self._content_type = data.content_type
             content_json = json.loads(data.content)
+            self._connection = get_connection_string(content_json["Connection"])
             self._using_managed_identity = using_managed_identity(
                 content_json["Connection"]
             )
-            self._connection = get_connection_string(content_json["Connection"])
             self._containerName = content_json["ContainerName"]
             self._blobName = content_json["BlobName"]
 
