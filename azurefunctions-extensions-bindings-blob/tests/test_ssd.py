@@ -199,7 +199,7 @@ class TestStorageStreamDownloader(unittest.TestCase):
             )
         self.assertEqual(
             e.exception.args[0],
-            "Storage account connection string cannot be empty. Please provide a connection string.",
+            "Connection string is either blank or malformed.",
         )
 
     def test_whitespace_input_populated(self):
@@ -223,8 +223,7 @@ class TestStorageStreamDownloader(unittest.TestCase):
             )
         self.assertRegex(
             e.exception.__repr__(),
-            r".*Storage account connection string cannot contain"
-            r" only whitespace. Please provide a valid connection string.*",
+            r".*Connection string is either blank or malformed.*",
         )
 
     def test_input_invalid_pytype(self):

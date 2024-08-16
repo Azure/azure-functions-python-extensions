@@ -13,16 +13,6 @@ def validate_connection_string(connection_string: str) -> str:
             "Storage account connection string cannot be none. "
             "Please provide a connection string."
         )
-    elif connection_string == "":
-        raise ValueError(
-            "Storage account connection string cannot be empty. "
-            "Please provide a connection string."
-        )
-    elif str.isspace(connection_string):
-        raise ValueError(
-            "Storage account connection string cannot contain only whitespace. "
-            "Please provide a valid connection string."
-        )
     elif not os.getenv(connection_string):
         raise ValueError(
             f"Storage account connection string {connection_string} does not exist. "
