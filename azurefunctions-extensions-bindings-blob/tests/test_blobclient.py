@@ -151,6 +151,55 @@ class TestBlobClient(unittest.TestCase):
             "Please make sure that it is a defined App Setting.",
         )
 
+    def test_none_input_populated(self):
+        content = {
+            "Connection": None,
+            "ContainerName": "test-blob",
+            "BlobName": "text.txt",
+        }
+
+        sample_mbd = MockMBD(
+            version="1.0",
+            source="AzureStorageBlobs",
+            content_type="application/json",
+            content=json.dumps(content),
+        )
+
+        with self.assertRaises(ValueError) as e:
+            datum: Datum = Datum(value=sample_mbd, type="model_binding_data")
+            result: BlobClient = BlobClientConverter.decode(
+                data=datum, trigger_metadata=None, pytype=BlobClient
+            )
+        self.assertEqual(
+            e.exception.args[0],
+            "Storage account connection string cannot be none. Please provide a connection string.",
+        )
+
+    def test_invalid_input_populated(self):
+        content = {
+            "Connection": "NotARealConnectionString",
+            "ContainerName": "test-blob",
+            "BlobName": "text.txt",
+        }
+
+        sample_mbd = MockMBD(
+            version="1.0",
+            source="AzureStorageBlobs",
+            content_type="application/json",
+            content=json.dumps(content),
+        )
+
+        with self.assertRaises(ValueError) as e:
+            datum: Datum = Datum(value=sample_mbd, type="model_binding_data")
+            result: BlobClient = BlobClientConverter.decode(
+                data=datum, trigger_metadata=None, pytype=BlobClient
+            )
+        self.assertEqual(
+            e.exception.args[0],
+            "Storage account connection string NotARealConnectionString does not exist. "
+            "Please make sure that it is a defined App Setting.",
+        )
+
     def test_input_populated_managed_identity_input(self):
         content = {
             "Connection": "input",
@@ -248,7 +297,7 @@ class TestBlobClient(unittest.TestCase):
             dict_repr,
             [
                 '{"direction": "MockBindingDirection.IN", '
-                '"dataType": null, "type": "blob", '
+                '"type": "blob", '
                 '"properties": '
                 '{"SupportsDeferredBinding": false}}'
             ],
@@ -281,7 +330,7 @@ class TestBlobClient(unittest.TestCase):
             dict_repr,
             [
                 '{"direction": "MockBindingDirection.IN", '
-                '"dataType": null, "type": "blob", '
+                '"type": "blob", '
                 '"properties": '
                 '{"SupportsDeferredBinding": true}}'
             ],

@@ -2,11 +2,11 @@
 #  Licensed under the MIT License.
 
 import json
-import os
 from typing import Union
 
 from azure.storage.blob import BlobServiceClient
 from azurefunctions.extensions.base import Datum, SdkType
+from .utils import get_connection_string, using_managed_identity
 
 
 class StorageStreamDownloader(SdkType):
@@ -28,7 +28,7 @@ class StorageStreamDownloader(SdkType):
             self._using_managed_identity = using_managed_identity(
                 content_json["Connection"]
             )
-            self._connection = validate_connection_string(content_json["Connection"])
+            self._connection = get_connection_string(content_json["Connection"])
             self._containerName = content_json["ContainerName"]
             self._blobName = content_json["BlobName"]
 
@@ -52,22 +52,3 @@ class StorageStreamDownloader(SdkType):
                 ).download_blob()
         else:
             return None
-
-
-def using_managed_identity(connection_name: str) -> bool:
-    return (os.getenv(connection_name + "__serviceUri") is not None) or (
-        os.getenv(connection_name + "__blobServiceUri") is not None
-    )
-
-
-def validate_connection_string(connection_string: str) -> str:
-    """
-    Validates the connection string. If the connection string is
-    not an App Setting, an error will be thrown.
-    """
-    if not os.getenv(connection_string):
-        raise ValueError(
-            f"Storage account connection string {connection_string} does not exist. "
-            f"Please make sure that it is a defined App Setting."
-        )
-    return os.getenv(connection_string)

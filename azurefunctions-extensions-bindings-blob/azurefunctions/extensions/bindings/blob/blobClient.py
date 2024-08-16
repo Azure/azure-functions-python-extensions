@@ -2,11 +2,11 @@
 #  Licensed under the MIT License.
 
 import json
-import os
 from typing import Union
 
 from azure.storage.blob import BlobServiceClient
 from azurefunctions.extensions.base import Datum, SdkType
+from .utils import get_connection_string, using_managed_identity
 
 
 class BlobClient(SdkType):
@@ -28,7 +28,7 @@ class BlobClient(SdkType):
             self._using_managed_identity = using_managed_identity(
                 content_json["Connection"]
             )
-            self._connection = validate_connection_string(content_json["Connection"])
+            self._connection = get_connection_string(content_json["Connection"])
             self._containerName = content_json["ContainerName"]
             self._blobName = content_json["BlobName"]
 
@@ -59,39 +59,3 @@ class BlobClient(SdkType):
                 )
         else:
             return None
-
-
-def using_managed_identity(connection_name: str) -> bool:
-    return (os.getenv(connection_name + "__serviceUri") is not None) or (
-        os.getenv(connection_name + "__blobServiceUri") is not None
-    )
-
-
-def validate_connection_string(connection_string: str) -> str:
-    """
-    Validates the connection string. If the connection string is
-    not an App Setting, an error will be thrown.
-
-    When using managed identity, the connection string variable name is formatted like so:
-    Input: <CONNECTION_NAME_PREFIX>__serviceUri
-    Trigger: <CONNECTION_NAME_PREFIX>__blobServiceUri
-    The variable received will be <CONNECTION_NAME_PREFIX>. Therefore, we need to append
-    the suffix to obtain the storage URI and create the client.
-
-    There are four cases:
-    1. Not using managed identity: the environment variable exists as is
-    2. Using managed identity for blob input: __serviceUri must be appended
-    3. Using managed identity for blob trigger: __blobServiceUri must be appended
-    4. None of these cases existed, so the connection variable is invalid.
-    """
-    if os.getenv(connection_string):
-        return os.getenv(connection_string)
-    elif os.getenv(connection_string + "__serviceUri"):
-        return os.getenv(connection_string + "__serviceUri")
-    elif os.getenv(connection_string + "__blobServiceUri"):
-        return os.getenv(connection_string + "__blobServiceUri")
-    else:
-        raise ValueError(
-            f"Storage account connection string {connection_string} does not exist. "
-            f"Please make sure that it is a defined App Setting."
-        )
