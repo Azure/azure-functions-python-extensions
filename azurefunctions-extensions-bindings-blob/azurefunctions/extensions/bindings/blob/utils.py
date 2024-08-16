@@ -37,10 +37,11 @@ def get_connection_string(connection_string: str) -> str:
             f"Please make sure that it is a defined App Setting."
         )
 
+
 def using_managed_identity(connection_name: str) -> bool:
     """
     To determine if managed identity is being used, we check if the provided
-    connection string has either of the two suffixes: 
+    connection string has either of the two suffixes:
     __serviceUri or __blobServiceUri.
     """
     return (os.getenv(connection_name + "__serviceUri") is not None) or (

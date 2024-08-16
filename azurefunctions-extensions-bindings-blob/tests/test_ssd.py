@@ -153,7 +153,7 @@ class TestStorageStreamDownloader(unittest.TestCase):
             "Storage account connection string NotARealConnectionString does not exist. "
             "Please make sure that it is a defined App Setting.",
         )
-    
+
     def test_none_input_populated(self):
         content = {
             "Connection": None,
