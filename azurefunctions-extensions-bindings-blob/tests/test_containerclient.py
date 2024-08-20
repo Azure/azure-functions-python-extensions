@@ -170,7 +170,7 @@ class TestContainerClient(unittest.TestCase):
             )
         self.assertEqual(
             e.exception.args[0],
-            "Storage account connection string cannot be none. Please provide a connection string.",
+            "Storage account connection string cannot be None. Please provide a connection string.",
         )
 
     def test_input_populated_managed_identity_input(self):
