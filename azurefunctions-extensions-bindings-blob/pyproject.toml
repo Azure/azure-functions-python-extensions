@@ -37,7 +37,7 @@ dev = [
     'pre-commit'
     ]
 aio = [
-    'azure-storage-blob[aio]==12.19.1'
+    'azure-storage-blob[aio]==12.20.0'
     ]
 
 [tool.setuptools.dynamic]
