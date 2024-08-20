@@ -2,11 +2,11 @@
 #  Licensed under the MIT License.
 
 import json
-import os
 from typing import Union
 
 from azure.storage.blob import BlobClient as BlobClientSdk
 from azurefunctions.extensions.base import Datum, SdkType
+from .utils import validate_connection_string
 
 
 class StorageStreamDownloader(SdkType):
@@ -24,7 +24,7 @@ class StorageStreamDownloader(SdkType):
             self._source = data.source
             self._content_type = data.content_type
             content_json = json.loads(data.content)
-            self._connection = os.getenv(content_json["Connection"])
+            self._connection = validate_connection_string(content_json["Connection"])
             self._containerName = content_json["ContainerName"]
             self._blobName = content_json["BlobName"]
 
