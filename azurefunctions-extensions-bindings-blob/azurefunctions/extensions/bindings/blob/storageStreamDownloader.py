@@ -37,18 +37,14 @@ class StorageStreamDownloader(SdkType):
         if self._data:
             if self._using_managed_identity:
                 blob_service_client = BlobServiceClient(account_url=self._connection)
-                # download_blob() returns a StorageStreamDownloader object
-                return blob_service_client.get_blob_client(
-                    container=self._containerName,
-                    blob=self._blobName,
-                ).download_blob()
             else:
                 blob_service_client = BlobServiceClient.from_connection_string(
                     self._connection
                 )
-                return blob_service_client.get_blob_client(
-                    container=self._containerName,
-                    blob=self._blobName,
-                ).download_blob()
+            # download_blob() returns a StorageStreamDownloader object
+            return blob_service_client.get_blob_client(
+                container=self._containerName,
+                blob=self._blobName,
+            ).download_blob()
         else:
             return None

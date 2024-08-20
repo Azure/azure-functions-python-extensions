@@ -20,16 +20,16 @@ def get_connection_string(connection_string: str) -> str:
     3. Using managed identity for blob trigger: __blobServiceUri must be appended
     4. None of these cases existed, so the connection variable is invalid.
     """
-    if connection_string == None:
+    if connection_string is None:
         raise ValueError(
-            "Storage account connection string cannot be none. "
+            "Storage account connection string cannot be None. "
             "Please provide a connection string."
         )
-    elif os.getenv(connection_string):
+    elif connection_string in os.environ:
         return os.getenv(connection_string)
-    elif os.getenv(connection_string + "__serviceUri"):
+    elif connection_string + "__serviceUri" in os.environ:
         return os.getenv(connection_string + "__serviceUri")
-    elif os.getenv(connection_string + "__blobServiceUri"):
+    elif connection_string + "__blobServiceUri" in os.environ:
         return os.getenv(connection_string + "__blobServiceUri")
     else:
         raise ValueError(

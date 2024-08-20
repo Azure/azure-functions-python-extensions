@@ -45,17 +45,13 @@ class BlobClient(SdkType):
         if self._data:
             if self._using_managed_identity:
                 blob_service_client = BlobServiceClient(account_url=self._connection)
-                return blob_service_client.get_blob_client(
-                    container=self._containerName,
-                    blob=self._blobName,
-                )
             else:
                 blob_service_client = BlobServiceClient.from_connection_string(
                     self._connection
                 )
-                return blob_service_client.get_blob_client(
-                    container=self._containerName,
-                    blob=self._blobName,
-                )
+            return blob_service_client.get_blob_client(
+                container=self._containerName,
+                blob=self._blobName,
+            )
         else:
             return None
