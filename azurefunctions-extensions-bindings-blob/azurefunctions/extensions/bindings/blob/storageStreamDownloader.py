@@ -25,22 +25,21 @@ class StorageStreamDownloader(SdkType):
             self._source = data.source
             self._content_type = data.content_type
             content_json = json.loads(data.content)
-            self._connection = get_connection_string(content_json["Connection"])
+            self._connection = get_connection_string(content_json.get("Connection"))
             self._using_managed_identity = using_managed_identity(
-                content_json["Connection"]
+                content_json.get("Connection")
             )
-            self._containerName = content_json["ContainerName"]
-            self._blobName = content_json["BlobName"]
+            self._containerName = content_json.get("ContainerName")
+            self._blobName = content_json.get("BlobName")
 
     # Returns a StorageStreamDownloader
     def get_sdk_type(self):
         if self._data:
-            if self._using_managed_identity:
-                blob_service_client = BlobServiceClient(account_url=self._connection)
-            else:
-                blob_service_client = BlobServiceClient.from_connection_string(
-                    self._connection
-                )
+            blob_service_client = (
+                BlobServiceClient(account_url=self._connection)
+                if self._using_managed_identity
+                else BlobServiceClient.from_connection_string(self._connection)
+            )
             # download_blob() returns a StorageStreamDownloader object
             return blob_service_client.get_blob_client(
                 container=self._containerName,
