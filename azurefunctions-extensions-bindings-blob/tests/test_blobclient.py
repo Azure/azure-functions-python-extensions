@@ -172,8 +172,62 @@ class TestBlobClient(unittest.TestCase):
             )
         self.assertEqual(
             e.exception.args[0],
-            "Storage account connection string cannot be none. Please provide a connection string.",
+            "Storage account connection string cannot be None. Please provide a connection string.",
         )
+
+    def test_input_populated_managed_identity_input(self):
+        content = {
+            "Connection": "input",
+            "ContainerName": "test-blob",
+            "BlobName": "text.txt",
+        }
+
+        sample_mbd = MockMBD(
+            version="1.0",
+            source="AzureStorageBlobs",
+            content_type="application/json",
+            content=json.dumps(content),
+        )
+
+        datum: Datum = Datum(value=sample_mbd, type="model_binding_data")
+        result: BlobClient = BlobClientConverter.decode(
+            data=datum, trigger_metadata=None, pytype=BlobClient
+        )
+
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, BlobClientSdk)
+
+        sdk_result = BlobClient(data=datum.value).get_sdk_type()
+
+        self.assertIsNotNone(sdk_result)
+        self.assertIsInstance(sdk_result, BlobClientSdk)
+
+    def test_input_populated_managed_identity_trigger(self):
+        content = {
+            "Connection": "trigger",
+            "ContainerName": "test-blob",
+            "BlobName": "text.txt",
+        }
+
+        sample_mbd = MockMBD(
+            version="1.0",
+            source="AzureStorageBlobs",
+            content_type="application/json",
+            content=json.dumps(content),
+        )
+
+        datum: Datum = Datum(value=sample_mbd, type="model_binding_data")
+        result: BlobClient = BlobClientConverter.decode(
+            data=datum, trigger_metadata=None, pytype=BlobClient
+        )
+
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, BlobClientSdk)
+
+        sdk_result = BlobClient(data=datum.value).get_sdk_type()
+
+        self.assertIsNotNone(sdk_result)
+        self.assertIsInstance(sdk_result, BlobClientSdk)
 
     def test_input_invalid_pytype(self):
         content = {
