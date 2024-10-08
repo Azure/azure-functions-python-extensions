@@ -5,6 +5,10 @@ from .blobClient import BlobClient
 from .containerClient import ContainerClient
 from .storageStreamDownloader import StorageStreamDownloader
 
-__all__ = ["BlobClient", "ContainerClient", "StorageStreamDownloader"]
+__all__ = [
+    "BlobClient",
+    "ContainerClient",
+    "StorageStreamDownloader",
+]
 
-__version__ = "1.0.0b2"
+__version__ = "1.0.0b1"

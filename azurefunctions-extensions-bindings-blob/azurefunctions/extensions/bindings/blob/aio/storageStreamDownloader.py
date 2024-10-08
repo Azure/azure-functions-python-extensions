@@ -2,17 +2,21 @@
 #  Licensed under the MIT License.
 
 import json
-import os
 from typing import Union
 
-from azure.storage.blob.aio import BlobClient as AioBlobClientSdk
+from azure.storage.blob.aio import BlobServiceClient
+from azurefunctions.extensions.bindings.blob import (
+    get_connection_string,
+    using_managed_identity,
+)
 from azurefunctions.extensions.base import Datum, SdkType
 
 
 class StorageStreamDownloader(SdkType):
     def __init__(self, *, data: Union[bytes, Datum]) -> None:
         # model_binding_data properties
-        self._data = data or {}
+        self._data = data
+        self._using_managed_identity = False
         self._version = ""
         self._source = ""
         self._content_type = ""
@@ -24,20 +28,25 @@ class StorageStreamDownloader(SdkType):
             self._source = data.source
             self._content_type = data.content_type
             content_json = json.loads(data.content)
-            self._connection = os.getenv(content_json["Connection"])
-            self._containerName = content_json["ContainerName"]
-            self._blobName = content_json["BlobName"]
+            self._connection = get_connection_string(content_json.get("Connection"))
+            self._using_managed_identity = using_managed_identity(
+                content_json.get("Connection")
+            )
+            self._containerName = content_json.get("ContainerName")
+            self._blobName = content_json.get("BlobName")
 
     # Returns a StorageStreamDownloader
     async def get_sdk_type(self):
         if self._data:
-            # Create BlobClient
-            blob_client = AioBlobClientSdk.from_connection_string(
-                conn_str=self._connection,
-                container_name=self._containerName,
-                blob_name=self._blobName,
+            blob_service_client = (
+                BlobServiceClient(account_url=self._connection)
+                if self._using_managed_identity
+                else BlobServiceClient.from_connection_string(self._connection)
             )
             # download_blob() returns a StorageStreamDownloader object
-            return await blob_client.download_blob()
+            return blob_service_client.get_blob_client(
+                container=self._containerName,
+                blob=self._blobName,
+            ).download_blob()
         else:
             return None
