@@ -78,30 +78,3 @@ jobs:
           PYTHON_ISORT_CONFIG_FILE: .isort.cfg
           FILTER_REGEX_INCLUDE: azurefunctions-extensions-http-fastapi/*
           DEFAULT_BRANCH: origin/dev
-
-  send-notification:
-    runs-on: ubuntu-latest
-    needs: build
-    if: always()
-    steps:
-      - name: Notify dedicated teams channel on failure
-        if: ${{ always() && needs.build.result == 'failure' }}
-        uses: jdcargile/ms-teams-notification@v1.4
-        with:
-          github-token: ${{ github.token }}
-          ms-teams-webhook-uri: ${{ secrets.MS_TEAMS_WEBHOOK_URI }}
-          notification-summary: "Python Extension Lint azurefunctions-extensions-http-fastapi Failed"
-          notification-color: FF0000
-          timezone: America/Denver
-          verbose-logging: false
-
-      - name: Notify dedicated teams channel on success
-        if: ${{ always() && needs.build.result == 'success' }}
-        uses: jdcargile/ms-teams-notification@v1.4
-        with:
-          github-token: ${{ github.token }}
-          ms-teams-webhook-uri: ${{ secrets.MS_TEAMS_WEBHOOK_URI }}
-          notification-summary: "Python Extension Lint azurefunctions-extensions-http-fastapi Passed"
-          notification-color: 008000
-          timezone: America/Denver
-          verbose-logging: false
