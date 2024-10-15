@@ -19,6 +19,7 @@ jobs:
           python -m pip install --upgrade pip
           cd azurefunctions-extensions-bindings-blob
           python -m pip install -U -e .[dev]
+          python -m pip install -U -e .[aio]
         displayName: 'Install dependencies'
       - bash: |
           python -m pytest -q --instafail azurefunctions-extensions-bindings-blob/tests/ --ignore='azurefunctions-extensions-base', --ignore='azurefunctions-extensions-http-fastapi'
