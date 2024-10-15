@@ -127,6 +127,60 @@ class TestStorageStreamDownloader(unittest.TestCase):
         self.assertIsNotNone(sdk_result)
         self.assertIsInstance(sdk_result, SSDSdk)
 
+    def test_input_populated_managed_identity_input(self):
+        content = {
+            "Connection": "input",
+            "ContainerName": "test-blob",
+            "BlobName": "text.txt",
+        }
+
+        sample_mbd = MockMBD(
+            version="1.0",
+            source="AzureStorageBlobs",
+            content_type="application/json",
+            content=json.dumps(content),
+        )
+
+        datum: Datum = Datum(value=sample_mbd, type="model_binding_data")
+        result: StorageStreamDownloader = BlobClientConverter.decode(
+            data=datum, trigger_metadata=None, pytype=StorageStreamDownloader
+        )
+
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, SSDSdk)
+
+        sdk_result = StorageStreamDownloader(data=datum.value).get_sdk_type()
+
+        self.assertIsNotNone(sdk_result)
+        self.assertIsInstance(sdk_result, SSDSdk)
+
+    def test_input_populated_managed_identity_trigger(self):
+        content = {
+            "Connection": "trigger",
+            "ContainerName": "test-blob",
+            "BlobName": "text.txt",
+        }
+
+        sample_mbd = MockMBD(
+            version="1.0",
+            source="AzureStorageBlobs",
+            content_type="application/json",
+            content=json.dumps(content),
+        )
+
+        datum: Datum = Datum(value=sample_mbd, type="model_binding_data")
+        result: StorageStreamDownloader = BlobClientConverter.decode(
+            data=datum, trigger_metadata=None, pytype=StorageStreamDownloader
+        )
+
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, SSDSdk)
+
+        sdk_result = StorageStreamDownloader(data=datum.value).get_sdk_type()
+
+        self.assertIsNotNone(sdk_result)
+        self.assertIsInstance(sdk_result, SSDSdk)
+
     def test_input_invalid_pytype(self):
         content = {
             "Connection": "AzureWebJobsStorage",

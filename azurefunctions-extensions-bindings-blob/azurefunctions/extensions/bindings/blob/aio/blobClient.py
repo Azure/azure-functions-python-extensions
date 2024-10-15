@@ -5,7 +5,7 @@ import json
 from typing import Union
 
 from azure.storage.blob.aio import BlobServiceClient
-from azurefunctions.extensions.bindings.blob import (
+from ..utils import (
     get_connection_string,
     using_managed_identity,
 )
