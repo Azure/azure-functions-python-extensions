@@ -15,11 +15,12 @@ This library contains HttpV2 extensions for FastApi Request/Response types to us
 
 
 ### Instructions
-1. Follow the guide to [create an app](https://learn.microsoft.com/en-us/azure/azure-functions/create-first-function-cli-python?tabs=windows%2Cbash%2Cazure-cli%2Cbrowser).
+1. Follow the guide to [create an app](https://learn.microsoft.com/en-us/azure/azure-functions/create-first-function-cli-python?tabs=windows%2Cbash%2Cazure-cli%2Cbrowser). If you're testing the function locally, make sure to update to the latest version of Core Tools.
 2. Ensure your app is using programming model v2 and contains a http trigger function.
 3. Add ```azurefunctions-extensions-http-fastapi``` to your requirements.txt
 4. Import Request and different types of responses from ```azurefunctions.extensions.http.fastapi``` in your HttpTrigger functions.
 5. Change the request and response types to ones imported from ```azurefunctions.extensions.http.fastapi```.
+6. Add ```"PYTHON_ENABLE_INIT_INDEXING": "1"``` to your local.settings.json file or App Settings.
 6. Run your function app and try it out!
 
 ### Bind to the FastApi-type
