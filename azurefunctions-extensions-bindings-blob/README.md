@@ -1,17 +1,17 @@
 # Azure Functions Extensions Bindings Blob library for Python
 This library allows Blob Trigger and Blob Input bindings in Python Function Apps to recognize and bind to client types from the
-Azure Storage Blob sdk.
+Azure Storage Blob SDK.
 
 Blob client types can be generated from:
 
 * Blob Triggers
 * Blob Input
 
-[Source code](https://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-bindings-blob)
+[Source code](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-bindings-blob)
+|
 [Package (PyPi)](https://pypi.org/project/azurefunctions-extensions-bindings-blob/)
-| API reference documentation
-| Product documentation
-| [Samples](hhttps://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-bindings-blob/samples)
+| [Developer Reference](https://learn.microsoft.com/en-us/azure/azure-functions/functions-reference-python?tabs=get-started%2Casgi%2Capplication-level&pivots=python-mode-decorators#sdk-type-bindings-preview)
+| [Samples](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-bindings-blob/samples)
 
 
 ## Getting started
@@ -75,6 +75,21 @@ def blob_input(req: func.HttpRequest, client: blob.BlobClient):
                  f"Blob content head: {client.download_blob(encoding="utf-8").read(size=1)}")
 ```
 
+### Using Identity-Based Connections
+Currently, creating a client through a connection string or through the storage account's blob service account URL is
+supported. Credentials are not yet supported. 
+
+To use an identity, you define settings under a common prefix that maps to the `connection` property in the trigger
+and binding configuration. The suffix needed depends on if it will be used by a Blob input binding or Blob trigger.
+
+| Binding Type | Environment Variable Template              | Example Value                                        |
+|--------------|--------------------------------------------|------------------------------------------------------|
+| Blob Input   | `<CONNECTION_NAME_PREFIX>__serviceUri`     | https://<storage_account_name>.blob.core.windows.net |
+| Blob Trigger | `<CONNECTION_NAME_PREFIX>__blobServiceUri` | https://<storage_account_name>.blob.core.windows.net |
+
+Please note that when using a client type for Blob Trigger, the `<CONNECTION_NAME_PREFIX>__queueServiceUri` is not required.
+For more information on using identity-based connections, please reference the documentation for [Identity-based connections with Blobs](https://learn.microsoft.com/en-us/azure/azure-functions/functions-bindings-storage-blob-input?tabs=python-v2%2Cisolated-process%2Cnodejs-v4&pivots=programming-language-python#identity-based-connections).
+
 ## Troubleshooting
 ### General
 The SDK-types raise exceptions defined in [Azure Core](https://github.com/Azure/azure-sdk-for-python/blob/main/sdk/core/azure-core/README.md).
@@ -85,19 +100,23 @@ This list can be used for reference to catch thrown exceptions. To get the speci
 
 ### More sample code
 
-Get started with our [Blob samples](hhttps://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-bindings-blob/samples).
+Get started with our [Blob samples](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-bindings-blob/samples).
 
 Several samples are available in this GitHub repository. These samples provide example code for additional scenarios commonly encountered while working with Storage Blobs:
 
-* [blob_samples_blobclient](https://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-bindings-blob/samples/blob_samples_blobclient)  - Examples for using the BlobClient type:
+* [blob_samples_blobclient](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-bindings-blob/samples/blob_samples_blobclient)  - Examples for using the BlobClient type:
     * From BlobTrigger
     * From BlobInput
 
-* [blob_samples_containerclient](https://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-bindings-blob/samples/blob_samples_containerclient) - Examples for using the ContainerClient type:
+* [blob_samples_containerclient](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-bindings-blob/samples/blob_samples_containerclient) - Examples for using the ContainerClient type:
     * From BlobTrigger
     * From BlobInput
 
-* [blob_samples_storagestreamdownloader](https://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-bindings-blob/samples/blob_samples_storagestreamdownloader) - Examples for using the StorageStreamDownloader type:
+* [blob_samples_storagestreamdownloader](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-bindings-blob/samples/blob_samples_storagestreamdownloader) - Examples for using the StorageStreamDownloader type:
+    * From BlobTrigger
+    * From BlobInput
+
+* [blob_samples_identity](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-bindings-blob/samples/blob_samples_identity)  - Examples for using the BlobClient type using identity-based connections:
     * From BlobTrigger
     * From BlobInput
 
