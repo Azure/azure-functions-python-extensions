@@ -19,7 +19,7 @@ class MockFunction(ABC):
 
 
 class MockInitParams(utils.Binding):
-    def __init__(self, name, direction, data_type, type, init_params):
+    def __init__(self, name, direction, data_type, type, init_params, path=None):
         self.type = "blob"
         self.name = name
         self._direction = direction
@@ -30,6 +30,7 @@ class MockInitParams(utils.Binding):
             "type": self.type,
         }
         self.init_params = init_params
+        self.path = path
 
 
 class TestUtils(unittest.TestCase):
@@ -63,7 +64,7 @@ class TestUtils(unittest.TestCase):
             dict_repr,
             [
                 '{"direction": "IN", '
-                '"dataType": null, "type": "blob", '
+                '"type": "blob", '
                 '"properties": '
                 '{"SupportsDeferredBinding": true}}'
             ],
@@ -98,7 +99,7 @@ class TestUtils(unittest.TestCase):
             dict_repr,
             [
                 '{"direction": "IN", '
-                '"dataType": null, "type": "blob", '
+                '"type": "blob", '
                 '"properties": '
                 '{"SupportsDeferredBinding": false}}'
             ],
@@ -138,9 +139,9 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(
             dict_repr,
             [
-                '{"direction": "IN", "dataType": null, "type": "blob", '
+                '{"direction": "IN", "type": "blob", '
                 '"properties": {"SupportsDeferredBinding": false}}',
-                '{"direction": "OUT", "dataType": null, "type": "httpResponse", '
+                '{"direction": "OUT", "type": "httpResponse", '
                 '"properties": {"SupportsDeferredBinding": false}}',
             ],
         )
@@ -175,8 +176,46 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(
             dict_repr,
             [
-                '{"direction": "IN", "dataType": null, '
-                '"type": "blob", "test": null, "properties": '
+                '{"direction": "IN", '
+                '"type": "blob", "properties": '
+                '{"SupportsDeferredBinding": true}}'
+            ],
+        )
+
+        self.assertEqual(logs, {"client": {sdkType.SdkType: "True"}})
+
+    def test_get_dict_repr_clean_nones(self):
+        # Create mock blob
+        meta._ConverterMeta._bindings = {"blob"}
+
+        # Create test binding
+        mock_blob = MockInitParams(
+            name="client",
+            direction=utils.BindingDirection.IN,
+            data_type=None,
+            type="blob",
+            path=None,
+            init_params=["test", "type", "direction", "path"],
+        )
+
+        # Create test input_types dict
+        mock_input_types = {
+            "client": MockParamTypeInfo(
+                binding_name="blobTrigger", pytype=sdkType.SdkType
+            )
+        }
+
+        # Create test indexed_function
+        mock_indexed_functions = MockFunction(bindings=[mock_blob])
+
+        dict_repr, logs = utils.get_raw_bindings(
+            mock_indexed_functions, mock_input_types
+        )
+        self.assertEqual(
+            dict_repr,
+            [
+                '{"direction": "IN", '
+                '"type": "blob", "properties": '
                 '{"SupportsDeferredBinding": true}}'
             ],
         )
