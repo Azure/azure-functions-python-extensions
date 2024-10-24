@@ -32,9 +32,7 @@ USAGE:
 """
 
 
-@app.blob_trigger(
-    arg_name="client", path="PATH/TO/BLOB", connection="AccountUrl"
-)
+@app.blob_trigger(arg_name="client", path="PATH/TO/BLOB", connection="AccountUrl")
 def blob_trigger(client: blob.BlobClient):
     logging.info(
         f"Python blob trigger function using identity-based connections processed blob \n"
@@ -44,9 +42,7 @@ def blob_trigger(client: blob.BlobClient):
 
 
 @app.route(route="file")
-@app.blob_input(
-    arg_name="client", path="PATH/TO/BLOB", connection="AccountUrl"
-)
+@app.blob_input(arg_name="client", path="PATH/TO/BLOB", connection="AccountUrl")
 def blob_input(req: func.HttpRequest, client: blob.BlobClient):
     logging.info(
         f"Python blob input function using identity-based connections processed blob \n"
