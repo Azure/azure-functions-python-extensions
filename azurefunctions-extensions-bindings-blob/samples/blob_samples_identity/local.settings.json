@@ -1,0 +1,10 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "FUNCTIONS_WORKER_RUNTIME": "python",
+    "AzureWebJobsStorage": "",
+    "AzureWebJobsFeatureFlags": "EnableWorkerIndexing",
+    "AccountUrl__serviceUri": "https://<storage_account_name>.blob.core.windows.net",
+    "AccountUrl____blobServiceUri": "https://<storage_account_name>.blob.core.windows.net"
+  }
+}
