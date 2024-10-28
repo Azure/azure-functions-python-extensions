@@ -17,15 +17,19 @@ These are code samples that show common scenario operations with the Azure Funct
 These samples relate to the Azure Storage Blob client library being used as part of a Python Function App. For
 examples on how to use the Azure Storage Blob client library, please see [Azure Storage Blob samples](https://github.com/Azure/azure-sdk-for-python/tree/main/sdk/storage/azure-storage-blob/samples)
 
-* [blob_samples_blobclient](https://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-bindings-blob/samples/blob_samples_blobclient)  - Examples for using the BlobClient type:
+* [blob_samples_blobclient](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-bindings-blob/samples/blob_samples_blobclient)  - Examples for using the BlobClient type:
     * From BlobTrigger
     * From BlobInput
 
-* [blob_samples_containerclient](https://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-bindings-blob/samples/blob_samples_containerclient) - Examples for using the ContainerClient type:
+* [blob_samples_containerclient](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-bindings-blob/samples/blob_samples_containerclient) - Examples for using the ContainerClient type:
     * From BlobTrigger
     * From BlobInput
 
-* [blob_samples_storagestreamdownloader](https://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-bindings-blob/samples/blob_samples_storagestreamdownloader) - Examples for using the StorageStreamDownloader type:
+* [blob_samples_storagestreamdownloader](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-bindings-blob/samples/blob_samples_storagestreamdownloader) - Examples for using the StorageStreamDownloader type:
+    * From BlobTrigger
+    * From BlobInput
+
+* [blob_samples_identity](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-bindings-blob/samples/blob_samples_identity)  - Examples for using the BlobClient type using identity-based connections:
     * From BlobTrigger
     * From BlobInput
 
