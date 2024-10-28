@@ -67,6 +67,6 @@ based on the type of function you wish to execute.
 
 ## Next steps
 
-Visit the [SDK-type bindings in Python reference documentation]() to learn more about how to use SDK-type bindings in a Python Function App and the
+Visit the [SDK-type bindings in Python reference documentation](https://learn.microsoft.com/en-us/azure/azure-functions/functions-reference-python?tabs=get-started%2Casgi%2Capplication-level&pivots=python-mode-decorators#sdk-type-bindings-preview) to learn more about how to use SDK-type bindings in a Python Function App and the
 [API reference documentation](https://aka.ms/azsdk-python-storage-blob-ref) to learn more about
 what you can do with the Azure Storage Blob client library.
