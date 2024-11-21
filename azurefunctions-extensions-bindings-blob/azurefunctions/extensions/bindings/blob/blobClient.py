@@ -45,8 +45,9 @@ class BlobClient(SdkType):
         """
         if self._data:
             blob_service_client = (
-                BlobServiceClient(account_url=self._connection,
-                                  credential=DefaultAzureCredential())
+                BlobServiceClient(
+                    account_url=self._connection, credential=DefaultAzureCredential()
+                )
                 if self._using_managed_identity
                 else BlobServiceClient.from_connection_string(self._connection)
             )
