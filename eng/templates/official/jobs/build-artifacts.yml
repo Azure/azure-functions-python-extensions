@@ -33,3 +33,8 @@ jobs:
           cd $(EXTENSION_DIRECTORY)
           python -m build
         displayName: 'Build $(EXTENSION_NAME) Extension'
+      - bash: |
+          pip install pip-audit
+          cd $(EXTENSION_DIRECTORY)
+          pip-audit .
+        displayName: 'Run vulnerability scan'

@@ -25,7 +25,8 @@ classifiers= [
     ]
 dependencies = [
     'azurefunctions-extensions-base',
-    'azure-storage-blob==12.24.0'
+    'azure-storage-blob==12.24.0',
+    'werkzeug==2.*' # testing pip-audit
     ]
 
 [project.optional-dependencies]
