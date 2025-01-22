@@ -25,8 +25,8 @@ classifiers= [
     ]
 dependencies = [
     'azurefunctions-extensions-base',
-    'azure-storage-blob==12.24.0',
-    'azure-identity==1.19.0'
+    'azure-storage-blob~=12.24.0',
+    'azure-identity~=1.19.0'
     ]
 
 [project.optional-dependencies]
