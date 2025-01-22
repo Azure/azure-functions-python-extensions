@@ -4,6 +4,7 @@
 import json
 from typing import Union
 
+from azure.identity import DefaultAzureCredential
 from azure.storage.blob import BlobServiceClient
 from azurefunctions.extensions.base import Datum, SdkType
 from .utils import get_connection_string, using_managed_identity
@@ -36,7 +37,9 @@ class ContainerClient(SdkType):
     def get_sdk_type(self):
         if self._data:
             blob_service_client = (
-                BlobServiceClient(account_url=self._connection)
+                BlobServiceClient(
+                    account_url=self._connection, credential=DefaultAzureCredential()
+                )
                 if self._using_managed_identity
                 else BlobServiceClient.from_connection_string(self._connection)
             )
