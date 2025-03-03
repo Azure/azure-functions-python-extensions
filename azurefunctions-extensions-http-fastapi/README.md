@@ -63,7 +63,7 @@ Several samples are available in this GitHub repository. These samples provide e
 
 * [fastapi_samples_streaming_upload](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-http-fastapi/samples/fastapi_samples_streaming_upload) - An example on how to send and receiving a streaming request within your function.
 
-* [fastapi_samples_streaming_download](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-http-fastapi/samples/fastapi_samples_streaming_download) - An example on how  to send your http response via streaming to the caller.t
+* [fastapi_samples_streaming_download](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-http-fastapi/samples/fastapi_samples_streaming_download) - An example on how to send your http response via streaming to the caller.
 
 ## Contributing
 This project welcomes contributions and suggestions.  Most contributions require you to agree to a Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us the rights to use your contribution. For details, visit https://cla.microsoft.com.
