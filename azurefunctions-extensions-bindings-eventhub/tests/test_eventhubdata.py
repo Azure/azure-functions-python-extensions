@@ -28,7 +28,7 @@ class MockMBD:
         return self._direction.value
 
 
-class TestBlobClient(unittest.TestCase):
+class TestEventHubData(unittest.TestCase):
     def test_input_type(self):
         check_input_type = EventHubDataConverter.check_input_type_annotation
         self.assertTrue(check_input_type(EventHubData))
@@ -65,8 +65,8 @@ class TestBlobClient(unittest.TestCase):
     def test_input_populated(self):
         sample_mbd = MockMBD(
             version="1.0",
-            source="AzureStorageBlobs",
-            content_type="application/json",
+            source="AzureEventHubsEventData",
+            content_type="application/octet-stream",
             content = EVENTHUB_SAMPLE_CONTENT
         )
 
@@ -83,48 +83,11 @@ class TestBlobClient(unittest.TestCase):
         self.assertIsNotNone(sdk_result)
         self.assertIsInstance(sdk_result, EventData)
 
-    def test_invalid_input_populated(self):
-        sample_mbd = MockMBD(
-            version="1.0",
-            source="AzureStorageBlobs",
-            content_type="application/json",
-            content = EVENTHUB_SAMPLE_CONTENT
-        )
-
-        with self.assertRaises(ValueError) as e:
-            datum: Datum = Datum(value=sample_mbd, type="model_binding_data")
-            result: EventHubData = EventHubDataConverter.decode(
-                data=datum, trigger_metadata=None, pytype=EventHubData
-            )
-        self.assertEqual(
-            e.exception.args[0],
-            "Storage account connection string NotARealConnectionString does not exist. "
-            "Please make sure that it is a defined App Setting.",
-        )
-
-    def test_none_input_populated(self):
-        sample_mbd = MockMBD(
-            version="1.0",
-            source="AzureStorageBlobs",
-            content_type="application/json",
-            content = EVENTHUB_SAMPLE_CONTENT
-        )
-
-        with self.assertRaises(ValueError) as e:
-            datum: Datum = Datum(value=sample_mbd, type="model_binding_data")
-            result: EventHubData = EventHubDataConverter.decode(
-                data=datum, trigger_metadata=None, pytype=EventHubData
-            )
-        self.assertEqual(
-            e.exception.args[0],
-            "Storage account connection string cannot be None. Please provide a connection string.",
-        )
-
     def test_input_invalid_pytype(self):
         sample_mbd = MockMBD(
             version="1.0",
-            source="AzureStorageBlobs",
-            content_type="application/json",
+            source="AzureEventHubsEventData",
+            content_type="application/octet-stream",
             content = EVENTHUB_SAMPLE_CONTENT
         )
 

@@ -17,15 +17,15 @@ These are code samples that show common scenario operations with the Azure Funct
 These samples relate to the Azure Storage Blob client library being used as part of a Python Function App. For
 examples on how to use the Azure Storage Blob client library, please see [Azure Storage Blob samples](https://github.com/Azure/azure-sdk-for-python/tree/main/sdk/storage/azure-storage-blob/samples)
 
-* [blob_samples_blobclient](https://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-bindings-blob/samples/blob_samples_blobclient)  - Examples for using the BlobClient type:
+* [blob_samples_blobclient](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-bindings-blob/samples/blob_samples_blobclient)  - Examples for using the BlobClient type:
     * From BlobTrigger
     * From BlobInput
 
-* [blob_samples_containerclient](https://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-bindings-blob/samples/blob_samples_containerclient) - Examples for using the ContainerClient type:
+* [blob_samples_containerclient](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-bindings-blob/samples/blob_samples_containerclient) - Examples for using the ContainerClient type:
     * From BlobTrigger
     * From BlobInput
 
-* [blob_samples_storagestreamdownloader](https://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-bindings-blob/samples/blob_samples_storagestreamdownloader) - Examples for using the StorageStreamDownloader type:
+* [blob_samples_storagestreamdownloader](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-bindings-blob/samples/blob_samples_storagestreamdownloader) - Examples for using the StorageStreamDownloader type:
     * From BlobTrigger
     * From BlobInput
 
@@ -63,6 +63,6 @@ based on the type of function you wish to execute.
 
 ## Next steps
 
-Visit the [SDK-type bindings in Python reference documentation]() to learn more about how to use SDK-type bindings in a Python Function App and the
+Visit the [SDK-type bindings in Python reference documentation](https://learn.microsoft.com/en-us/azure/azure-functions/functions-reference-python?tabs=get-started%2Casgi%2Capplication-level&pivots=python-mode-decorators#sdk-type-bindings-preview) to learn more about how to use SDK-type bindings in a Python Function App and the
 [API reference documentation](https://aka.ms/azsdk-python-storage-blob-ref) to learn more about
 what you can do with the Azure Storage Blob client library.

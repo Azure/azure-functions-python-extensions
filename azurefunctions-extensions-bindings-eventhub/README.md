@@ -4,11 +4,11 @@ Azure EventHub sdk (EventData).
 
 EventHub types can be generated from:
 
-[Source code](https://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-bindings-eventhub)
+[Source code](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-bindings-eventhub)
 [Package (PyPi)](https://pypi.org/project/azurefunctions-extensions-bindings-eventhub/)
 | API reference documentation
 | Product documentation
-| [Samples](hhttps://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-bindings-eventhub/samples)
+| [Samples](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-bindings-eventhub/samples)
 
 
 ## Getting started
@@ -43,7 +43,7 @@ az storage account create -n my-storage-account-name -g my-resource-group
 
 ### Bind to the SDK-type
 The Azure Functions Extensions Bindings EventHub library for Python allows you to create a function app with an EventHub Trigger
-and define the type as an EventData. Instead of receiving an InputStream, when the function is executed, the type returned will be the defined SDK-type and have all of the properties and methods available as seen in the Azure EventHub library for Python.
+and define the type as an EventData. Instead of receiving an EventHubEvent, when the function is executed, the type returned will be the defined SDK-type and have all of the properties and methods available as seen in the Azure EventHub library for Python.
 
 
 ```python
@@ -71,11 +71,11 @@ This list can be used for reference to catch thrown exceptions. To get the speci
 
 ### More sample code
 
-Get started with our [EventHub samples](hhttps://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-bindings-eventhub/samples).
+Get started with our [EventHub samples](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-bindings-eventhub/samples).
 
 Several samples are available in this GitHub repository. These samples provide example code for additional scenarios commonly encountered while working with EventHubs:
 
-* [eventhub_samples_eventhubdata](https://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-bindings-eventhub/samples/eventhub_samples_eventhubdata)  - Examples for using the EventHubData type:
+* [eventhub_samples_eventhubdata](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-bindings-eventhub/samples/eventhub_samples_eventhubdata)  - Examples for using the EventHubData type:
     * From EventHubTrigger
 
 ### Additional documentation

@@ -17,7 +17,7 @@ These are code samples that show common scenario operations with the Azure Funct
 These samples relate to the Azure EventHub library being used as part of a Python Function App. For
 examples on how to use the Azure EventHub library, please see [Azure EventHub samples](https://github.com/Azure/azure-sdk-for-python/tree/main/sdk/eventhub/azure-eventhub/samples)
 
-* [eventhub_samples_eventhubdata](https://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-bindings-eventhub/samples/eventhub_samples_eventhubdata)  - Examples for using the EventData type:
+* [eventhub_samples_eventhubdata](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-bindings-eventhub/samples/eventhub_samples_eventhubdata)  - Examples for using the EventData type:
     * From EventHubTrigger
 
 ## Prerequisites
@@ -53,6 +53,6 @@ func start
 
 ## Next steps
 
-Visit the [SDK-type bindings in Python reference documentation]() to learn more about how to use SDK-type bindings in a Python Function App and the
+Visit the [SDK-type bindings in Python reference documentation](https://learn.microsoft.com/en-us/azure/azure-functions/functions-reference-python?tabs=get-started%2Casgi%2Capplication-level&pivots=python-mode-decorators#sdk-type-bindings-preview) to learn more about how to use SDK-type bindings in a Python Function App and the
 [API reference documentation](https://learn.microsoft.com/en-us/python/api/azure-eventhub/azure.eventhub?view=azure-python) to learn more about
 what you can do with the Azure EventHub library.

@@ -26,6 +26,4 @@ jobs:
           python -m pytest -q --instafail azurefunctions-extensions-bindings-eventhub/tests/ --ignore='azurefunctions-extensions-base', --ignore='azurefunctions-extensions-http-fastapi', --ignore='azurefunctions-extensions-bindings-blob'
         env:
           AzureWebJobsStorage: $(AzureWebJobsStorage)
-          input: $(input__serviceUri)
-          trigger: $(trigger__blobServiceUri)
         displayName: "Running EventHub $(PYTHON_VERSION) Python Extension Tests"

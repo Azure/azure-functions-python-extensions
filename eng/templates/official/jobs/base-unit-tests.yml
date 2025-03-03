@@ -25,5 +25,5 @@ jobs:
           python -m pip install -U -e .[dev]
         displayName: 'Install dependencies'
       - bash: |
-          python -m pytest -q --instafail azurefunctions-extensions-base/tests/ --ignore='azurefunctions-extensions-bindings-blob', --ignore='azurefunctions-extensions-http-fastapi'
+          python -m pytest -q --instafail azurefunctions-extensions-base/tests/ --ignore='azurefunctions-extensions-bindings-blob', --ignore='azurefunctions-extensions-http-fastapi', --ignore='azurefunctions-extensions-bindings-eventhub'
         displayName: "Running Base $(PYTHON_VERSION) Python Extension Tests"
