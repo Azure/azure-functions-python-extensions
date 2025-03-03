@@ -1,17 +1,15 @@
 #  Copyright (c) Microsoft Corporation. All rights reserved.
 #  Licensed under the MIT License.
 
-import json
 import unittest
-from enum import Enum
 from typing import Optional
 
 from azure.eventhub import EventData
 from azurefunctions.extensions.base import Datum
 
-from azurefunctions.extensions.bindings.blob import BlobClient, BlobClientConverter
 from azurefunctions.extensions.bindings.eventhub import EventHubData, EventHubDataConverter
 
+EVENTHUB_SAMPLE_CONTENT = b"\x00Sr\xc1\x8e\x08\xa3\x1bx-opt-sequence-number-epochT\xff\xa3\x15x-opt-sequence-numberU\x04\xa3\x0cx-opt-offset\x81\x00\x00\x00\x01\x00\x00\x010\xa3\x13x-opt-enqueued-time\x00\xa3\x1dcom.microsoft:datetime-offset\x81\x08\xddW\x05\xc3Q\xcf\x10\x00St\xc1I\x02\xa1\rDiagnostic-Id\xa1700-bdc3fde4889b4e907e0c9dcb46ff8d92-21f637af293ef13b-00\x00Su\xa0\x08message1"
 
 # Mock classes for testing
 class MockMBD:
@@ -21,31 +19,6 @@ class MockMBD:
         self.content_type = content_type
         self.content = content
 
-
-class MockBindingDirection(Enum):
-    IN = 0
-    OUT = 1
-    INOUT = 2
-
-
-class MockBinding:
-    def __init__(
-        self,
-        name: str,
-        direction: MockBindingDirection,
-        data_type=None,
-        type: Optional[str] = None,
-    ):  # NoQa
-        self.type = type
-        self.name = name
-        self._direction = direction
-        self._data_type = data_type
-        self._dict = {
-            "direction": self._direction,
-            "dataType": self._data_type,
-            "type": self.type,
-        }
-
     @property
     def data_type(self) -> Optional[int]:
         return self._data_type.value if self._data_type else None
@@ -53,17 +26,6 @@ class MockBinding:
     @property
     def direction(self) -> int:
         return self._direction.value
-
-
-class MockParamTypeInfo:
-    def __init__(self, binding_name: str, pytype: type):
-        self.binding_name = binding_name
-        self.pytype = pytype
-
-
-class MockFunction:
-    def __init__(self, bindings: MockBinding):
-        self._bindings = bindings
 
 
 class TestBlobClient(unittest.TestCase):
@@ -82,7 +44,7 @@ class TestBlobClient(unittest.TestCase):
 
         datum: Datum = Datum(value=b"string_content", type=None)
         result = EventHubDataConverter.decode(
-            data=datum, trigger_metadata=None, pytype=BlobClient
+            data=datum, trigger_metadata=None, pytype=EventHubData
         )
         self.assertIsNone(result)
 
@@ -105,7 +67,7 @@ class TestBlobClient(unittest.TestCase):
             version="1.0",
             source="AzureStorageBlobs",
             content_type="application/json",
-            content = b'\x00Sr\xc1\x8e\x08\xa3\x1bx-opt-sequence-number-epochT\xff\xa3\x15x-opt-sequence-numberU\x04\xa3\x0cx-opt-offset\x81\x00\x00\x00\x01\x00\x00\x010\xa3\x13x-opt-enqueued-time\x00\xa3\x1dcom.microsoft:datetime-offset\x81\x08\xddW\x05\xc3Q\xcf\x10\x00St\xc1I\x02\xa1\rDiagnostic-Id\xa1700-bdc3fde4889b4e907e0c9dcb46ff8d92-21f637af293ef13b-00\x00Su\xa0\x08message1'
+            content = EVENTHUB_SAMPLE_CONTENT
         )
 
         datum: Datum = Datum(value=sample_mbd, type="model_binding_data")
@@ -126,7 +88,7 @@ class TestBlobClient(unittest.TestCase):
             version="1.0",
             source="AzureStorageBlobs",
             content_type="application/json",
-            content = b'\x00Sr\xc1\x8e\x08\xa3\x1bx-opt-sequence-number-epochT\xff\xa3\x15x-opt-sequence-numberU\x04\xa3\x0cx-opt-offset\x81\x00\x00\x00\x01\x00\x00\x010\xa3\x13x-opt-enqueued-time\x00\xa3\x1dcom.microsoft:datetime-offset\x81\x08\xddW\x05\xc3Q\xcf\x10\x00St\xc1I\x02\xa1\rDiagnostic-Id\xa1700-bdc3fde4889b4e907e0c9dcb46ff8d92-21f637af293ef13b-00\x00Su\xa0\x08message1'
+            content = EVENTHUB_SAMPLE_CONTENT
         )
 
         with self.assertRaises(ValueError) as e:
@@ -145,7 +107,7 @@ class TestBlobClient(unittest.TestCase):
             version="1.0",
             source="AzureStorageBlobs",
             content_type="application/json",
-            content = b'\x00Sr\xc1\x8e\x08\xa3\x1bx-opt-sequence-number-epochT\xff\xa3\x15x-opt-sequence-numberU\x04\xa3\x0cx-opt-offset\x81\x00\x00\x00\x01\x00\x00\x010\xa3\x13x-opt-enqueued-time\x00\xa3\x1dcom.microsoft:datetime-offset\x81\x08\xddW\x05\xc3Q\xcf\x10\x00St\xc1I\x02\xa1\rDiagnostic-Id\xa1700-bdc3fde4889b4e907e0c9dcb46ff8d92-21f637af293ef13b-00\x00Su\xa0\x08message1'
+            content = EVENTHUB_SAMPLE_CONTENT
         )
 
         with self.assertRaises(ValueError) as e:
@@ -163,7 +125,7 @@ class TestBlobClient(unittest.TestCase):
             version="1.0",
             source="AzureStorageBlobs",
             content_type="application/json",
-            content = b'\x00Sr\xc1\x8e\x08\xa3\x1bx-opt-sequence-number-epochT\xff\xa3\x15x-opt-sequence-numberU\x04\xa3\x0cx-opt-offset\x81\x00\x00\x00\x01\x00\x00\x010\xa3\x13x-opt-enqueued-time\x00\xa3\x1dcom.microsoft:datetime-offset\x81\x08\xddW\x05\xc3Q\xcf\x10\x00St\xc1I\x02\xa1\rDiagnostic-Id\xa1700-bdc3fde4889b4e907e0c9dcb46ff8d92-21f637af293ef13b-00\x00Su\xa0\x08message1'
+            content = EVENTHUB_SAMPLE_CONTENT
         )
 
         datum: Datum = Datum(value=sample_mbd, type="model_binding_data")

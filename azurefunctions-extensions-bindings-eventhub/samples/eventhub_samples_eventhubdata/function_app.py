@@ -7,7 +7,6 @@
 # --------------------------------------------------------------------------
 
 import logging
-
 import azure.functions as func
 import azurefunctions.extensions.bindings.eventhub as eh
 
