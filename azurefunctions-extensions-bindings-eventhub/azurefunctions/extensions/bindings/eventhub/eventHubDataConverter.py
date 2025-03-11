@@ -1,7 +1,7 @@
 #  Copyright (c) Microsoft Corporation. All rights reserved.
 #  Licensed under the MIT License.
 
-from typing import Any
+from typing import Any, Optional
 
 from azurefunctions.extensions.base import Datum, InConverter, OutConverter
 
@@ -21,22 +21,20 @@ class EventHubDataConverter(
         )
 
     @classmethod
-    def decode(cls, data: Datum, *, trigger_metadata, pytype) -> Any:
+    def decode(cls, data: Datum, *, trigger_metadata, pytype) -> Optional[Any]:
         if data is None or data.type is None:
             return None
 
-        data_type = data.type
-
-        if data_type == "model_binding_data":
-            data = data.value
-        else:
+        if data.type != "model_binding_data":
             raise ValueError(
-                f'unexpected type of data received for the "eventhub" binding '
-                f": {data_type!r}"
+                 "Unexpected type of data received for the 'eventhub' binding: "
+                + repr(data.type)
             )
+        
+        content = data.value
 
         # Determines which sdk type to return based on pytype
         if pytype == EventHubData:
-            return EventHubData(data=data).get_sdk_type()
-        else:
-            return None
+            return EventHubData(data=content).get_sdk_type()
+        
+        return None
