@@ -2,7 +2,6 @@
 #  Licensed under the MIT License.
 
 import json
-from typing import Union
 
 from azure.identity import DefaultAzureCredential
 from azure.storage.blob import BlobServiceClient

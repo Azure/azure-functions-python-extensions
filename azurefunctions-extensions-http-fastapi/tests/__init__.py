@@ -6,7 +6,6 @@
 import os.path
 import sys
 import unittest
-import unittest.runner
 
 
 def suite():

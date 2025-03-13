@@ -51,6 +51,8 @@ import logging
 import azure.functions as func
 import azurefunctions.extensions.bindings.eventhub as eh
 
+app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
+
 @app.event_hub_message_trigger(
     arg_name="eh_data", event_hub_name="EVENTHUB_NAME", connection="AzureWebJobsStorage"
 ) 

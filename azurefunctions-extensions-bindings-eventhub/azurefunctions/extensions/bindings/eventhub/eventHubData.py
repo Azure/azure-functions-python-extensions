@@ -1,7 +1,7 @@
 #  Copyright (c) Microsoft Corporation. All rights reserved.
 #  Licensed under the MIT License.
 
-from typing import Optional, Union
+from typing import Optional
 import uamqp
 
 from azure.eventhub import EventData
@@ -42,7 +42,7 @@ class EventHubData(SdkType):
     def get_sdk_type(self) -> Optional[EventData]:
         """
         When receiving an EventHub message, the content portion after being decoded
-        is used in the constructor to create an EventData object. This will contains
+        is used in the constructor to create an EventData object. This will contain
         fields such as message, enqueue_time, and more.
         """
         # https://github.com/Azure/azure-sdk-for-python/issues/39711
