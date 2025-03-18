@@ -110,7 +110,7 @@ class _BaseConverter(metaclass=_ConverterMeta, binding=None):
             return None
 
         data_type = data.type
-        if data_type == "model_binding_data":
+        if data_type == "model_binding_data" or data_type == "collection_model_binding_data":
             result = data.value
         elif data_type is None:
             return None

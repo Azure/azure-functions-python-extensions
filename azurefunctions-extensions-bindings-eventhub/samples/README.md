@@ -17,7 +17,7 @@ These are code samples that show common scenario operations with the Azure Funct
 These samples relate to the Azure EventHub library being used as part of a Python Function App. For
 examples on how to use the Azure EventHub library, please see [Azure EventHub samples](https://github.com/Azure/azure-sdk-for-python/tree/main/sdk/eventhub/azure-eventhub/samples)
 
-* [eventhub_samples_eventhubdata](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-bindings-eventhub/samples/eventhub_samples_eventhubdata)  - Examples for using the EventData type:
+* [eventhub_samples_eventdata](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-bindings-eventhub/samples/eventhub_samples_eventdata)  - Examples for using the EventData type:
     * From EventHubTrigger
 
 ## Prerequisites

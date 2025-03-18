@@ -56,7 +56,7 @@ app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 @app.event_hub_message_trigger(
     arg_name="eh_data", event_hub_name="EVENTHUB_NAME", connection="AzureWebJobsStorage"
 ) 
-def eventhub_trigger(eh_data: eh.EventHubData):
+def eventhub_trigger(eh_data: eh.EventData):
     logging.info(
         "Python EventHub trigger processed an event %s",
         eh_data.body_as_str()
@@ -77,7 +77,7 @@ Get started with our [EventHub samples](https://github.com/Azure/azure-functions
 
 Several samples are available in this GitHub repository. These samples provide example code for additional scenarios commonly encountered while working with EventHubs:
 
-* [eventhub_samples_eventhubdata](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-bindings-eventhub/samples/eventhub_samples_eventhubdata)  - Examples for using the EventHubData type:
+* [eventhub_samples_eventdata](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-bindings-eventhub/samples/eventhub_samples_eventdata)  - Examples for using the EventData type:
     * From EventHubTrigger
 
 ### Additional documentation

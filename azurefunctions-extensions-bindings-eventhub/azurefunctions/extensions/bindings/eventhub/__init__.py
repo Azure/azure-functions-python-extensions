@@ -1,12 +1,12 @@
 #  Copyright (c) Microsoft Corporation. All rights reserved.
 #  Licensed under the MIT License.
 
-from .eventHubData import EventHubData
-from .eventHubDataConverter import EventHubDataConverter
+from .eventData import EventData
+from .eventDataConverter import EventDataConverter
 
 __all__ = [
-    "EventHubData",
-    "EventHubDataConverter",
+    "EventData",
+    "EventDataConverter",
 ]
 
 __version__ = "1.0.0b1"

@@ -166,6 +166,12 @@ class TestMeta(unittest.TestCase):
             meta._BaseConverter._decode_typed_data(datum_mbd, python_type=str), "{}"
         )
 
+        # Case 3: data.type is collection_model_binding_data
+        datum_cmbd = meta.Datum(value="{}", type="collection_model_binding_data")
+        self.assertEqual(
+            meta._BaseConverter._decode_typed_data(datum_cmbd, python_type=str), "{}"
+        )
+
         # Case 3: data.type is None
         datum_none = meta.Datum(value="{}", type=None)
         self.assertIsNone(

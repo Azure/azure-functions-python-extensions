@@ -8,7 +8,7 @@ from azure.eventhub import EventData
 from azurefunctions.extensions.base import Datum, SdkType
 
 
-class EventHubData(SdkType):
+class EventData(SdkType):
     def __init__(self, *, data: Datum) -> None:
         # model_binding_data properties
         self._data = data
@@ -43,7 +43,7 @@ class EventHubData(SdkType):
         """
         When receiving an EventHub message, the content portion after being decoded
         is used in the constructor to create an EventData object. This will contain
-        fields such as message, enqueue_time, and more.
+        fields such as message, enqueued_time, and more.
         """
         # https://github.com/Azure/azure-sdk-for-python/issues/39711
         if self.decoded_message:
