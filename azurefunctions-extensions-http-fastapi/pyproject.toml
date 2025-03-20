@@ -49,3 +49,5 @@ exclude = [
     'azurefunctions', 'tests', 'samples'
     ]
 
+[tool.black]
+skip-string-normalization = true
