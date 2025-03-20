@@ -39,6 +39,3 @@ version = {attr = "azurefunctions.extensions.base.__version__"}
 
 [tool.setuptools.packages.find]
 exclude = ['azurefunctions.extensions', 'azurefunctions', 'tests']
-
-[tool.black]
-skip-string-normalization = true

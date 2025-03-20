@@ -48,6 +48,3 @@ exclude = [
     'azurefunctions.extensions.http','azurefunctions.extensions',
     'azurefunctions', 'tests', 'samples'
     ]
-
-[tool.black]
-skip-string-normalization = true
