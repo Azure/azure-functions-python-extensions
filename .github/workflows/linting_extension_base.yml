@@ -75,6 +75,6 @@ jobs:
           VALIDATE_PYTHON: true
           VALIDATE_PYTHON_BLACK: true # same as above
           VALIDATE_PYTHON_ISORT: true # same as above
-          PYTHON_ISORT_CONFIG_FILE: .isort.cfg
+          PYTHON_ISORT_CONFIG_FILE: .github/linters/.isort.cfg
           FILTER_REGEX_INCLUDE: azurefunctions-extensions-base/.*      
           DEFAULT_BRANCH: origin/dev
