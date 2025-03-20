@@ -37,9 +37,9 @@ jobs:
       }
     displayName: 'Push release/x.y.z'
 
-- job: "CreateReleaseTag"
-  dependsOn: ['CheckReleaseBranch']
-  displayName: 'Check Release Branch'
+- job: "CheckReleaseBranch"
+  dependsOn: ['CreateReleaseBranch']
+  displayName: '(Manual) Check Release Branch'
   pool: server
   steps:
   - task: ManualValidation@1
@@ -51,9 +51,9 @@ jobs:
         2. If not, modify the release/$(NewLibraryVersion) branch.
         3. Ensure release/$(NewLibraryVersion) branch contains all necessary changes.
 
-- job: "CheckReleaseTag"
-  dependsOn: ['CreateReleaseBranch']
-  displayName: 'Check Release Tag'
+- job: "CreateReleaseTag"
+  dependsOn: ['CheckReleaseBranch']
+  displayName: 'Create Release Tag'
   steps:
   - powershell: |
       $githubToken = "$(GithubPat)"
@@ -76,10 +76,10 @@ jobs:
       
           # Create release tag X.Y.Z
           Write-Host "Creating release tag $newLibraryVersion"
-          git tag -a "$newLibraryVersion" -m "$newLibraryVersion"
+          git tag -a "$extensionName/$newLibraryVersion" -m "$newLibraryVersion"
       
           # Push tag to remote
-          git push origin $newLibraryVersion
+          git push origin $extensionName/$newLibraryVersion
       } else {
           Write-Host "NewLibraryVersion $newLibraryVersion is malformed (example: 1.5.0)"
           exit -1
@@ -98,7 +98,7 @@ jobs:
       
           # Create Release Note
           Write-Host "Creating release note in GitHub"
-          $body = (@{tag_name="$newLibraryVersion";name="Release $newLibraryVersion";body="- Fill in Release Note Here";draft=$true} | ConvertTo-Json -Compress)
+          $body = (@{tag_name="$newLibraryVersion";name="$extensionName $newLibraryVersion";body="- Fill in Release Note Here";draft=$true} | ConvertTo-Json -Compress)
           $response = Invoke-WebRequest -Headers @{"Cache-Control"="no-cache";"Content-Type"="application/json";"Authorization"="Basic $credential"} -Method Post -Body "$body" -Uri "https://api.github.com/repos/Azure/azure-functions-python-extensions/releases"
       
           # Return Value
@@ -125,7 +125,7 @@ jobs:
     inputs:
       notifyUsers: ''
       instructions: 'Please head to https://github.com/Azure/azure-functions-python-extensions/releases to finish the release note'
-  
+
 - job: "CreateWorkerPR"
   dependsOn: ['CheckGitHubRelease']
   displayName: 'Create PR in Worker Repo'
@@ -154,7 +154,7 @@ jobs:
       
           # Modify Extension $extensionName Version in pyproject.toml
           Write-Host "Replacing Extension $extensionName version in worker's pyproject.toml"
-          ((Get-Content pyproject.toml) -replace '"$extensionName=='(\d)+.(\d)+.*'"','"$extensionName==$newLibraryVersion"' -join "`n") + "`n" | Set-Content -NoNewline pyproject.toml
+          ((Get-Content pyproject.toml) -replace '"$(ExtensionName)==(\d)+.(\d)+.*"','"$(ExtensionName)==$(NewLibraryVersion)"' -join "`n") + "`n" | Set-Content -NoNewline pyproject.toml
       
           # Commit Python Version
           Write-Host "Pushing $newBranch to azure-functions-python-worker repo"
@@ -164,7 +164,7 @@ jobs:
       
           # Create PR
           Write-Host "Creating PR draft in GitHub"
-          $body = (@{head="$newBranch";base="dev";body="Python Extension [$extensionName] Version [$newLibraryVersion](https://github.com/Azure/azure-functions-python-extensions/releases/tag/$extensionName/$newLibraryVersion)";draft=$true;maintainer_can_modify=$true;title="Update Python Extension $extensionName Version to $newLibraryVersion"} | ConvertTo-Json -Compress)
+          $body = (@{head="$newBranch";base="dev";body="Python Extension [$extensionName] Version [$newLibraryVersion](https://github.com/Azure/azure-functions-python-extensions/releases/tag/$extensionName/$newLibraryVersion)";draft=$true;maintainer_can_modify=$true;title="buikld: update $extensionName version to $newLibraryVersion"} | ConvertTo-Json -Compress)
           $response = Invoke-WebRequest -Headers @{"Cache-Control"="no-cache";"Content-Type"="application/json";"Authorization"="Basic $credential";"Accept"="application/vnd.github.v3+json"} -Method Post -Body "$body" -Uri "https://api.github.com/repos/Azure/azure-functions-python-worker/pulls"
       
           # Return Value
