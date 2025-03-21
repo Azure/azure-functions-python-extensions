@@ -148,7 +148,7 @@ class TestBlobClient(unittest.TestCase):
         self.assertEqual(
             e.exception.args[0],
             "Storage account connection string NotARealConnectionString"
-            "does not exist. Please make sure that it is a defined App Setting.",
+            " does not exist. Please make sure that it is a defined App Setting.",
         )
 
     def test_none_input_populated(self):
