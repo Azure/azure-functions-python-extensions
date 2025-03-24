@@ -8,7 +8,8 @@ def get_connection_string(connection_string: str) -> str:
     Validates and returns the connection string. If the connection string is
     not an App Setting, an error will be thrown.
 
-    When using managed identity, the connection string variable name is formatted like so:
+    When using managed identity, the connection string variable name is formatted
+    like so:
     Input: <CONNECTION_NAME_PREFIX>__serviceUri
     Trigger: <CONNECTION_NAME_PREFIX>__blobServiceUri
     The variable received will be <CONNECTION_NAME_PREFIX>. Therefore, we need to append
