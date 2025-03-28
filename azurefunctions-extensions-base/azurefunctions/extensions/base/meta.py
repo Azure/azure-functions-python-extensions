@@ -2,9 +2,10 @@
 # Licensed under the MIT License.
 
 import abc
+import collections.abc
 import inspect
 import json
-from typing import Any, Dict, Mapping, Optional, Tuple, Union
+from typing import Any, Dict, Mapping, Optional, Tuple, Union, get_args, get_origin
 
 from . import sdkType, utils
 
@@ -90,7 +91,22 @@ class _ConverterMeta(abc.ABCMeta):
     def check_supported_type(cls, subclass: type) -> bool:
         if subclass is not None and inspect.isclass(subclass):
             return issubclass(subclass, sdkType.SdkType)
+        if subclass is not None:
+            return cls.__is_iterable_subclass(subclass)
         return False
+    
+    @classmethod
+    def __is_iterable_subclass(cls, annotation: type) -> bool:
+        if not issubclass(get_origin(annotation), collections.abc.Iterable):
+            return False
+
+        # Extract inner type(s) from iterable
+        args = get_args(annotation)
+        if not args:
+            return False
+    
+        return any(isinstance(arg, type) and issubclass(arg, sdkType.SdkType)
+                    for arg in args)
 
     def has_trigger_support(cls) -> bool:
         return cls._trigger is not None  # type: ignore

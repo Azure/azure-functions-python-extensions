@@ -1,11 +1,10 @@
 #  Copyright (c) Microsoft Corporation. All rights reserved.
 #  Licensed under the MIT License.
 
-import json
-from typing import Any, Optional
+import collections.abc
+from typing import Any, Optional, get_args, get_origin
 
 from azurefunctions.extensions.base import Datum, InConverter, OutConverter
-
 from .eventData import EventData
 
 
@@ -17,9 +16,16 @@ class EventDataConverter(
 ):
     @classmethod
     def check_input_type_annotation(cls, pytype: type) -> bool:
-        return issubclass(
-            pytype, (EventData)
-        )
+        if not issubclass(get_origin(pytype), collections.abc.Iterable):
+            return issubclass(pytype, EventData)
+
+        # Extract inner type(s) from iterable
+        args = get_args(pytype)
+        if not args:
+            return False
+        
+        return any(isinstance(arg, type) and issubclass(arg, EventData) 
+                   for arg in args)
 
     @classmethod
     def decode(cls, data: Datum, *, trigger_metadata, pytype) -> Optional[Any]:

@@ -2,9 +2,9 @@
 #  Licensed under the MIT License.
 
 import unittest
-from typing import Optional
+from typing import List, Optional
 
-from azure.eventhub import EventData
+from azure.eventhub import EventData as EventDataSdk
 from azurefunctions.extensions.base import Datum
 
 from azurefunctions.extensions.bindings.eventhub import EventData, EventDataConverter
@@ -27,12 +27,10 @@ class MockMBD:
     def direction(self) -> int:
         return self._direction.value
     
+    
 class MockCMBD:
-    def __init__(self, version: str, source: str, content_type: str, content: str):
-        self.version = version
-        self.source = source
-        self.content_type = content_type
-        self.content = content
+    def __init__(self, model_binding_data_list: List[MockMBD]):
+        self.model_binding_data = model_binding_data_list
 
     @property
     def data_type(self) -> Optional[int]:
@@ -98,12 +96,12 @@ class TestEventData(unittest.TestCase):
         )
 
         self.assertIsNotNone(result)
-        self.assertIsInstance(result, EventData)
+        self.assertIsInstance(result, EventDataSdk)
 
         sdk_result = EventData(data=datum.value).get_sdk_type()
 
         self.assertIsNotNone(sdk_result)
-        self.assertIsInstance(sdk_result, EventData)
+        self.assertIsInstance(sdk_result, EventDataSdk)
 
     def test_input_populated_cmbd(self):
         sample_mbd = MockMBD(
@@ -113,18 +111,18 @@ class TestEventData(unittest.TestCase):
             content = EVENTHUB_SAMPLE_CONTENT
         )
 
-        datum: Datum = Datum(value=[sample_mbd, sample_mbd], type="collection_model_binding_data")
+        datum: Datum = Datum(value=MockCMBD([sample_mbd, sample_mbd]), type="collection_model_binding_data")
         result: EventData = EventDataConverter.decode(
             data=datum, trigger_metadata=None, pytype=EventData
         )
 
         self.assertIsNotNone(result)
-        self.assertIsInstance(result, EventData)
+        self.assertIsInstance(result, EventDataSdk)
 
         sdk_result = EventData(data=datum.value).get_sdk_type()
 
         self.assertIsNotNone(sdk_result)
-        self.assertIsInstance(sdk_result, EventData)
+        self.assertIsInstance(sdk_result, EventDataSdk)
 
     def test_input_invalid_pytype(self):
         sample_mbd = MockMBD(

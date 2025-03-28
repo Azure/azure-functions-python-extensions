@@ -172,32 +172,32 @@ class TestMeta(unittest.TestCase):
             meta._BaseConverter._decode_typed_data(datum_cmbd, python_type=str), "{}"
         )
 
-        # Case 3: data.type is None
+        # Case 4: data.type is None
         datum_none = meta.Datum(value="{}", type=None)
         self.assertIsNone(
             meta._BaseConverter._decode_typed_data(datum_none, python_type=str)
         )
 
-        # Case 4: data.type is unsupported
+        # Case 5: data.type is unsupported
         datum_unsupp = meta.Datum(value="{}", type=dict)
         with self.assertRaises(ValueError):
             meta._BaseConverter._decode_typed_data(datum_unsupp, python_type=str)
 
-        # Case 5: can't coerce
+        # Case 6: can't coerce
         datum_coerce_fail = meta.Datum(value="{}", type="model_binding_data")
         with self.assertRaises(ValueError):
             meta._BaseConverter._decode_typed_data(
                 datum_coerce_fail, python_type=(tuple, list, dict)
             )
 
-        # Case 6: attempt coerce & fail
+        # Case 7: attempt coerce & fail
         datum_attempt_coerce = meta.Datum(value=1, type="model_binding_data")
         with self.assertRaises(ValueError):
             meta._BaseConverter._decode_typed_data(
                 datum_attempt_coerce, python_type=dict
             )
 
-        # Case 7: attempt to coerce and pass
+        # Case 8: attempt to coerce and pass
         datum_coerce_pass = meta.Datum(value=1, type="model_binding_data")
         self.assertEqual(
             meta._BaseConverter._decode_typed_data(datum_coerce_pass, python_type=str),
