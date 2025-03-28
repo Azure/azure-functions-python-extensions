@@ -89,10 +89,10 @@ class _ConverterMeta(abc.ABCMeta):
 
     @classmethod
     def check_supported_type(cls, subclass: type) -> bool:
-        if subclass is not None and inspect.isclass(subclass):
-            return issubclass(subclass, sdkType.SdkType)
         if subclass is not None:
             return cls.__is_iterable_subclass(subclass)
+        if subclass is not None and inspect.isclass(subclass):
+            return issubclass(subclass, sdkType.SdkType)
         return False
 
     @classmethod

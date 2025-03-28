@@ -154,6 +154,7 @@ class TestMeta(unittest.TestCase):
         self.assertTrue(registry.check_supported_type(List[sdkType.SdkType]))
         self.assertTrue(registry.check_supported_type(list[sdkType.SdkType]))
         self.assertTrue(registry.check_supported_type(tuple[sdkType.SdkType]))
+        self.assertTrue(registry.check_supported_type(set[sdkType.SdkType]))
 
         self.assertFalse(registry.has_trigger_support(MockIndexedFunction))
 
