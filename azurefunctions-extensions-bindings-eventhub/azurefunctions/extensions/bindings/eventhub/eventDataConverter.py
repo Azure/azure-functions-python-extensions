@@ -2,6 +2,7 @@
 #  Licensed under the MIT License.
 
 import collections.abc
+import inspect
 from typing import Any, Optional, get_args, get_origin
 
 from azurefunctions.extensions.base import Datum, InConverter, OutConverter
@@ -16,7 +17,9 @@ class EventDataConverter(
 ):
     @classmethod
     def check_input_type_annotation(cls, pytype: type) -> bool:
-        if not issubclass(get_origin(pytype), collections.abc.Iterable):
+        origin = get_origin(pytype)
+        if (not inspect.isclass(origin) or 
+            not issubclass(get_origin(pytype), collections.abc.Iterable)):
             return issubclass(pytype, EventData)
 
         # Extract inner type(s) from iterable
