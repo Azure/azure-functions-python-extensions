@@ -98,8 +98,8 @@ class _ConverterMeta(abc.ABCMeta):
     @classmethod
     def __is_iterable_subclass(cls, annotation: type) -> bool:
         origin = get_origin(annotation)
-        if (not inspect.isclass(origin) or 
-            not issubclass(origin, collections.abc.Iterable)):
+        if (origin is None
+            or not issubclass(origin, collections.abc.Iterable)):
             return False
 
         # Extract inner type(s) from iterable
@@ -107,7 +107,8 @@ class _ConverterMeta(abc.ABCMeta):
         if not args:
             return False
 
-        return any(isinstance(arg, type) 
+        return any(
+            isinstance(arg, type)
             and issubclass(arg, sdkType.SdkType) for arg in args)
 
     def has_trigger_support(cls) -> bool:
@@ -128,8 +129,8 @@ class _BaseConverter(metaclass=_ConverterMeta, binding=None):
             return None
 
         data_type = data.type
-        if (data_type == "model_binding_data" or 
-            data_type == "collection_model_binding_data"):
+        if (data_type == "model_binding_data"
+            or data_type == "collection_model_binding_data"):
             result = data.value
         elif data_type is None:
             return None

@@ -18,8 +18,7 @@ class EventDataConverter(
     @classmethod
     def check_input_type_annotation(cls, pytype: type) -> bool:
         origin = get_origin(pytype)
-        if (not inspect.isclass(origin) or 
-            not issubclass(get_origin(pytype), collections.abc.Iterable)):
+        if origin is None or not issubclass(origin, collections.abc.Iterable):
             return issubclass(pytype, EventData)
 
         # Extract inner type(s) from iterable
