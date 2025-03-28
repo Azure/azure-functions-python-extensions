@@ -97,9 +97,10 @@ class _ConverterMeta(abc.ABCMeta):
 
     @classmethod
     def __is_iterable_subclass(cls, annotation: type) -> bool:
+        # Get base type from type hint
         origin = get_origin(annotation)
         if (origin is None
-            or not issubclass(origin, collections.abc.Iterable)):
+                or not issubclass(origin, collections.abc.Iterable)):
             return False
 
         # Extract inner type(s) from iterable
@@ -130,7 +131,7 @@ class _BaseConverter(metaclass=_ConverterMeta, binding=None):
 
         data_type = data.type
         if (data_type == "model_binding_data"
-            or data_type == "collection_model_binding_data"):
+                or data_type == "collection_model_binding_data"):
             result = data.value
         elif data_type is None:
             return None
