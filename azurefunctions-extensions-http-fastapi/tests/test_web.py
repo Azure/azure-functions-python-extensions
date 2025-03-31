@@ -154,7 +154,8 @@ class TestRequestSynchronizer(unittest.TestCase):
         # Call the sync_route_params method with the mock request and path parameters
         synchronizer.sync_route_params(mock_request, path_params)
 
-        # Assert that the request's path_params have been updated with the provided path parameters
+        # Assert that the request's path_params have been updated with the
+        # provided path parameters
         mock_request.path_params.clear.assert_called_once()
         mock_request.path_params.update.assert_called_once_with(path_params)
 
@@ -176,15 +177,14 @@ class TestRequestSynchronizer(unittest.TestCase):
         # Create an instance of the ConcreteRequestSynchronizer
         synchronizer = RequestSynchronizer()
 
-        # Call the sync_route_params method with the mock request and None path parameters
+        # Call the sync_route_params method with the mock request
+        # and None path parameters
         with self.assertRaises(TypeError):
             synchronizer.sync_route_params(mock_request, None)
 
 
 class TestExtensionClasses(unittest.TestCase):
     def test_request(self):
-        from azurefunctions.extensions.http.fastapi.web import Request
-
         self.assertEqual(RequestTrackerMeta.get_request_type(), FastApiRequest)
         self.assertTrue(
             isinstance(RequestTrackerMeta.get_synchronizer(), RequestSynchronizer)

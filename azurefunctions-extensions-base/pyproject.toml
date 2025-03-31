@@ -27,11 +27,13 @@ classifiers= [
 
 [project.optional-dependencies]
 dev = [
-        'pytest',
-        'pytest-cov',
-        'coverage',
-        'pytest-instafail',
-        'pre-commit'
+    'flake8',
+    'mypy',
+    'pytest',
+    'pytest-cov',
+    'coverage',
+    'pytest-instafail',
+    'pre-commit'
     ]
 
 [tool.setuptools.dynamic]
@@ -39,4 +41,3 @@ version = {attr = "azurefunctions.extensions.base.__version__"}
 
 [tool.setuptools.packages.find]
 exclude = ['azurefunctions.extensions', 'azurefunctions', 'tests']
-

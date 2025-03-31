@@ -31,6 +31,8 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
+    'flake8',
+    'mypy',
     'pytest',
     'pytest-cov',
     'coverage',
@@ -46,4 +48,3 @@ exclude = [
     'azurefunctions.extensions.bindings','azurefunctions.extensions',
     'azurefunctions', 'tests', 'samples'
     ]
-
