@@ -1,6 +1,7 @@
 #  Copyright (c) Microsoft Corporation. All rights reserved.
 #  Licensed under the MIT License.
 
+import sys
 import unittest
 from typing import List, Optional
 
@@ -44,10 +45,13 @@ class MockCMBD:
 class TestEventData(unittest.TestCase):
     def test_input_type(self):
         check_input_type = EventDataConverter.check_input_type_annotation
+
+        # Generic types are not subscriptable in Python < 3.9
+        if sys.version_info >= (3, 9):
+            self.assertTrue(check_input_type(list[EventData]))
+            self.assertTrue(check_input_type(tuple[EventData]))
         self.assertTrue(check_input_type(EventData))
         self.assertTrue(check_input_type(List[EventData]))
-        self.assertTrue(check_input_type(list[EventData]))
-        self.assertTrue(check_input_type(tuple[EventData]))
         self.assertFalse(check_input_type(str))
         self.assertFalse(check_input_type(bytes))
         self.assertFalse(check_input_type(bytearray))

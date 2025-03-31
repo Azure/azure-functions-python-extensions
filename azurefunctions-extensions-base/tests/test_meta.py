@@ -1,5 +1,6 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
+import sys
 import unittest
 from typing import List, Mapping
 from unittest.mock import patch
@@ -149,14 +150,17 @@ class TestMeta(unittest.TestCase):
         self.assertEqual(registry.get_raw_bindings(MockIndexedFunction, []), ([], {}))
 
         self.assertFalse(registry.check_supported_type(None))
+        self.assertFalse(registry.has_trigger_support(MockIndexedFunction))
         self.assertFalse(registry.check_supported_type("hello"))
         self.assertTrue(registry.check_supported_type(sdkType.SdkType))
         self.assertTrue(registry.check_supported_type(List[sdkType.SdkType]))
-        self.assertTrue(registry.check_supported_type(list[sdkType.SdkType]))
-        self.assertTrue(registry.check_supported_type(tuple[sdkType.SdkType]))
-        self.assertTrue(registry.check_supported_type(set[sdkType.SdkType]))
 
-        self.assertFalse(registry.has_trigger_support(MockIndexedFunction))
+        # Generic types are not subscriptable in Python < 3.9
+        if sys.version_info >= (3, 9):
+            self.assertTrue(registry.check_supported_type(list[sdkType.SdkType]))
+            self.assertTrue(registry.check_supported_type(tuple[sdkType.SdkType]))
+            self.assertTrue(registry.check_supported_type(set[sdkType.SdkType]))
+            self.assertFalse(registry.check_supported_type(dict[str, sdkType.SdkType]))
 
     def test_decode_typed_data(self):
         # Case 1: data is None
