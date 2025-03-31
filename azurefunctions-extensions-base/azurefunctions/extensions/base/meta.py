@@ -3,7 +3,6 @@
 
 import abc
 import collections.abc
-import inspect
 import json
 from typing import Any, Dict, Mapping, Optional, Tuple, Union, get_args, get_origin
 
@@ -91,12 +90,12 @@ class _ConverterMeta(abc.ABCMeta):
     def check_supported_type(cls, annotation: type) -> bool:
         if annotation is None:
             return False
-        
+
         # The annotation is a class/type (not an object) - not iterable
         if (isinstance(annotation, type)
                 and issubclass(annotation, sdkType.SdkType)):
             return True
-        
+
         # An iterable who only has one inner type and is a subclass of SdkType
         return cls.__is_iterable_supported_type(annotation)
 
@@ -104,17 +103,17 @@ class _ConverterMeta(abc.ABCMeta):
     def __is_iterable_supported_type(cls, annotation: type) -> bool:
         # Check base type from type hint. Ex: List from List[SdkType]
         base_type = get_origin(annotation)
-        if (base_type is not None 
-                and issubclass(base_type, collections.abc.Iterable)):
+        if (base_type is None
+                or not issubclass(base_type, collections.abc.Iterable)):
             return False
 
         inner_types = get_args(annotation)
         if inner_types is None or len(inner_types) != 1:
             return False
-        
+
         inner_type = inner_types[0]
 
-        return (isinstance(inner_type, type) 
+        return (isinstance(inner_type, type)
                 and issubclass(inner_type, sdkType.SdkType))
 
     def has_trigger_support(cls) -> bool:

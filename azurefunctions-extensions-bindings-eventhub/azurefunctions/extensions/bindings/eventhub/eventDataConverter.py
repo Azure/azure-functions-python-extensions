@@ -32,8 +32,8 @@ class EventDataConverter(
     def __is_iterable_supported_type(cls, annotation: type) -> bool:
         # Check base type from type hint. Ex: List from List[SdkType]
         base_type = get_origin(annotation)
-        if (base_type is not None 
-                and issubclass(base_type, collections.abc.Iterable)):
+        if (base_type is None
+                or not issubclass(base_type, collections.abc.Iterable)):
             return False
 
         inner_types = get_args(annotation)
