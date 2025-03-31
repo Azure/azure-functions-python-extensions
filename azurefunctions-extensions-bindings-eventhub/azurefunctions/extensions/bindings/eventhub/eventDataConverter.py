@@ -2,7 +2,7 @@
 #  Licensed under the MIT License.
 
 import collections.abc
-import inspect
+from 
 from typing import Any, Optional, get_args, get_origin
 
 from azurefunctions.extensions.base import Datum, InConverter, OutConverter
@@ -17,18 +17,33 @@ class EventDataConverter(
 ):
     @classmethod
     def check_input_type_annotation(cls, pytype: type) -> bool:
-        # Get base type from type hint
-        origin = get_origin(pytype)
-        if origin is None or not issubclass(origin, collections.abc.Iterable):
-            return issubclass(pytype, EventData)
-
-        # Extract inner type(s) from iterable
-        args = get_args(pytype)
-        if not args:
+        if pytype is None:
             return False
         
-        return any(isinstance(arg, type) and issubclass(arg, EventData) 
-                   for arg in args)
+        # The annotation is a class/type (not an object) - not iterable
+        if (isinstance(pytype, type)
+                and issubclass(pytype, EventData)):
+            return True
+        
+        # An iterable who only has one inner type and is a subclass of SdkType
+        return cls.__is_iterable_supported_type(pytype)
+    
+    @classmethod
+    def __is_iterable_supported_type(cls, annotation: type) -> bool:
+        # Check base type from type hint. Ex: List from List[SdkType]
+        base_type = get_origin(annotation)
+        if (base_type is not None 
+                and issubclass(base_type, collections.abc.Iterable)):
+            return False
+
+        inner_types = get_args(annotation)
+        if inner_types is None or len(inner_types) != 1:
+            return False
+        
+        inner_type = inner_types[0]
+
+        return (isinstance(inner_type, type) 
+                and issubclass(inner_type, EventData))
 
     @classmethod
     def decode(cls, data: Datum, *, trigger_metadata, pytype) -> Optional[Any]:
