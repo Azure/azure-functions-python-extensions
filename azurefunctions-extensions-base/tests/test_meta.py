@@ -155,7 +155,7 @@ class TestMeta(unittest.TestCase):
         self.assertTrue(registry.check_supported_type(sdkType.SdkType))
         self.assertTrue(registry.check_supported_type(List[sdkType.SdkType]))
 
-        # Generic types are not subscriptable in Python < 3.9
+        # Generic types are not subscriptable in Python <3.9
         if sys.version_info >= (3, 9):
             self.assertTrue(registry.check_supported_type(list[sdkType.SdkType]))
             self.assertTrue(registry.check_supported_type(tuple[sdkType.SdkType]))
