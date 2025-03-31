@@ -2,7 +2,6 @@
 #  Licensed under the MIT License.
 
 import collections.abc
-from 
 from typing import Any, Optional, get_args, get_origin
 
 from azurefunctions.extensions.base import Datum, InConverter, OutConverter

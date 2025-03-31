@@ -5,6 +5,8 @@
 # --------------------------------------------------------------------------
 
 import logging
+from typing import List
+
 import azure.functions as func
 import azurefunctions.extensions.bindings.eventhub as eh
 
@@ -28,11 +30,21 @@ USAGE:
 
 
 @app.event_hub_message_trigger(
-    arg_name="eh_data", event_hub_name="EVENTHUB_NAME", connection="AzureWebJobsStorage"
-) 
-def eventhub_trigger(eh_data: eh.EventData):
+    arg_name="event", event_hub_name="EVENTHUB_NAME", connection="AzureWebJobsStorage"
+)
+def eventhub_trigger(event: eh.EventData):
     logging.info(
         "Python EventHub trigger processed an event %s",
-        eh_data.body_as_str()
+        event.body_as_str()
     )
-    
+
+
+@app.event_hub_message_trigger(
+    arg_name="events", event_hub_name="EVENTHUB_NAME", connection="AzureWebJobsStorage", cardinality="many"
+)
+def eventhub_trigger(events: List[eh.EventData]):
+    for event in events:
+        logging.info(
+            "Python EventHub trigger processed an event %s",
+            event.body_as_str()
+        )

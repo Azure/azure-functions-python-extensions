@@ -54,13 +54,24 @@ import azurefunctions.extensions.bindings.eventhub as eh
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
 @app.event_hub_message_trigger(
-    arg_name="eh_data", event_hub_name="EVENTHUB_NAME", connection="AzureWebJobsStorage"
+    arg_name="event", event_hub_name="EVENTHUB_NAME", connection="AzureWebJobsStorage"
 ) 
-def eventhub_trigger(eh_data: eh.EventData):
+def eventhub_trigger(event: eh.EventData):
     logging.info(
         "Python EventHub trigger processed an event %s",
-        eh_data.body_as_str()
+        event.body_as_str()
     )
+
+
+@app.event_hub_message_trigger(
+    arg_name="events", event_hub_name="EVENTHUB_NAME", connection="AzureWebJobsStorage", cardinality="many"
+)
+def eventhub_trigger(events: List[eh.EventData]):
+    for event in events:
+        logging.info(
+            "Python EventHub trigger processed an event %s",
+            event.body_as_str()
+        )
 ```
 
 ## Troubleshooting
