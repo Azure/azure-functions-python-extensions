@@ -22,9 +22,9 @@ class EventData(SdkType):
             self._source = data.source
             self._content_type = data.content_type
             self._content = data.content
-            self.decoded_message = self.__get_eventhub_content(self._content)
+            self.decoded_message = self._get_eventhub_content(self._content)
     
-    def __get_eventhub_content(self, content):
+    def _get_eventhub_content(self, content):
         """
         When receiving the EventBindingData, the content field is in the form of bytes.
         This content must be decoded in order to construct an EventData object from the azure.eventhub SDK.

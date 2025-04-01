@@ -97,10 +97,10 @@ class _ConverterMeta(abc.ABCMeta):
             return True
 
         # An iterable who only has one inner type and is a subclass of SdkType
-        return cls.__is_iterable_supported_type(annotation)
+        return cls._is_iterable_supported_type(annotation)
 
     @classmethod
-    def __is_iterable_supported_type(cls, annotation: type) -> bool:
+    def _is_iterable_supported_type(cls, annotation: type) -> bool:
         # Check base type from type hint. Ex: List from List[SdkType]
         base_type = get_origin(annotation)
         if (base_type is None

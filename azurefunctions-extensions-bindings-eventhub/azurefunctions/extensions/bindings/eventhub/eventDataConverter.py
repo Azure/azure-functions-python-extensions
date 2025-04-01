@@ -25,10 +25,10 @@ class EventDataConverter(
             return True
         
         # An iterable who only has one inner type and is a subclass of SdkType
-        return cls.__is_iterable_supported_type(pytype)
+        return cls._is_iterable_supported_type(pytype)
     
     @classmethod
-    def __is_iterable_supported_type(cls, annotation: type) -> bool:
+    def _is_iterable_supported_type(cls, annotation: type) -> bool:
         # Check base type from type hint. Ex: List from List[SdkType]
         base_type = get_origin(annotation)
         if (base_type is None
