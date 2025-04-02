@@ -1,8 +1,6 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-"""Bootstrap for '$ python setup.py test' command."""
-
 import os.path
 import sys
 import unittest
