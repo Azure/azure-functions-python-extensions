@@ -30,13 +30,14 @@ def get_amqp_message(message: bytes, index: int):
 def get_decoded_message(content: bytes):
     if content:
         # Finds the end of the lock token
-            index = content.find(b"x-opt-lock-token")
+        index = content.find(b"x-opt-lock-token")
 
-            # Get the lock token UUID and create the delivery annotations dictionary
-            lock_token = get_lock_token(content, index)
-            delivery_anno_dict = {_X_OPT_LOCK_TOKEN: lock_token}
+        # Get the lock token UUID and create the delivery annotations dictionary
+        lock_token = get_lock_token(content, index)
+        delivery_anno_dict = {_X_OPT_LOCK_TOKEN: lock_token}
 
-            # Get the amqp message and set the delivery annotations
-            decoded_message = get_amqp_message(content, index)
-            decoded_message.delivery_annotations = delivery_anno_dict
+        # Get the amqp message and set the delivery annotations
+        decoded_message = get_amqp_message(content, index)
+        decoded_message.delivery_annotations = delivery_anno_dict
+        return decoded_message
     return None
