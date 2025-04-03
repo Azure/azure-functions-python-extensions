@@ -133,7 +133,7 @@ class TestEventData(unittest.TestCase):
         for mbd in datum.value.model_binding_data:
             sdk_results.append(EventData(data=mbd).get_sdk_type())
 
-        self.assertNotEquals(sdk_results, [None, None])
+        self.assertNotEqual(sdk_results, [None, None])
         for event_data in sdk_results:
             self.assertIsInstance(event_data, EventDataSdk)
 
