@@ -1,7 +1,6 @@
 #  Copyright (c) Microsoft Corporation. All rights reserved.
 #  Licensed under the MIT License.
 
-import sys
 import unittest
 from typing import List, Optional
 
@@ -10,7 +9,8 @@ from azurefunctions.extensions.base import Datum
 
 from azurefunctions.extensions.bindings.eventhub import EventData, EventDataConverter
 
-EVENTHUB_SAMPLE_CONTENT = b"\x00Sr\xc1\x8e\x08\xa3\x1bx-opt-sequence-number-epochT\xff\xa3\x15x-opt-sequence-numberU\x04\xa3\x0cx-opt-offset\x81\x00\x00\x00\x01\x00\x00\x010\xa3\x13x-opt-enqueued-time\x00\xa3\x1dcom.microsoft:datetime-offset\x81\x08\xddW\x05\xc3Q\xcf\x10\x00St\xc1I\x02\xa1\rDiagnostic-Id\xa1700-bdc3fde4889b4e907e0c9dcb46ff8d92-21f637af293ef13b-00\x00Su\xa0\x08message1"
+EVENTHUB_SAMPLE_CONTENT = b"\x00Sr\xc1\x8e\x08\xa3\x1bx-opt-sequence-number-epochT\xff\xa3\x15x-opt-sequence-numberU\x04\xa3\x0cx-opt-offset\x81\x00\x00\x00\x01\x00\x00\x010\xa3\x13x-opt-enqueued-time\x00\xa3\x1dcom.microsoft:datetime-offset\x81\x08\xddW\x05\xc3Q\xcf\x10\x00St\xc1I\x02\xa1\rDiagnostic-Id\xa1700-bdc3fde4889b4e907e0c9dcb46ff8d92-21f637af293ef13b-00\x00Su\xa0\x08message1"  # noqa: E501
+
 
 # Mock classes for testing
 class MockMBD:
@@ -27,8 +27,8 @@ class MockMBD:
     @property
     def direction(self) -> int:
         return self._direction.value
-    
-    
+
+
 class MockCMBD:
     def __init__(self, model_binding_data_list: List[MockMBD]):
         self.model_binding_data = model_binding_data_list
@@ -83,18 +83,19 @@ class TestEventData(unittest.TestCase):
         self.assertIsNone(result)
 
     def test_input_empty_cmbd(self):
-        datum: Datum = Datum(value={}, type="collection_model_binding_data")
+        datum: Datum = Datum(value=MockCMBD([None]),
+                             type="collection_model_binding_data")
         result: EventData = EventDataConverter.decode(
             data=datum, trigger_metadata=None, pytype=EventData
         )
-        self.assertIsNone(result)
+        self.assertEqual(result, [None])
 
     def test_input_populated_mbd(self):
         sample_mbd = MockMBD(
             version="1.0",
             source="AzureEventHubsEventData",
             content_type="application/octet-stream",
-            content = EVENTHUB_SAMPLE_CONTENT
+            content=EVENTHUB_SAMPLE_CONTENT
         )
 
         datum: Datum = Datum(value=sample_mbd, type="model_binding_data")
@@ -115,33 +116,34 @@ class TestEventData(unittest.TestCase):
             version="1.0",
             source="AzureEventHubsEventData",
             content_type="application/octet-stream",
-            content = EVENTHUB_SAMPLE_CONTENT
+            content=EVENTHUB_SAMPLE_CONTENT
         )
 
-        datum: Datum = Datum(value=MockCMBD([sample_mbd, sample_mbd]), type="collection_model_binding_data")
+        datum: Datum = Datum(value=MockCMBD([sample_mbd, sample_mbd]),
+                             type="collection_model_binding_data")
         result: EventData = EventDataConverter.decode(
             data=datum, trigger_metadata=None, pytype=EventData
         )
 
         self.assertIsNotNone(result)
-        self.assertIsInstance(result, EventDataSdk)
+        for event_data in result:
+            self.assertIsInstance(event_data, EventDataSdk)
 
-        sdk_result = EventData(data=datum.value).get_sdk_type()
+        sdk_results = []
+        for mbd in datum.value.model_binding_data:
+            sdk_results.append(EventData(data=mbd).get_sdk_type())
 
-        self.assertIsNotNone(sdk_result)
-        self.assertIsInstance(sdk_result, EventDataSdk)
+        self.assertNotEquals(sdk_results, [None, None])
+        for event_data in sdk_results:
+            self.assertIsInstance(event_data, EventDataSdk)
 
-    def test_input_invalid_pytype(self):
-        sample_mbd = MockMBD(
-            version="1.0",
-            source="AzureEventHubsEventData",
-            content_type="application/octet-stream",
-            content = EVENTHUB_SAMPLE_CONTENT
+    def test_input_invalid_datum_type(self):
+        with self.assertRaises(ValueError) as e:
+            datum: Datum = Datum(value="hello", type="str")
+            _: EventData = EventDataConverter.decode(
+                data=datum, trigger_metadata=None, pytype=""
+            )
+        self.assertEqual(
+            e.exception.args[0],
+            "Unexpected type of data received for the 'eventhub' binding: 'str'",
         )
-
-        datum: Datum = Datum(value=sample_mbd, type="model_binding_data")
-        result: EventData = EventDataConverter.decode(
-            data=datum, trigger_metadata=None, pytype="str"
-        )
-
-        self.assertIsNone(result)
