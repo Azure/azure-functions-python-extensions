@@ -27,7 +27,7 @@ classifiers= [
 dependencies = [
     'azurefunctions-extensions-base',
     'azure-eventhub~=5.13.0',
-    'uamqp~=1.*'
+    'uamqp~=1.0'
     ]
 
 [project.optional-dependencies]
