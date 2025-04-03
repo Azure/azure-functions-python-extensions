@@ -23,7 +23,7 @@ jobs:
           python -m pip install -U -e .[dev]
         displayName: 'Install dependencies'
       - bash: |
-          python -m pytest -q --instafail azurefunctions-extensions-bindings-eventhub/tests/ --ignore='azurefunctions-extensions-base', --ignore='azurefunctions-extensions-http-fastapi', --ignore='azurefunctions-extensions-bindings-blob'
+          python -m pytest -q --instafail azurefunctions-extensions-bindings-eventhub/tests/
         env:
           AzureWebJobsStorage: $(AzureWebJobsStorage)
         displayName: "Running EventHub $(PYTHON_VERSION) Python Extension Tests"

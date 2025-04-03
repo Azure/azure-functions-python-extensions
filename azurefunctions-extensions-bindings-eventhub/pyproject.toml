@@ -26,7 +26,8 @@ classifiers= [
     ]
 dependencies = [
     'azurefunctions-extensions-base',
-    'azure-eventhub~=5.13.0'
+    'azure-eventhub~=5.13.0',
+    'uamqp~=1.0'
     ]
 
 [project.optional-dependencies]
@@ -35,7 +36,9 @@ dev = [
     'pytest-cov',
     'coverage',
     'pytest-instafail',
-    'pre-commit'
+    'pre-commit',
+    'mypy',
+    'flake8'
     ]
 
 [tool.setuptools.dynamic]
