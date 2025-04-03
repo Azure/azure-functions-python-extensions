@@ -27,6 +27,7 @@ def get_amqp_message(message: bytes, index: int):
 
     return decoded_message
 
+
 def get_decoded_message(content: bytes):
     if content:
         # Finds the end of the lock token
