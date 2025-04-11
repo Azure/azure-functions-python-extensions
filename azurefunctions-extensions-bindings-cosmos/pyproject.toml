@@ -35,7 +35,9 @@ dev = [
     'pytest-cov',
     'coverage',
     'pytest-instafail',
-    'pre-commit'
+    'pre-commit',
+    'mypy',
+    'flake8'
     ]
 
 [tool.setuptools.dynamic]
