@@ -10,6 +10,9 @@ jobs:
         blob_extension:
           EXTENSION_DIRECTORY: 'azurefunctions-extensions-bindings-blob'
           EXTENSION_NAME: 'Blob'
+        cosmos_extension:
+          EXTENSION_DIRECTORY: 'azurefunctions-extensions-bindings-cosmos'
+          EXTENSION_NAME: 'Cosmos'
         eventhub_extension:
           EXTENSION_DIRECTORY: 'azurefunctions-extensions-bindings-eventhub'
           EXTENSION_NAME: 'EventHub'
