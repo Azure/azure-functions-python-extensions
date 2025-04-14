@@ -53,25 +53,21 @@ properties and methods available as seen in the Azure Storage Cosmos library for
 ```python
 import logging
 import azure.functions as func
-import azurefunctions.extensions.bindings.blob as blob
+import azurefunctions.extensions.bindings.cosmos as cosmos
 
-@app.blob_trigger(arg_name="client",
-                  path="PATH/TO/BLOB",
-                  connection="AzureWebJobsStorage")
-def blob_trigger(client: blob.BlobClient):
-    logging.info(f"Python blob trigger function processed blob \n"
-                 f"Properties: {client.get_blob_properties()}\n"
-                 f"Blob content head: {client.download_blob(encoding="utf-8").read(size=1)}")
+app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
+@app.route(route="cosmos")
+@app.cosmos_db_input(arg_name="container",
+                     connection="AzureWebJobsStorage",
+                     database_name="db_name",
+                     container_name="container_name")
+def get_docs(req: func.HttpRequest, client: cosmos.CosmosClient):
+    databases = client.list_databases()
+    for db in databases:
+        logging.info(f"Found database with ID: {db.get('id')}")
 
-@app.route(route="file")
-@app.blob_input(arg_name="client",
-                path="PATH/TO/BLOB",
-                connection="AzureWebJobsStorage")
-def blob_input(req: func.HttpRequest, client: blob.BlobClient):
-    logging.info(f"Python blob input function processed blob \n"
-                 f"Properties: {client.get_blob_properties()}\n"
-                 f"Blob content head: {client.download_blob(encoding="utf-8").read(size=1)}")
+    return "ok"
 ```
 
 ## Troubleshooting

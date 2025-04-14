@@ -34,7 +34,7 @@ examples on how to use the Azure Storage Cosmos client library, please see [Azur
 ## Setup
 
 1. Install [Core Tools](https://learn.microsoft.com/en-us/azure/azure-functions/functions-run-local?tabs=windows%2Cisolated-process%2Cnode-v4%2Cpython-v2%2Chttp-trigger%2Ccontainer-apps&pivots=programming-language-python)
-2. Install the Azure Functions Extension Blob library for Python with [pip](https://pypi.org/project/pip/):
+2. Install the Azure Functions Extension Cosmos library for Python with [pip](https://pypi.org/project/pip/):
 
 ```bash
 pip install azurefunctions-extensions-bindings-cosmos
