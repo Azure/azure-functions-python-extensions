@@ -1,314 +1,288 @@
-# #  Copyright (c) Microsoft Corporation. All rights reserved.
-# #  Licensed under the MIT License.
+#  Copyright (c) Microsoft Corporation. All rights reserved.
+#  Licensed under the MIT License.
 
-# import json
-# import unittest
-# from enum import Enum
-# from typing import Optional
+import json
+import unittest
+from enum import Enum
+from typing import Optional
 
-# from azure.storage.blob import ContainerClient as ContainerClientSdk
-# from azurefunctions.extensions.base import Datum
+from azure.cosmos import ContainerProxy as ContainerProxySdk
+from azurefunctions.extensions.base import Datum
 
-# from azurefunctions.extensions.bindings.blob import BlobClientConverter, ContainerClient
-
-
-# # Mock classes for testing
-# class MockMBD:
-#     def __init__(self, version: str, source: str, content_type: str, content: str):
-#         self.version = version
-#         self.source = source
-#         self.content_type = content_type
-#         self.content = content
+from azurefunctions.extensions.bindings.cosmos import CosmosClientConverter, ContainerProxy
 
 
-# class MockBindingDirection(Enum):
-#     IN = 0
-#     OUT = 1
-#     INOUT = 2
+# Mock classes for testing
+class MockMBD:
+    def __init__(self, version: str, source: str, content_type: str, content: str):
+        self.version = version
+        self.source = source
+        self.content_type = content_type
+        self.content = content
 
 
-# class MockBinding:
-#     def __init__(
-#         self,
-#         name: str,
-#         direction: MockBindingDirection,
-#         data_type=None,
-#         type: Optional[str] = None,
-#     ):  # NoQa
-#         self.type = type
-#         self.name = name
-#         self._direction = direction
-#         self._data_type = data_type
-#         self._dict = {
-#             "direction": self._direction,
-#             "dataType": self._data_type,
-#             "type": self.type,
-#         }
-
-#     @property
-#     def data_type(self) -> Optional[int]:
-#         return self._data_type.value if self._data_type else None
-
-#     @property
-#     def direction(self) -> int:
-#         return self._direction.value
+class MockBindingDirection(Enum):
+    IN = 0
+    OUT = 1
+    INOUT = 2
 
 
-# class MockParamTypeInfo:
-#     def __init__(self, binding_name: str, pytype: type):
-#         self.binding_name = binding_name
-#         self.pytype = pytype
+class MockBinding:
+    def __init__(
+        self,
+        name: str,
+        direction: MockBindingDirection,
+        data_type=None,
+        type: Optional[str] = None,
+    ):  # NoQa
+        self.type = type
+        self.name = name
+        self._direction = direction
+        self._data_type = data_type
+        self._dict = {
+            "direction": self._direction,
+            "dataType": self._data_type,
+            "type": self.type,
+        }
+
+    @property
+    def data_type(self) -> Optional[int]:
+        return self._data_type.value if self._data_type else None
+
+    @property
+    def direction(self) -> int:
+        return self._direction.value
 
 
-# class MockFunction:
-#     def __init__(self, bindings: MockBinding):
-#         self._bindings = bindings
+class MockParamTypeInfo:
+    def __init__(self, binding_name: str, pytype: type):
+        self.binding_name = binding_name
+        self.pytype = pytype
 
 
-# class TestContainerClient(unittest.TestCase):
-#     def test_input_type(self):
-#         check_input_type = BlobClientConverter.check_input_type_annotation
-#         self.assertTrue(check_input_type(ContainerClient))
-#         self.assertFalse(check_input_type(str))
-#         self.assertFalse(check_input_type(bytes))
-#         self.assertFalse(check_input_type(bytearray))
+class MockFunction:
+    def __init__(self, bindings: MockBinding):
+        self._bindings = bindings
 
-#     def test_input_none(self):
-#         result = BlobClientConverter.decode(
-#             data=None, trigger_metadata=None, pytype=ContainerClient
-#         )
-#         self.assertIsNone(result)
 
-#         datum: Datum = Datum(value=b"string_content", type=None)
-#         result = BlobClientConverter.decode(
-#             data=datum, trigger_metadata=None, pytype=ContainerClient
-#         )
-#         self.assertIsNone(result)
+class TestContainerProxy(unittest.TestCase):
+    def test_input_type(self):
+        check_input_type = CosmosClientConverter.check_input_type_annotation
+        self.assertTrue(check_input_type(ContainerProxy))
+        self.assertFalse(check_input_type(str))
+        self.assertFalse(check_input_type(bytes))
+        self.assertFalse(check_input_type(bytearray))
 
-#     def test_input_incorrect_type(self):
-#         datum: Datum = Datum(value=b"string_content", type="bytearray")
-#         with self.assertRaises(ValueError):
-#             BlobClientConverter.decode(
-#                 data=datum, trigger_metadata=None, pytype=ContainerClient
-#             )
+    def test_input_none(self):
+        result = CosmosClientConverter.decode(
+            data=None, trigger_metadata=None, pytype=ContainerProxy
+        )
+        self.assertIsNone(result)
 
-#     def test_input_empty(self):
-#         datum: Datum = Datum(value={}, type="model_binding_data")
-#         result: ContainerClient = BlobClientConverter.decode(
-#             data=datum, trigger_metadata=None, pytype=ContainerClient
-#         )
-#         self.assertIsNone(result)
+        datum: Datum = Datum(value=b"string_content", type=None)
+        result = CosmosClientConverter.decode(
+            data=datum, trigger_metadata=None, pytype=ContainerProxy
+        )
+        self.assertIsNone(result)
 
-#     def test_input_populated(self):
-#         content = {
-#             "Connection": "AzureWebJobsStorage",
-#             "ContainerName": "test-blob",
-#             "BlobName": "text.txt",
-#         }
-#         sample_mbd = MockMBD(
-#             version="1.0",
-#             source="AzureStorageBlobs",
-#             content_type="application/json",
-#             content=json.dumps(content),
-#         )
+    def test_input_incorrect_type(self):
+        datum: Datum = Datum(value=b"string_content", type="bytearray")
+        with self.assertRaises(ValueError):
+            CosmosClientConverter.decode(
+                data=datum, trigger_metadata=None, pytype=ContainerProxy
+            )
 
-#         datum: Datum = Datum(value=sample_mbd, type="model_binding_data")
-#         result: ContainerClient = BlobClientConverter.decode(
-#             data=datum, trigger_metadata=None, pytype=ContainerClient
-#         )
+    def test_input_empty(self):
+        datum: Datum = Datum(value={}, type="model_binding_data")
+        result: ContainerProxy = CosmosClientConverter.decode(
+            data=datum, trigger_metadata=None, pytype=ContainerProxy
+        )
+        self.assertIsNone(result)
 
-#         self.assertIsNotNone(result)
-#         self.assertIsInstance(result, ContainerClientSdk)
+    def test_input_populated(self):
+        content = {
+            "DatabaseName": "test-db",
+            "ContainerName": "test-items",
+            "Connection": "AzureWebJobsStorage"
+        }
+        
+        sample_mbd = MockMBD(
+            version="1.0",
+            source="CosmosDB",
+            content_type="application/json",
+            content=json.dumps(content),
+        )
 
-#         sdk_result = ContainerClient(data=datum.value).get_sdk_type()
-#         self.assertIsNotNone(sdk_result)
-#         self.assertIsInstance(sdk_result, ContainerClientSdk)
+        datum: Datum = Datum(value=sample_mbd, type="model_binding_data")
+        result: ContainerProxy = CosmosClientConverter.decode(
+            data=datum, trigger_metadata=None, pytype=ContainerProxy
+        )
 
-#     def test_invalid_input_populated(self):
-#         content = {
-#             "Connection": "NotARealConnectionString",
-#             "ContainerName": "test-blob",
-#             "BlobName": "text.txt",
-#         }
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, ContainerProxySdk)
 
-#         sample_mbd = MockMBD(
-#             version="1.0",
-#             source="AzureStorageBlobs",
-#             content_type="application/json",
-#             content=json.dumps(content),
-#         )
+        sdk_result = ContainerProxy(data=datum.value).get_sdk_type()
+        self.assertIsNotNone(sdk_result)
+        self.assertIsInstance(sdk_result, ContainerProxySdk)
 
-#         with self.assertRaises(ValueError) as e:
-#             datum: Datum = Datum(value=sample_mbd, type="model_binding_data")
-#             result: ContainerClient = BlobClientConverter.decode(
-#                 data=datum, trigger_metadata=None, pytype=ContainerClient
-#             )
-#         self.assertEqual(
-#             e.exception.args[0],
-#             "Storage account connection string NotARealConnectionString does not exist. "
-#             "Please make sure that it is a defined App Setting.",
-#         )
+    def test_invalid_input_populated(self):
+        content = {
+            "DatabaseName": "test-db",
+            "ContainerName": "test-items",
+            "Connection": "NotARealConnectionString"
+        }
 
-#     def test_none_input_populated(self):
-#         content = {
-#             "Connection": None,
-#             "ContainerName": "test-blob",
-#             "BlobName": "text.txt",
-#         }
+        sample_mbd = MockMBD(
+            version="1.0",
+            source="CosmosDB",
+            content_type="application/json",
+            content=json.dumps(content),
+        )
 
-#         sample_mbd = MockMBD(
-#             version="1.0",
-#             source="AzureStorageBlobs",
-#             content_type="application/json",
-#             content=json.dumps(content),
-#         )
+        with self.assertRaises(ValueError) as e:
+            datum: Datum = Datum(value=sample_mbd, type="model_binding_data")
+            result: ContainerProxy = CosmosClientConverter.decode(
+                data=datum, trigger_metadata=None, pytype=ContainerProxy
+            )
+        self.assertEqual(
+            e.exception.args[0],
+            "Storage account connection string NotARealConnectionString does not exist. "
+            "Please make sure that it is a defined App Setting.",
+        )
 
-#         with self.assertRaises(ValueError) as e:
-#             datum: Datum = Datum(value=sample_mbd, type="model_binding_data")
-#             result: ContainerClient = BlobClientConverter.decode(
-#                 data=datum, trigger_metadata=None, pytype=ContainerClient
-#             )
-#         self.assertEqual(
-#             e.exception.args[0],
-#             "Storage account connection string cannot be None. Please provide a connection string.",
-#         )
+    def test_none_input_populated(self):
+        content = {
+            "DatabaseName": "test-db",
+            "ContainerName": "test-items",
+            "Connection": None
+        }
 
-#     def test_input_populated_managed_identity_input(self):
-#         content = {
-#             "Connection": "input",
-#             "ContainerName": "test-blob",
-#             "BlobName": "text.txt",
-#         }
+        sample_mbd = MockMBD(
+            version="1.0",
+            source="CosmosDB",
+            content_type="application/json",
+            content=json.dumps(content),
+        )
 
-#         sample_mbd = MockMBD(
-#             version="1.0",
-#             source="AzureStorageBlobs",
-#             content_type="application/json",
-#             content=json.dumps(content),
-#         )
+        with self.assertRaises(ValueError) as e:
+            datum: Datum = Datum(value=sample_mbd, type="model_binding_data")
+            result: ContainerProxy = CosmosClientConverter.decode(
+                data=datum, trigger_metadata=None, pytype=ContainerProxy
+            )
+        self.assertEqual(
+            e.exception.args[0],
+            "Storage account connection string cannot be None. Please provide a connection string.",
+        )
 
-#         datum: Datum = Datum(value=sample_mbd, type="model_binding_data")
-#         result: ContainerClient = BlobClientConverter.decode(
-#             data=datum, trigger_metadata=None, pytype=ContainerClient
-#         )
+    def test_input_populated_managed_identity_input(self):
+        content = {
+            "DatabaseName": "test-db",
+            "ContainerName": "test-items",
+            "Connection": "input"
+        }
 
-#         self.assertIsNotNone(result)
-#         self.assertIsInstance(result, ContainerClientSdk)
+        sample_mbd = MockMBD(
+            version="1.0",
+            source="CosmosDB",
+            content_type="application/json",
+            content=json.dumps(content),
+        )
 
-#         sdk_result = ContainerClient(data=datum.value).get_sdk_type()
+        datum: Datum = Datum(value=sample_mbd, type="model_binding_data")
+        result: ContainerProxy = CosmosClientConverter.decode(
+            data=datum, trigger_metadata=None, pytype=ContainerProxy
+        )
 
-#         self.assertIsNotNone(sdk_result)
-#         self.assertIsInstance(sdk_result, ContainerClientSdk)
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, ContainerProxySdk)
 
-#     def test_input_populated_managed_identity_trigger(self):
-#         content = {
-#             "Connection": "trigger",
-#             "ContainerName": "test-blob",
-#             "BlobName": "text.txt",
-#         }
+        sdk_result = ContainerProxy(data=datum.value).get_sdk_type()
 
-#         sample_mbd = MockMBD(
-#             version="1.0",
-#             source="AzureStorageBlobs",
-#             content_type="application/json",
-#             content=json.dumps(content),
-#         )
+        self.assertIsNotNone(sdk_result)
+        self.assertIsInstance(sdk_result, ContainerProxySdk)
 
-#         datum: Datum = Datum(value=sample_mbd, type="model_binding_data")
-#         result: ContainerClient = BlobClientConverter.decode(
-#             data=datum, trigger_metadata=None, pytype=ContainerClient
-#         )
+    def test_input_invalid_pytype(self):
+        content = {
+            "DatabaseName": "test-db",
+            "ContainerName": "test-items",
+            "Connection": "AzureWebJobsStorage"
+        }
 
-#         self.assertIsNotNone(result)
-#         self.assertIsInstance(result, ContainerClientSdk)
+        sample_mbd = MockMBD(
+            version="1.0",
+            source="CosmosDB",
+            content_type="application/json",
+            content=json.dumps(content),
+        )
 
-#         sdk_result = ContainerClient(data=datum.value).get_sdk_type()
+        datum: Datum = Datum(value=sample_mbd, type="model_binding_data")
+        result: ContainerProxy = CosmosClientConverter.decode(
+            data=datum, trigger_metadata=None, pytype="str"
+        )
 
-#         self.assertIsNotNone(sdk_result)
-#         self.assertIsInstance(sdk_result, ContainerClientSdk)
+        self.assertIsNone(result)
 
-#     def test_input_invalid_pytype(self):
-#         content = {
-#             "Connection": "AzureWebJobsStorage",
-#             "ContainerName": "test-blob",
-#             "BlobName": "text.txt",
-#         }
+    def test_container_proxy_invalid_creation(self):
+        # Create test binding
+        mock_blob = MockBinding(
+            name="cosmosDB", direction=MockBindingDirection.IN, data_type=None, type="cosmosDB"
+        )
 
-#         sample_mbd = MockMBD(
-#             version="1.0",
-#             source="AzureStorageBlobs",
-#             content_type="application/json",
-#             content=json.dumps(content),
-#         )
+        # Create test input_types dict
+        mock_input_types = {
+            "cosmosDB": MockParamTypeInfo(binding_name="cosmosDB", pytype=bytes)
+        }
 
-#         datum: Datum = Datum(value=sample_mbd, type="model_binding_data")
-#         result: ContainerClient = BlobClientConverter.decode(
-#             data=datum, trigger_metadata=None, pytype="str"
-#         )
+        # Create test indexed_function
+        mock_indexed_functions = MockFunction(bindings=[mock_blob])
 
-#         self.assertIsNone(result)
+        dict_repr, logs = CosmosClientConverter.get_raw_bindings(
+            mock_indexed_functions, mock_input_types
+        )
 
-#     def test_container_client_invalid_creation(self):
-#         # Create test binding
-#         mock_blob = MockBinding(
-#             name="blob", direction=MockBindingDirection.IN, data_type=None, type="blob"
-#         )
+        self.assertEqual(
+            dict_repr,
+            [
+                '{"direction": "MockBindingDirection.IN", '
+                '"type": "cosmosDB", '
+                '"properties": '
+                '{"SupportsDeferredBinding": false}}'
+            ],
+        )
 
-#         # Create test input_types dict
-#         mock_input_types = {
-#             "blob": MockParamTypeInfo(binding_name="blobTrigger", pytype=bytes)
-#         }
+        self.assertEqual(logs, {"cosmosDB": {bytes: "False"}})
 
-#         # Create test indexed_function
-#         mock_indexed_functions = MockFunction(bindings=[mock_blob])
+    def test_container_proxy_valid_creation(self):
+        # Create test binding
+        mock_blob = MockBinding(
+            name="client",
+            direction=MockBindingDirection.IN,
+            data_type=None,
+            type="cosmosDB",
+        )
 
-#         dict_repr, logs = BlobClientConverter.get_raw_bindings(
-#             mock_indexed_functions, mock_input_types
-#         )
+        # Create test input_types dict
+        mock_input_types = {
+            "client": MockParamTypeInfo(
+                binding_name="cosmosDB", pytype=ContainerProxy
+            )
+        }
 
-#         self.assertEqual(
-#             dict_repr,
-#             [
-#                 '{"direction": "MockBindingDirection.IN", '
-#                 '"type": "blob", '
-#                 '"properties": '
-#                 '{"SupportsDeferredBinding": false}}'
-#             ],
-#         )
+        # Create test indexed_function
+        mock_indexed_functions = MockFunction(bindings=[mock_blob])
 
-#         self.assertEqual(logs, {"blob": {bytes: "False"}})
+        dict_repr, logs = CosmosClientConverter.get_raw_bindings(
+            mock_indexed_functions, mock_input_types
+        )
 
-#     def test_container_client_valid_creation(self):
-#         # Create test binding
-#         mock_blob = MockBinding(
-#             name="client",
-#             direction=MockBindingDirection.IN,
-#             data_type=None,
-#             type="blob",
-#         )
+        self.assertEqual(
+            dict_repr,
+            [
+                '{"direction": "MockBindingDirection.IN", '
+                '"type": "cosmosDB", '
+                '"properties": '
+                '{"SupportsDeferredBinding": true}}'
+            ],
+        )
 
-#         # Create test input_types dict
-#         mock_input_types = {
-#             "client": MockParamTypeInfo(
-#                 binding_name="blobTrigger", pytype=ContainerClient
-#             )
-#         }
-
-#         # Create test indexed_function
-#         mock_indexed_functions = MockFunction(bindings=[mock_blob])
-
-#         dict_repr, logs = BlobClientConverter.get_raw_bindings(
-#             mock_indexed_functions, mock_input_types
-#         )
-
-#         self.assertEqual(
-#             dict_repr,
-#             [
-#                 '{"direction": "MockBindingDirection.IN", '
-#                 '"type": "blob", '
-#                 '"properties": '
-#                 '{"SupportsDeferredBinding": true}}'
-#             ],
-#         )
-
-#         self.assertEqual(logs, {"client": {ContainerClient: "True"}})
+        self.assertEqual(logs, {"client": {ContainerProxy: "True"}})

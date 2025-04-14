@@ -1,52 +1,33 @@
-# coding: utf-8
-
-# -------------------------------------------------------------------------
-# Copyright (c) Microsoft Corporation. All rights reserved.
-# Licensed under the MIT License. See License.txt in the project root for
-# license information.
-# --------------------------------------------------------------------------
-
 import logging
 
 import azure.functions as func
-import azurefunctions.extensions.bindings.blob as blob
+import azurefunctions.extensions.bindings.cosmos as cosmos
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
+
 """
-FOLDER: blob_samples_blobclient
+FOLDER: cosmos_samples_cosmosclient
 DESCRIPTION:
-    These samples demonstrate how to obtain a BlobClient from a Blob Trigger
-    or Blob Input function app binding.
+    These samples demonstrate how to obtain a CosmosClient from a Cosmos Input function app binding.
 USAGE:
     Set the environment variables with your own values before running the
     sample:
     1) AzureWebJobsStorage - the connection string to your storage account
 
-    Set PATH/TO/BLOB to the path to the blob you want to trigger or serve as
-    input to the function.
+    Set database_name and container_name to the path to the container you want to use
+    as inputs to the function (required).
 """
 
 
-@app.blob_trigger(
-    arg_name="client", path="PATH/TO/BLOB", connection="AzureWebJobsStorage"
-)
-def blob_trigger(client: blob.BlobClient):
-    logging.info(
-        f"Python blob trigger function processed blob \n"
-        f"Properties: {client.get_blob_properties()}\n"
-        f"Blob content head: {client.download_blob().read(size=1)}"
-    )
+@app.route(route="cosmos")
+@app.cosmos_db_input(arg_name="container",
+                     connection="AzureWebJobsStorage",
+                     database_name="db_name",
+                     container_name="container_name")
+def get_docs(req: func.HttpRequest, client: cosmos.CosmosClient):
+    databases = client.list_databases()
+    for db in databases:
+        logging.info(f"Found database with ID: {db.get('id')}")
 
-
-@app.route(route="file")
-@app.blob_input(
-    arg_name="client", path="PATH/TO/BLOB", connection="AzureWebJobsStorage"
-)
-def blob_input(req: func.HttpRequest, client: blob.BlobClient):
-    logging.info(
-        f"Python blob input function processed blob \n"
-        f"Properties: {client.get_blob_properties()}\n"
-        f"Blob content head: {client.download_blob().read(size=1)}"
-    )
     return "ok"

@@ -1,52 +1,33 @@
-# coding: utf-8
-
-# -------------------------------------------------------------------------
-# Copyright (c) Microsoft Corporation. All rights reserved.
-# Licensed under the MIT License. See License.txt in the project root for
-# license information.
-# --------------------------------------------------------------------------
-
 import logging
 
 import azure.functions as func
-import azurefunctions.extensions.bindings.blob as blob
+import azurefunctions.extensions.bindings.cosmos as cosmos
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
+
 """
-FOLDER: blob_samples_storagestreamdownloader
+FOLDER: cosmos_samples_databaseproxy
 DESCRIPTION:
-    These samples demonstrate how to obtain a StorageStreamDownloader from a
-    Blob Trigger or Blob Input function app binding.
+    These samples demonstrate how to obtain a DatabaseProxy from a Cosmos Input function app binding.
 USAGE:
     Set the environment variables with your own values before running the
     sample:
     1) AzureWebJobsStorage - the connection string to your storage account
 
-    Set PATH/TO/BLOB to the path to the blob you want to trigger or serve as
-    input to the function.
+    Set database_name and container_name to the path to the container you want to use
+    as inputs to the function (required).
 """
 
 
-@app.blob_trigger(
-    arg_name="stream", path="PATH/TO/BLOB", connection="AzureWebJobsStorage"
-)
-def blob_trigger(stream: blob.StorageStreamDownloader):
-    for chunk in stream.chunks():
-        logging.info(
-            f"Python blob trigger function processed blob chunk \n"
-            f"Chunk: {chunk.decode()}"
-        )
+@app.route(route="database")
+@app.cosmos_db_input(arg_name="container",
+                     connection="AzureWebJobsStorage",
+                     database_name="db_name",
+                     container_name="container_name")
+def get_docs(req: func.HttpRequest, database: cosmos.DatabaseProxy):
+    containers = database.list_containers()
+    for c in containers:
+        logging.info(f"Found container with ID: {c.get('id')}")
 
-
-@app.route(route="file")
-@app.blob_input(
-    arg_name="stream", path="PATH/TO/BLOB", connection="AzureWebJobsStorage"
-)
-def blob_input(req: func.HttpRequest, stream: blob.StorageStreamDownloader):
-    for chunk in stream.chunks():
-        logging.info(
-            f"Python blob input function processed blob chunk \n"
-            f"Chunk: {chunk.decode()}"
-        )
     return "ok"
