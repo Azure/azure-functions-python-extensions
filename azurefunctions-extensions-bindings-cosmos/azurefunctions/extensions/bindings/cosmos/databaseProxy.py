@@ -38,9 +38,7 @@ class DatabaseProxy(SdkType):
 
     def get_sdk_type(self) -> DatabaseProxySdk:
         """
-        When using Managed Identity, the only way to create a BlobClient is
-        through a BlobServiceClient. There are two ways to create a
-        BlobServiceClient:
+        There are two ways to create a CosmosClient:
         1. Through the constructor: this is the only option when using Managed Identity
         2. Through from_connection_string: this is the only option when not using Managed Identity
 

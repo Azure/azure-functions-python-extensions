@@ -20,7 +20,6 @@ class CosmosClient(SdkType):
         self._container_name = None
         self._connection = None
         self._using_managed_identity = False
-        self._id = None
         self._partition_key = None
         self._sql_query = None
         self._preferred_locations = None
@@ -39,9 +38,7 @@ class CosmosClient(SdkType):
 
     def get_sdk_type(self) -> CosmosClientSdk:
         """
-        When using Managed Identity, the only way to create a BlobClient is
-        through a BlobServiceClient. There are two ways to create a
-        BlobServiceClient:
+        There are two ways to create a CosmosClient:
         1. Through the constructor: this is the only option when using Managed Identity
         2. Through from_connection_string: this is the only option when not using Managed Identity
 
