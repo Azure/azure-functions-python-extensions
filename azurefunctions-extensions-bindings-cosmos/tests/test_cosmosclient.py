@@ -65,7 +65,7 @@ class MockFunction:
         self._bindings = bindings
 
 
-class TestBlobClient(unittest.TestCase):
+class TestCosmosClient(unittest.TestCase):
     def test_input_type(self):
         check_input_type = CosmosClientConverter.check_input_type_annotation
         self.assertTrue(check_input_type(CosmosClient))
@@ -226,7 +226,7 @@ class TestBlobClient(unittest.TestCase):
 
     def test_cosmos_client_invalid_creation(self):
         # Create test binding
-        mock_blob = MockBinding(
+        mock_cosmos = MockBinding(
             name="cosmosDB", direction=MockBindingDirection.IN, data_type=None, type="cosmosDB"
         )
 
@@ -236,7 +236,7 @@ class TestBlobClient(unittest.TestCase):
         }
 
         # Create test indexed_function
-        mock_indexed_functions = MockFunction(bindings=[mock_blob])
+        mock_indexed_functions = MockFunction(bindings=[mock_cosmos])
 
         dict_repr, logs = CosmosClientConverter.get_raw_bindings(
             mock_indexed_functions, mock_input_types
@@ -254,9 +254,9 @@ class TestBlobClient(unittest.TestCase):
 
         self.assertEqual(logs, {"cosmosDB": {bytes: "False"}})
 
-    def test_blob_client_valid_creation(self):
+    def test_cosmos_client_valid_creation(self):
         # Create test binding
-        mock_blob = MockBinding(
+        mock_cosmos = MockBinding(
             name="client",
             direction=MockBindingDirection.IN,
             data_type=None,
@@ -269,7 +269,7 @@ class TestBlobClient(unittest.TestCase):
         }
 
         # Create test indexed_function
-        mock_indexed_functions = MockFunction(bindings=[mock_blob])
+        mock_indexed_functions = MockFunction(bindings=[mock_cosmos])
 
         dict_repr, logs = CosmosClientConverter.get_raw_bindings(
             mock_indexed_functions, mock_input_types

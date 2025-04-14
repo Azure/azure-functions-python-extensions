@@ -105,7 +105,7 @@ class TestContainerProxy(unittest.TestCase):
             "ContainerName": "test-items",
             "Connection": "AzureWebJobsStorage"
         }
-        
+
         sample_mbd = MockMBD(
             version="1.0",
             source="CosmosDB",
@@ -224,7 +224,7 @@ class TestContainerProxy(unittest.TestCase):
 
     def test_container_proxy_invalid_creation(self):
         # Create test binding
-        mock_blob = MockBinding(
+        mock_cosmos = MockBinding(
             name="cosmosDB", direction=MockBindingDirection.IN, data_type=None, type="cosmosDB"
         )
 
@@ -234,7 +234,7 @@ class TestContainerProxy(unittest.TestCase):
         }
 
         # Create test indexed_function
-        mock_indexed_functions = MockFunction(bindings=[mock_blob])
+        mock_indexed_functions = MockFunction(bindings=[mock_cosmos])
 
         dict_repr, logs = CosmosClientConverter.get_raw_bindings(
             mock_indexed_functions, mock_input_types
@@ -254,7 +254,7 @@ class TestContainerProxy(unittest.TestCase):
 
     def test_container_proxy_valid_creation(self):
         # Create test binding
-        mock_blob = MockBinding(
+        mock_cosmos = MockBinding(
             name="client",
             direction=MockBindingDirection.IN,
             data_type=None,
@@ -269,7 +269,7 @@ class TestContainerProxy(unittest.TestCase):
         }
 
         # Create test indexed_function
-        mock_indexed_functions = MockFunction(bindings=[mock_blob])
+        mock_indexed_functions = MockFunction(bindings=[mock_cosmos])
 
         dict_repr, logs = CosmosClientConverter.get_raw_bindings(
             mock_indexed_functions, mock_input_types

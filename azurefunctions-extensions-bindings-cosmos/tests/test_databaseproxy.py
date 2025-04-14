@@ -225,7 +225,7 @@ class TestDatabaseProxy(unittest.TestCase):
 
     def test_database_proxy_invalid_creation(self):
         # Create test binding
-        mock_blob = MockBinding(
+        mock_cosmos = MockBinding(
             name="cosmosDB", direction=MockBindingDirection.IN, data_type=None, type="cosmosDB"
         )
 
@@ -235,7 +235,7 @@ class TestDatabaseProxy(unittest.TestCase):
         }
 
         # Create test indexed_function
-        mock_indexed_functions = MockFunction(bindings=[mock_blob])
+        mock_indexed_functions = MockFunction(bindings=[mock_cosmos])
 
         dict_repr, logs = CosmosClientConverter.get_raw_bindings(
             mock_indexed_functions, mock_input_types
@@ -255,7 +255,7 @@ class TestDatabaseProxy(unittest.TestCase):
 
     def test_database_proxy_valid_creation(self):
         # Create test binding
-        mock_blob = MockBinding(
+        mock_cosmos = MockBinding(
             name="client",
             direction=MockBindingDirection.IN,
             data_type=None,
@@ -270,7 +270,7 @@ class TestDatabaseProxy(unittest.TestCase):
         }
 
         # Create test indexed_function
-        mock_indexed_functions = MockFunction(bindings=[mock_blob])
+        mock_indexed_functions = MockFunction(bindings=[mock_cosmos])
 
         dict_repr, logs = CosmosClientConverter.get_raw_bindings(
             mock_indexed_functions, mock_input_types
