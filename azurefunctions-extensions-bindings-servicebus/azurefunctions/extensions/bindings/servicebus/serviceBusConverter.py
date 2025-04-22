@@ -54,7 +54,7 @@ class ServiceBusConverter(
               in a single function invocation
             - collection_model_binding_data has 1 or more model_binding_data objects
         """
-        if data is None or data.type is None or pytype != ServiceBusReceivedMessage:
+        if data is None or data.type is None:
             return None
 
         data_type = data.type
@@ -70,6 +70,5 @@ class ServiceBusConverter(
                                  + repr(e)) from e
         else:
             raise ValueError(
-                f'unexpected type of data received for the "servicebus" binding '
-                f": {data_type!r}"
-            )
+                "Unexpected type of data received for the 'servicebus' binding: "
+                + repr(data.type))

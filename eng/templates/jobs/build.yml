@@ -10,6 +10,12 @@ jobs:
         blob_extension:
           EXTENSION_DIRECTORY: 'azurefunctions-extensions-bindings-blob'
           EXTENSION_NAME: 'Blob'
+        eventhub_extension:
+          EXTENSION_DIRECTORY: 'azurefunctions-extensions-bindings-eventhub'
+          EXTENSION_NAME: 'EventHub'
+        servicebus_extension:
+          EXTENSION_DIRECTORY: 'azurefunctions-extensions-bindings-servicebus'
+          EXTENSION_NAME: 'ServiceBus'
         fastapi_extension:
           EXTENSION_DIRECTORY: 'azurefunctions-extensions-http-fastapi'
           EXTENSION_NAME: 'Http'

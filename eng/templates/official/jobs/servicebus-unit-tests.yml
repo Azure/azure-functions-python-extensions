@@ -1,6 +1,6 @@
 jobs:
   - job: "TestPython"
-    displayName: "Run EventHub Tests"
+    displayName: "Run ServiceBus Tests"
 
     strategy:
       matrix:
@@ -19,11 +19,11 @@ jobs:
           versionSpec: $(PYTHON_VERSION)
       - bash: |
           python -m pip install --upgrade pip
-          cd azurefunctions-extensions-bindings-eventhub
+          cd azurefunctions-extensions-bindings-servicebus
           python -m pip install -U -e .[dev]
         displayName: 'Install dependencies'
       - bash: |
-          python -m pytest -q --instafail azurefunctions-extensions-bindings-eventhub/tests/
+          python -m pytest -q --instafail azurefunctions-extensions-bindings-servicebus/tests/
         env:
           AzureWebJobsStorage: $(AzureWebJobsStorage)
-        displayName: "Running EventHub $(PYTHON_VERSION) Python Extension Tests"
+        displayName: "Running ServiceBus $(PYTHON_VERSION) Python Extension Tests"

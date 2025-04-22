@@ -1,17 +1,19 @@
-# Azure Functions Extensions Bindings Blob library for Python
-This library allows Blob Trigger and Blob Input bindings in Python Function Apps to recognize and bind to client types from the
-Azure Storage Blob sdk.
+# Azure Functions Extensions Bindings ServiceBus library for Python
+This library allows ServiceBus Triggers in Python Function Apps to recognize and bind to client types from the
+Azure ServiceBus sdk.
 
-Blob client types can be generated from:
+The SDK types can be generated from:
 
-* Blob Triggers
-* Blob Input
+* ServiceBus Triggers
 
-[Source code](https://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-bindings-blob)
-[Package (PyPi)](https://pypi.org/project/azurefunctions-extensions-bindings-blob/)
-| API reference documentation
-| Product documentation
-| [Samples](hhttps://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-bindings-blob/samples)
+The supported ServiceBus SDK types include:
+
+* ServiceBusReceivedMessage
+
+[Source code](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-bindings-servicebus)
+| 
+[Package (PyPi)](https://pypi.org/project/azurefunctions-extensions-bindings-servicebus/)
+| [Samples](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-bindings-servicebus/samples)
 
 
 ## Getting started
@@ -19,50 +21,42 @@ Blob client types can be generated from:
 ### Prerequisites
 * Python 3.9 or later is required to use this package. For more details, please read our page on [Python Functions version support policy](https://learn.microsoft.com/en-us/azure/azure-functions/functions-versions?tabs=isolated-process%2Cv4&pivots=programming-language-python#languages).
 
-* You must have an [Azure subscription](https://azure.microsoft.com/free/) and an
-[Azure storage account](https://docs.microsoft.com/azure/storage/common/storage-account-overview) to use this package.
+* You must have an [Azure subscription](https://azure.microsoft.com/free/) and a
+[ServiceBus Resource](https://learn.microsoft.com/en-us/azure/azure-functions/functions-bindings-service-bus?tabs=isolated-process%2Cextensionv5%2Cextensionv3&pivots=programming-language-python) to use this package.
 
 ### Install the package
-Install the Azure Functions Extensions Bindings Blob library for Python with pip:
+Install the Azure Functions Extensions Bindings ServiceBus library for Python with pip:
 
 ```bash
-pip install azurefunctions-extensions-bindings-blob
+pip install azurefunctions-extensions-bindings-servicebus
 ```
 
-### Create a storage account
-If you wish to create a new storage account, you can use the
-[Azure Portal](https://docs.microsoft.com/azure/storage/common/storage-quickstart-create-account?tabs=azure-portal),
-[Azure PowerShell](https://docs.microsoft.com/azure/storage/common/storage-quickstart-create-account?tabs=azure-powershell),
-or [Azure CLI](https://docs.microsoft.com/azure/storage/common/storage-quickstart-create-account?tabs=azure-cli):
-
-```bash
-# Create a new resource group to hold the storage account -
-# if using an existing resource group, skip this step
-az group create --name my-resource-group --location westus2
-
-# Create the storage account
-az storage account create -n my-storage-account-name -g my-resource-group
-```
 
 ### Bind to the SDK-type
-The Azure Functions Extensions Bindings Blob library for Python allows you to create a function app with a Blob Trigger or
-Blob Input and define the type as a BlobClient, ContainerClient, or StorageStreamDownloader. Instead of receiving
-an InputStream, when the function is executed, the type returned will be the defined SDK-type and have all of the
-properties and methods available as seen in the Azure Storage Blob library for Python.
+The Azure Functions Extensions Bindings ServiceBus library for Python allows you to create a function app with a ServiceBus Trigger
+and define the type as a ServiceBusReceivedMessage. Instead of receiving
+a ServiceBusMessage, when the function is executed, the type returned will be the defined SDK-type and have all the
+properties and methods available as seen in the Azure ServiceBus library for Python.
 
 
 ```python
 import logging
 import azure.functions as func
-import azurefunctions.extensions.bindings.blob as blob
+import azurefunctions.extensions.bindings.servicebus as sb
 
 @app.blob_trigger(arg_name="client",
                   path="PATH/TO/BLOB",
                   connection="AzureWebJobsStorage")
 def blob_trigger(client: blob.BlobClient):
-    logging.info(f"Python blob trigger function processed blob \n"
-                 f"Properties: {client.get_blob_properties()}\n"
-                 f"Blob content head: {client.download_blob(encoding="utf-8").read(size=1)}")
+    logging.info(for message in messages_complex:
+            print("Receiving: {}".format(message))
+            print("Sequence number: {}".format(message.sequence_number))
+            print("Application Properties: {}".format(message.application_properties))
+            print("Delivery count: {}".format(message.delivery_count))
+            print("Message ID: {}".format(message.message_id))
+            print("Locked until: {}".format(message.locked_until_utc))
+            print("Lock Token: {}".format(message.lock_token))
+            print("Enqueued time: {}".format(message.enqueued_time_utc)))
 
 
 @app.route(route="file")
@@ -85,25 +79,20 @@ This list can be used for reference to catch thrown exceptions. To get the speci
 
 ### More sample code
 
-Get started with our [Blob samples](hhttps://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-bindings-blob/samples).
+Get started with our [ServiceBus samples](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-bindings-servicebus/samples).
 
-Several samples are available in this GitHub repository. These samples provide example code for additional scenarios commonly encountered while working with Storage Blobs:
+Several samples are available in this GitHub repository. These samples provide example code for additional scenarios commonly encountered while working with Azure ServiceBus:
 
-* [blob_samples_blobclient](https://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-bindings-blob/samples/blob_samples_blobclient)  - Examples for using the BlobClient type:
-    * From BlobTrigger
-    * From BlobInput
+* [servicebus_samples_single](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-bindings-servicebus/samples/servicebus_samples_single)  - Examples for using the ServiceBusReceivedMessage type:
+    * From ServiceBusTrigger
 
-* [blob_samples_containerclient](https://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-bindings-blob/samples/blob_samples_containerclient) - Examples for using the ContainerClient type:
-    * From BlobTrigger
-    * From BlobInput
+* [servicebus_samples_batch](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-bindings-servicebus/samples/service_samples_batch) - Examples for interacting with batches:
+    * From ServiceBusTrigger
 
-* [blob_samples_storagestreamdownloader](https://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-bindings-blob/samples/blob_samples_storagestreamdownloader) - Examples for using the StorageStreamDownloader type:
-    * From BlobTrigger
-    * From BlobInput
 
 ### Additional documentation
-For more information on the Azure Storage Blob SDK, see the [Azure Blob storage documentation](https://docs.microsoft.com/azure/storage/blobs/) on docs.microsoft.com
-and the [Azure Storage Blobs README](https://github.com/Azure/azure-sdk-for-python/tree/main/sdk/storage/azure-storage-blob).
+For more information on the Azure ServiceBus SDK, see the [Azure ServiceBus SDK documentation](https://learn.microsoft.com/en-us/python/api/overview/azure/servicebus-readme?view=azure-python) on docs.microsoft.com
+and the [Azure ServiceBus README](https://github.com/Azure/azure-sdk-for-python/blob/azure-servicebus_7.14.1/sdk/servicebus/azure-servicebus/README.md).
 
 ## Contributing
 This project welcomes contributions and suggestions.  Most contributions require you to agree to a Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us the rights to use your contribution. For details, visit https://cla.microsoft.com.
