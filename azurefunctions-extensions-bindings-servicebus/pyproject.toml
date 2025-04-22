@@ -27,8 +27,8 @@ classifiers= [
     ]
 dependencies = [
     'azurefunctions-extensions-base',
-    'azure-servicebus~=7.*',
-    'uamqp~=1.*'
+    'azure-servicebus~=7.14.2',
+    'uamqp~=1.6.11'
     ]
 
 [project.optional-dependencies]

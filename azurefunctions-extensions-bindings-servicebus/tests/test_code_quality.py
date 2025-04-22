@@ -41,7 +41,7 @@ class TestCodeQuality(unittest.TestCase):
         try:
             subprocess.run(
                 [sys.executable, '-m', 'flake8',
-                 'azurefunctions-extensions-bindings-blob',
+                 'azurefunctions-extensions-bindings-servicebus',
                  '--config', str(config_path)],
                 check=True,
                 stdout=subprocess.PIPE,

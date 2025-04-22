@@ -2,7 +2,11 @@
   "IsEncrypted": false,
   "Values": {
     "FUNCTIONS_WORKER_RUNTIME": "python",
-    "AzureWebJobsStorage": "",
-    "AzureWebJobsFeatureFlags": "EnableWorkerIndexing"
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "AzureWebJobsFeatureFlags": "EnableWorkerIndexing",
+    "QUEUE_NAME": "",
+    "SERVICEBUS_CONNECTION": "",
+    "TOPIC_NAME": "",
+    "SUBSCRIPTION_NAME": ""
   }
 }
