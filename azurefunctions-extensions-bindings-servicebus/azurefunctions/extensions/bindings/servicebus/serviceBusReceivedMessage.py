@@ -23,9 +23,11 @@ class ServiceBusReceivedMessage(SdkType):
             self._decoded_message = get_decoded_message(self._content)
 
     def get_sdk_type(self):
+        """
+        Returns a ServiceBusReceivedMessage.
+        Message settling is not yet supported.
+        """
         if self._decoded_message:
-            # Create ServiceBusReceivedMessage
-            # At this moment, settling is not yet supported
             return ServiceBusReceivedMessageSdk(self._decoded_message, receiver=None)
         else:
             return None
