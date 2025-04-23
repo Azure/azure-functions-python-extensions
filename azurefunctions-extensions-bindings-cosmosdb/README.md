@@ -1,16 +1,16 @@
-# Azure Functions Extensions Bindings Cosmos library for Python
-This library allows Cosmos Input bindings in Python Function Apps to recognize and bind to client types from the
-Azure Cosmos sdk.
+# Azure Functions Extensions Bindings Cosmos DB library for Python
+This library allows Cosmos DB Input bindings in Python Function Apps to recognize and bind to client types from the
+Azure Cosmos DB SDK.
 
-Cosmos client types can be generated from:
+Cosmos DB client types can be generated from:
 
-* Cosmos Input
+* Cosmos DB Input
 
-[Source code](https://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-bindings-cosmos)
-[Package (PyPi)](https://pypi.org/project/azurefunctions-extensions-bindings-cosmos/)
+[Source code](https://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-bindings-cosmosdb)
+[Package (PyPi)](https://pypi.org/project/azurefunctions-extensions-bindings-cosmosdb/)
 | API reference documentation
 | Product documentation
-| [Samples](hhttps://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-bindings-cosmos/samples)
+| [Samples](hhttps://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-bindings-cosmosdb/samples)
 
 
 ## Getting started
@@ -22,10 +22,10 @@ Cosmos client types can be generated from:
 [Azure storage account](https://docs.microsoft.com/azure/storage/common/storage-account-overview) to use this package.
 
 ### Install the package
-Install the Azure Functions Extensions Bindings Cosmos library for Python with pip:
+Install the Azure Functions Extensions Bindings Cosmos DB library for Python with pip:
 
 ```bash
-pip install azurefunctions-extensions-bindings-cosmos
+pip install azurefunctions-extensions-bindings-cosmosdb
 ```
 
 ### Create a storage account
@@ -44,22 +44,22 @@ az storage account create -n my-storage-account-name -g my-resource-group
 ```
 
 ### Bind to the SDK-type
-The Azure Functions Extensions Bindings Cosmos library for Python allows you to create a function app with
-Cosmos Input and define the type as a CosmosClient, DatabaseProxy, or ContainerProxy. Instead of receiving
+The Azure Functions Extensions Bindings Cosmos DB library for Python allows you to create a function app with
+Cosmos DB Input and define the type as a CosmosClient, DatabaseProxy, or ContainerProxy. Instead of receiving
 an InputStream, when the function is executed, the type returned will be the defined SDK-type and have all of the
-properties and methods available as seen in the Azure Storage Cosmos library for Python.
+properties and methods available as seen in the Azure Storage Cosmos DB library for Python.
 
 
 ```python
 import logging
 import azure.functions as func
-import azurefunctions.extensions.bindings.cosmos as cosmos
+import azurefunctions.extensions.bindings.cosmosdb as cosmos
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
 @app.route(route="cosmos")
 @app.cosmos_db_input(arg_name="container",
-                     connection="AzureWebJobsStorage",
+                     connection="CosmosDBConnection",
                      database_name="db_name",
                      container_name="container_name")
 def get_docs(req: func.HttpRequest, client: cosmos.CosmosClient):
@@ -80,21 +80,21 @@ This list can be used for reference to catch thrown exceptions. To get the speci
 
 ### More sample code
 
-Get started with our [Cosmos samples](hhttps://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-bindings-cosmos/samples).
+Get started with our [Cosmos DB samples](hhttps://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-bindings-cosmosdb/samples).
 
-Several samples are available in this GitHub repository. These samples provide example code for additional scenarios commonly encountered while working with Cosmos:
+Several samples are available in this GitHub repository. These samples provide example code for additional scenarios commonly encountered while working with Cosmos DB:
 
-* [cosmos_samples_cosmosclient](https://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-binding-cosmos/samples/cosmos_samples_cosmosclient)  - Examples for using the CosmosClient type:
-    * From CosmosInput
+* [cosmosdb_samples_cosmosclient](https://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-binding-cosmosdb/samples/cosmosdb_samples_cosmosclient)  - Examples for using the CosmosClient type:
+    * From CosmosDBInput
 
-* [cosmos_samples_databaseproxy](https://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-bindings-cosmos/samples/cosmos_samples_databaseproxy) - Examples for using the DatabaseProxy type:
-    * From CosmosInput
+* [cosmosdb_samples_databaseproxy](https://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-bindings-cosmosdb/samples/cosmosdb_samples_databaseproxy) - Examples for using the DatabaseProxy type:
+    * From CosmosDBInput
 
-* [cosmos_samples_containerclient](https://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-bindings-cosmos/samples/cosmos_samples_containerproxy) - Examples for using the ContainerProxy type:
-    * From CosmosInput
+* [cosmosdb_samples_containerclient](https://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-bindings-cosmosdb/samples/cosmosdb_samples_containerproxy) - Examples for using the ContainerProxy type:
+    * From CosmosDBInput
 
 ### Additional documentation
-For more information on the Azure Cosmos SDK, see the [Azure Cosmos DB documentation](https://learn.microsoft.com/en-us/azure/cosmos-db/) on learn.microsoft.com
+For more information on the Azure Cosmos DB SDK, see the [Azure Cosmos DB documentation](https://learn.microsoft.com/en-us/azure/cosmos-db/) on learn.microsoft.com
 and the [Azure Cosmos DB README](https://github.com/Azure/azure-sdk-for-python/tree/main/sdk/cosmos/azure-cosmos).
 
 ## Contributing

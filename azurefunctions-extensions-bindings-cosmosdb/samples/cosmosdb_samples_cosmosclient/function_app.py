@@ -1,15 +1,15 @@
 import logging
 
 import azure.functions as func
-import azurefunctions.extensions.bindings.cosmos as cosmos
+import azurefunctions.extensions.bindings.cosmosdb as cosmos
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
 
 """
-FOLDER: cosmos_samples_databaseproxy
+FOLDER: cosmosdb_samples_cosmosclient
 DESCRIPTION:
-    These samples demonstrate how to obtain a DatabaseProxy from a Cosmos Input function app binding.
+    These samples demonstrate how to obtain a CosmosClient from a Cosmos DB Input function app binding.
 USAGE:
     Set the environment variables with your own values before running the
     sample:
@@ -20,14 +20,14 @@ USAGE:
 """
 
 
-@app.route(route="database")
+@app.route(route="cosmos")
 @app.cosmos_db_input(arg_name="container",
-                     connection="AzureWebJobsStorage",
+                     connection="CosmosDBConnection",
                      database_name="db_name",
                      container_name="container_name")
-def get_docs(req: func.HttpRequest, database: cosmos.DatabaseProxy):
-    containers = database.list_containers()
-    for c in containers:
-        logging.info(f"Found container with ID: {c.get('id')}")
+def get_docs(req: func.HttpRequest, client: cosmos.CosmosClient):
+    databases = client.list_databases()
+    for db in databases:
+        logging.info(f"Found database with ID: {db.get('id')}")
 
     return "ok"

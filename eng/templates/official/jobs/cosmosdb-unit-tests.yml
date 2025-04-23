@@ -1,6 +1,6 @@
 jobs:
   - job: "TestPython"
-    displayName: "Run Cosmos Tests"
+    displayName: "Run Cosmos DB Tests"
 
     strategy:
       matrix:
@@ -19,12 +19,12 @@ jobs:
           versionSpec: $(PYTHON_VERSION)
       - bash: |
           python -m pip install --upgrade pip
-          cd azurefunctions-extensions-bindings-cosmos
+          cd azurefunctions-extensions-bindings-cosmosdb
           python -m pip install -U -e .[dev]
         displayName: 'Install dependencies'
       - bash: |
-          python -m pytest -q --instafail azurefunctions-extensions-bindings-cosmos/tests/
+          python -m pytest -q --instafail azurefunctions-extensions-bindings-cosmosdb/tests/
         env:
           AzureWebJobsStorage: $(AzureWebJobsStorage)
           input: $(input__accountEndpoint)
-        displayName: "Running Cosmos $(PYTHON_VERSION) Python Extension Tests"
+        displayName: "Running Cosmos DB $(PYTHON_VERSION) Python Extension Tests"

@@ -30,6 +30,6 @@ extends:
       os: windows
 
     stages:
-    - stage: RunCosmosUnitTests
+    - stage: RunCosmosDBUnitTests
       jobs:
-      - template: /eng/templates/official/jobs/cosmos-unit-tests.yml@self
+      - template: /eng/templates/official/jobs/cosmosdb-unit-tests.yml@self

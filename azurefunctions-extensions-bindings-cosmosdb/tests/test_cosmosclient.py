@@ -9,7 +9,7 @@ from typing import Optional
 from azure.cosmos import CosmosClient as CosmosClientSdk
 from azurefunctions.extensions.base import Datum
 
-from azurefunctions.extensions.bindings.cosmos import CosmosClient, CosmosClientConverter
+from azurefunctions.extensions.bindings.cosmosdb import CosmosClient, CosmosClientConverter
 
 
 # Mock classes for testing

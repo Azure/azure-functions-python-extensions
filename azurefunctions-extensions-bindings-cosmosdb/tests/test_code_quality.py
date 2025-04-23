@@ -18,7 +18,7 @@ class TestCodeQuality(unittest.TestCase):
         try:
             subprocess.run(
                 [sys.executable, '-m', 'mypy', '-m',
-                 'azurefunctions-extensions-bindings-cosmos'],
+                 'azurefunctions-extensions-bindings-cosmosdb'],
                 check=True,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
@@ -41,7 +41,7 @@ class TestCodeQuality(unittest.TestCase):
         try:
             subprocess.run(
                 [sys.executable, '-m', 'flake8',
-                 'azurefunctions-extensions-bindings-cosmos',
+                 'azurefunctions-extensions-bindings-cosmosdb',
                  '--config', str(config_path)],
                 check=True,
                 stdout=subprocess.PIPE,

@@ -3,11 +3,11 @@ requires = ["setuptools >= 61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "azurefunctions-extensions-bindings-cosmos"
+name = "azurefunctions-extensions-bindings-cosmosdb"
 dynamic = ["version"]
 requires-python = ">=3.9"
 authors = [{ name = "Azure Functions team at Microsoft Corp.", email = "azurefunctions@microsoft.com"}]
-description = "Cosmos Python worker extension for Azure Functions."
+description = "Cosmos DB Python worker extension for Azure Functions."
 readme = "README.md"
 license = {text = "MIT License"}
 classifiers= [
@@ -41,7 +41,7 @@ dev = [
     ]
 
 [tool.setuptools.dynamic]
-version = {attr = "azurefunctions.extensions.bindings.cosmos.__version__"}
+version = {attr = "azurefunctions.extensions.bindings.cosmosdb.__version__"}
 
 [tool.setuptools.packages.find]
 exclude = [

@@ -6,10 +6,10 @@ import unittest
 from enum import Enum
 from typing import Optional
 
-from azure.cosmos import DatabaseProxy as DatabaseProxySdk
+from azure.cosmos import ContainerProxy as ContainerProxySdk
 from azurefunctions.extensions.base import Datum
 
-from azurefunctions.extensions.bindings.cosmos import CosmosClientConverter, DatabaseProxy
+from azurefunctions.extensions.bindings.cosmosdb import CosmosClientConverter, ContainerProxy
 
 
 # Mock classes for testing
@@ -65,23 +65,23 @@ class MockFunction:
         self._bindings = bindings
 
 
-class TestDatabaseProxy(unittest.TestCase):
+class TestContainerProxy(unittest.TestCase):
     def test_input_type(self):
         check_input_type = CosmosClientConverter.check_input_type_annotation
-        self.assertTrue(check_input_type(DatabaseProxy))
+        self.assertTrue(check_input_type(ContainerProxy))
         self.assertFalse(check_input_type(str))
         self.assertFalse(check_input_type(bytes))
         self.assertFalse(check_input_type(bytearray))
 
     def test_input_none(self):
         result = CosmosClientConverter.decode(
-            data=None, trigger_metadata=None, pytype=DatabaseProxy
+            data=None, trigger_metadata=None, pytype=ContainerProxy
         )
         self.assertIsNone(result)
 
         datum: Datum = Datum(value=b"string_content", type=None)
         result = CosmosClientConverter.decode(
-            data=datum, trigger_metadata=None, pytype=DatabaseProxy
+            data=datum, trigger_metadata=None, pytype=ContainerProxy
         )
         self.assertIsNone(result)
 
@@ -89,13 +89,13 @@ class TestDatabaseProxy(unittest.TestCase):
         datum: Datum = Datum(value=b"string_content", type="bytearray")
         with self.assertRaises(ValueError):
             CosmosClientConverter.decode(
-                data=datum, trigger_metadata=None, pytype=DatabaseProxy
+                data=datum, trigger_metadata=None, pytype=ContainerProxy
             )
 
     def test_input_empty(self):
         datum: Datum = Datum(value={}, type="model_binding_data")
-        result: DatabaseProxy = CosmosClientConverter.decode(
-            data=datum, trigger_metadata=None, pytype=DatabaseProxy
+        result: ContainerProxy = CosmosClientConverter.decode(
+            data=datum, trigger_metadata=None, pytype=ContainerProxy
         )
         self.assertIsNone(result)
 
@@ -114,17 +114,16 @@ class TestDatabaseProxy(unittest.TestCase):
         )
 
         datum: Datum = Datum(value=sample_mbd, type="model_binding_data")
-        result: DatabaseProxy = CosmosClientConverter.decode(
-            data=datum, trigger_metadata=None, pytype=DatabaseProxy
+        result: ContainerProxy = CosmosClientConverter.decode(
+            data=datum, trigger_metadata=None, pytype=ContainerProxy
         )
 
         self.assertIsNotNone(result)
-        self.assertIsInstance(result, DatabaseProxySdk)
+        self.assertIsInstance(result, ContainerProxySdk)
 
-        sdk_result = DatabaseProxy(data=datum.value).get_sdk_type()
-
+        sdk_result = ContainerProxy(data=datum.value).get_sdk_type()
         self.assertIsNotNone(sdk_result)
-        self.assertIsInstance(sdk_result, DatabaseProxySdk)
+        self.assertIsInstance(sdk_result, ContainerProxySdk)
 
     def test_invalid_input_populated(self):
         content = {
@@ -142,8 +141,8 @@ class TestDatabaseProxy(unittest.TestCase):
 
         with self.assertRaises(ValueError) as e:
             datum: Datum = Datum(value=sample_mbd, type="model_binding_data")
-            result: DatabaseProxy = CosmosClientConverter.decode(
-                data=datum, trigger_metadata=None, pytype=DatabaseProxy
+            result: ContainerProxy = CosmosClientConverter.decode(
+                data=datum, trigger_metadata=None, pytype=ContainerProxy
             )
         self.assertEqual(
             e.exception.args[0],
@@ -167,8 +166,8 @@ class TestDatabaseProxy(unittest.TestCase):
 
         with self.assertRaises(ValueError) as e:
             datum: Datum = Datum(value=sample_mbd, type="model_binding_data")
-            result: DatabaseProxy = CosmosClientConverter.decode(
-                data=datum, trigger_metadata=None, pytype=DatabaseProxy
+            result: ContainerProxy = CosmosClientConverter.decode(
+                data=datum, trigger_metadata=None, pytype=ContainerProxy
             )
         self.assertEqual(
             e.exception.args[0],
@@ -190,17 +189,17 @@ class TestDatabaseProxy(unittest.TestCase):
         )
 
         datum: Datum = Datum(value=sample_mbd, type="model_binding_data")
-        result: DatabaseProxy = CosmosClientConverter.decode(
-            data=datum, trigger_metadata=None, pytype=DatabaseProxy
+        result: ContainerProxy = CosmosClientConverter.decode(
+            data=datum, trigger_metadata=None, pytype=ContainerProxy
         )
 
         self.assertIsNotNone(result)
-        self.assertIsInstance(result, DatabaseProxySdk)
+        self.assertIsInstance(result, ContainerProxySdk)
 
-        sdk_result = DatabaseProxy(data=datum.value).get_sdk_type()
+        sdk_result = ContainerProxy(data=datum.value).get_sdk_type()
 
         self.assertIsNotNone(sdk_result)
-        self.assertIsInstance(sdk_result, DatabaseProxySdk)
+        self.assertIsInstance(sdk_result, ContainerProxySdk)
 
     def test_input_invalid_pytype(self):
         content = {
@@ -217,13 +216,13 @@ class TestDatabaseProxy(unittest.TestCase):
         )
 
         datum: Datum = Datum(value=sample_mbd, type="model_binding_data")
-        result: DatabaseProxy = CosmosClientConverter.decode(
+        result: ContainerProxy = CosmosClientConverter.decode(
             data=datum, trigger_metadata=None, pytype="str"
         )
 
         self.assertIsNone(result)
 
-    def test_database_proxy_invalid_creation(self):
+    def test_container_proxy_invalid_creation(self):
         # Create test binding
         mock_cosmos = MockBinding(
             name="cosmosDB", direction=MockBindingDirection.IN, data_type=None, type="cosmosDB"
@@ -253,7 +252,7 @@ class TestDatabaseProxy(unittest.TestCase):
 
         self.assertEqual(logs, {"cosmosDB": {bytes: "False"}})
 
-    def test_database_proxy_valid_creation(self):
+    def test_container_proxy_valid_creation(self):
         # Create test binding
         mock_cosmos = MockBinding(
             name="client",
@@ -265,7 +264,7 @@ class TestDatabaseProxy(unittest.TestCase):
         # Create test input_types dict
         mock_input_types = {
             "client": MockParamTypeInfo(
-                binding_name="cosmosDB", pytype=DatabaseProxy
+                binding_name="cosmosDB", pytype=ContainerProxy
             )
         }
 
@@ -286,4 +285,4 @@ class TestDatabaseProxy(unittest.TestCase):
             ],
         )
 
-        self.assertEqual(logs, {"client": {DatabaseProxy: "True"}})
+        self.assertEqual(logs, {"client": {ContainerProxy: "True"}})
