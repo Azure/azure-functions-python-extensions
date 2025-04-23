@@ -54,4 +54,4 @@ class DatabaseProxy(SdkType):
             )
             return cosmos_client.get_database_client(self._database_name)
         else:
-            return None
+            raise ValueError(f"Unable to create {self.__class__.__name__} SDK type.")

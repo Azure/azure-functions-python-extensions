@@ -35,7 +35,7 @@ The Azure Functions Extensions Http FastApi library for Python allows you to cre
 import azure.functions as func
 from azurefunctions.extensions.http.fastapi import Request, JSONResponse
 
-app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
+app = func.FunctionApp(http_auth_level=func.AuthLevel.FUNCTION)
 
 @app.route(route="streaming_upload", methods=[func.HttpMethod.POST])
 async def streaming_upload(req: Request) -> JSONResponse:

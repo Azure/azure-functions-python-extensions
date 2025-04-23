@@ -6,11 +6,9 @@ Cosmos DB client types can be generated from:
 
 * Cosmos DB Input
 
-[Source code](https://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-bindings-cosmosdb)
+[Source code](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-bindings-cosmosdb)
 [Package (PyPi)](https://pypi.org/project/azurefunctions-extensions-bindings-cosmosdb/)
-| API reference documentation
-| Product documentation
-| [Samples](hhttps://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-bindings-cosmosdb/samples)
+| [Samples](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-bindings-cosmosdb/samples)
 
 
 ## Getting started
@@ -46,7 +44,7 @@ az storage account create -n my-storage-account-name -g my-resource-group
 ### Bind to the SDK-type
 The Azure Functions Extensions Bindings Cosmos DB library for Python allows you to create a function app with
 Cosmos DB Input and define the type as a CosmosClient, DatabaseProxy, or ContainerProxy. Instead of receiving
-an InputStream, when the function is executed, the type returned will be the defined SDK-type and have all of the
+a DocumentList, when the function is executed, the type returned will be the defined SDK-type and have all of the
 properties and methods available as seen in the Azure Storage Cosmos DB library for Python.
 
 
@@ -55,7 +53,7 @@ import logging
 import azure.functions as func
 import azurefunctions.extensions.bindings.cosmosdb as cosmos
 
-app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
+app = func.FunctionApp(http_auth_level=func.AuthLevel.FUNCTION)
 
 @app.route(route="cosmos")
 @app.cosmos_db_input(arg_name="container",
@@ -80,17 +78,17 @@ This list can be used for reference to catch thrown exceptions. To get the speci
 
 ### More sample code
 
-Get started with our [Cosmos DB samples](hhttps://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-bindings-cosmosdb/samples).
+Get started with our [Cosmos DB samples](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-bindings-cosmosdb/samples).
 
 Several samples are available in this GitHub repository. These samples provide example code for additional scenarios commonly encountered while working with Cosmos DB:
 
-* [cosmosdb_samples_cosmosclient](https://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-binding-cosmosdb/samples/cosmosdb_samples_cosmosclient)  - Examples for using the CosmosClient type:
+* [cosmosdb_samples_cosmosclient](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-binding-cosmosdb/samples/cosmosdb_samples_cosmosclient)  - Examples for using the CosmosClient type:
     * From CosmosDBInput
 
-* [cosmosdb_samples_databaseproxy](https://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-bindings-cosmosdb/samples/cosmosdb_samples_databaseproxy) - Examples for using the DatabaseProxy type:
+* [cosmosdb_samples_databaseproxy](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-bindings-cosmosdb/samples/cosmosdb_samples_databaseproxy) - Examples for using the DatabaseProxy type:
     * From CosmosDBInput
 
-* [cosmosdb_samples_containerclient](https://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-bindings-cosmosdb/samples/cosmosdb_samples_containerproxy) - Examples for using the ContainerProxy type:
+* [cosmosdb_samples_containerclient](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-bindings-cosmosdb/samples/cosmosdb_samples_containerproxy) - Examples for using the ContainerProxy type:
     * From CosmosDBInput
 
 ### Additional documentation

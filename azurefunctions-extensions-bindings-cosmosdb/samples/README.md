@@ -17,13 +17,13 @@ These are code samples that show common scenario operations with the Azure Funct
 These samples relate to the Azure Storage Cosmos DB client library being used as part of a Python Function App. For
 examples on how to use the Azure Storage Cosmos DB client library, please see [Azure Cosmos samples](https://github.com/Azure/azure-sdk-for-python/tree/main/sdk/cosmos/azure-cosmos/samples)
 
-* [cosmosdb_samples_cosmosclient](https://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-binding-cosmosdb/samples/cosmosdb_samples_cosmosclient)  - Examples for using the CosmosClient type:
+* [cosmosdb_samples_cosmosclient](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-binding-cosmosdb/samples/cosmosdb_samples_cosmosclient)  - Examples for using the CosmosClient type:
     * From CosmosDBInput
 
-* [cosmosdb_samples_databaseproxy](https://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-bindings-cosmosdb/samples/cosmosdb_samples_databaseproxy) - Examples for using the DatabaseProxy type:
+* [cosmosdb_samples_databaseproxy](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-bindings-cosmosdb/samples/cosmosdb_samples_databaseproxy) - Examples for using the DatabaseProxy type:
     * From CosmosDBInput
 
-* [cosmosdb_samples_containerclient](https://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-bindings-cosmosdb/samples/cosmosdb_samples_containerproxy) - Examples for using the ContainerProxy type:
+* [cosmosdb_samples_containerclient](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-bindings-cosmosdb/samples/cosmosdb_samples_containerproxy) - Examples for using the ContainerProxy type:
     * From CosmosDBInput
 
 ## Prerequisites
@@ -60,6 +60,6 @@ based on the type of function you wish to execute.
 
 ## Next steps
 
-Visit the [SDK-type bindings in Python reference documentation]() to learn more about how to use SDK-type bindings in a Python Function App and the
+Visit the [SDK-type bindings in Python reference documentation](https://learn.microsoft.com/en-us/azure/azure-functions/functions-reference-python?tabs=get-started%2Casgi%2Capplication-level&pivots=python-mode-decorators#sdk-type-bindings-preview) to learn more about how to use SDK-type bindings in a Python Function App and the
 [API reference documentation](https://learn.microsoft.com/en-us/python/api/azure-cosmos/azure.cosmos?view=azure-python) to learn more about
 what you can do with the Azure Cosmos DB client library.

@@ -10,7 +10,7 @@ from typing import List
 import azure.functions as func
 import azurefunctions.extensions.bindings.eventhub as eh
 
-app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
+app = func.FunctionApp(http_auth_level=func.AuthLevel.FUNCTION)
 
 """
 FOLDER: eventhub_samples_eventdata
