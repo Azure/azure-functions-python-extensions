@@ -17,8 +17,12 @@ These are code samples that show common scenario operations with the Azure Funct
 These samples relate to the Azure ServiceBus client library being used as part of a Python Function App. For
 examples on how to use the Azure ServiceBus client library, please see [Azure ServiceBus samples](https://github.com/Azure/azure-sdk-for-python/tree/azure-servicebus_7.14.1/sdk/servicebus/azure-servicebus/samples)
 
-* [servicebus_samples](https://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-bindings-blob/samples/blob_samples_blobclient)  - Examples for using the ServiceBusReceivedMessage type:
-    * From ServiceBusTrigger
+* [servicebus_samples_single](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-bindings-servicebus/samples/servicebus_samples_single)  - Examples for using the ServiceBusReceivedMessage type:
+    * From ServiceBus Queue Trigger (Single Message)
+    * From ServiceBus Topic Trigger (Single Message)
+* [servicebus_samples_batch](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-bindings-servicebus/samples/servicebus_samples_batch)  - Examples for using the ServiceBusReceivedMessage type:
+    * From ServiceBus Queue Trigger (Batch)
+    * From ServiceBus Topic Trigger (Batch)
 
 
 ## Prerequisites

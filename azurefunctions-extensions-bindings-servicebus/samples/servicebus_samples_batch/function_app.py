@@ -7,46 +7,73 @@
 # --------------------------------------------------------------------------
 
 import logging
+from typing import List
 
 import azure.functions as func
-import azurefunctions.extensions.bindings.blob as blob
+import azurefunctions.extensions.bindings.servicebus as servicebus
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
 """
-FOLDER: blob_samples_blobclient
+FOLDER: servicebus_samples
 DESCRIPTION:
-    These samples demonstrate how to obtain a BlobClient from a Blob Trigger
-    or Blob Input function app binding.
+    These samples demonstrate how to obtain a ServiceBusReceivedMessage
+    from a ServiceBus Trigger.
 USAGE:
     Set the environment variables with your own values before running the
     sample:
-    1) AzureWebJobsStorage - the connection string to your storage account
-
-    Set PATH/TO/BLOB to the path to the blob you want to trigger or serve as
-    input to the function.
+    For running the ServiceBus queue trigger function:
+        1) QUEUE_NAME - the name of the ServiceBus queue
+        2) SERVICEBUS_CONNECTION - the connection string for the ServiceBus entity
+    For running the ServiceBus topic trigger function:
+        1) TOPIC_NAME - the name of the ServiceBus topic
+        2) SERVICEBUS_CONNECTION - the connection string for the ServiceBus entity
+        3) SUBSCRIPTION_NAME - the name of the Subscription
 """
 
 
-@app.blob_trigger(
-    arg_name="client", path="PATH/TO/BLOB", connection="AzureWebJobsStorage"
-)
-def blob_trigger(client: blob.BlobClient):
-    logging.info(
-        f"Python blob trigger function processed blob \n"
-        f"Properties: {client.get_blob_properties()}\n"
-        f"Blob content head: {client.download_blob().read(size=1)}"
-    )
+@app.service_bus_queue_trigger(arg_name="receivedmessage",
+                               queue_name="QUEUE_NAME",
+                               connection="SERVICEBUS_CONNECTION",
+                               cardinality="many")
+def servicebus_queue_trigger(receivedmessage: List[servicebus.ServiceBusReceivedMessage]):
+    logging.info("Python ServiceBus queue trigger processed message.")
+    for message in receivedmessage:
+        logging.info("Receiving: %s\n"
+                     "Body: %s\n"
+                     "Enqueued time: %s\n"
+                     "Lock Token: %s\n"
+                     "Locked until : %s\n"
+                     "Message ID: %s\n"
+                     "Sequence number: %s\n",
+                     message,
+                     message.body,
+                     message.enqueued_time_utc,
+                     message.lock_token,
+                     message.locked_until,
+                     message.message_id,
+                     message.sequence_number)
 
 
-@app.route(route="file")
-@app.blob_input(
-    arg_name="client", path="PATH/TO/BLOB", connection="AzureWebJobsStorage"
-)
-def blob_input(req: func.HttpRequest, client: blob.BlobClient):
-    logging.info(
-        f"Python blob input function processed blob \n"
-        f"Properties: {client.get_blob_properties()}\n"
-        f"Blob content head: {client.download_blob().read(size=1)}"
-    )
-    return "ok"
+@app.service_bus_topic_trigger(arg_name="receivedmessage",
+                               topic_name="TOPIC_NAME",
+                               connection="SERVICEBUS_CONNECTION",
+                               subscription_name="SUBSCRIPTION_NAME",
+                               cardinality="many")
+def servicebus_topic_trigger(receivedmessage: List[servicebus.ServiceBusReceivedMessage]):
+    logging.info("Python ServiceBus topic trigger processed message.")
+    for message in receivedmessage:
+        logging.info("Receiving: %s\n"
+                     "Body: %s\n"
+                     "Enqueued time: %s\n"
+                     "Lock Token: %s\n"
+                     "Locked until : %s\n"
+                     "Message ID: %s\n"
+                     "Sequence number: %s\n",
+                     message,
+                     message.body,
+                     message.enqueued_time_utc,
+                     message.lock_token,
+                     message.locked_until,
+                     message.message_id,
+                     message.sequence_number)

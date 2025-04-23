@@ -42,31 +42,29 @@ properties and methods available as seen in the Azure ServiceBus library for Pyt
 ```python
 import logging
 import azure.functions as func
-import azurefunctions.extensions.bindings.servicebus as sb
+import azurefunctions.extensions.bindings.servicebus as servicebus
 
-@app.blob_trigger(arg_name="client",
-                  path="PATH/TO/BLOB",
-                  connection="AzureWebJobsStorage")
-def blob_trigger(client: blob.BlobClient):
-    logging.info(for message in messages_complex:
-            print("Receiving: {}".format(message))
-            print("Sequence number: {}".format(message.sequence_number))
-            print("Application Properties: {}".format(message.application_properties))
-            print("Delivery count: {}".format(message.delivery_count))
-            print("Message ID: {}".format(message.message_id))
-            print("Locked until: {}".format(message.locked_until_utc))
-            print("Lock Token: {}".format(message.lock_token))
-            print("Enqueued time: {}".format(message.enqueued_time_utc)))
+app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
-
-@app.route(route="file")
-@app.blob_input(arg_name="client",
-                path="PATH/TO/BLOB",
-                connection="AzureWebJobsStorage")
-def blob_input(req: func.HttpRequest, client: blob.BlobClient):
-    logging.info(f"Python blob input function processed blob \n"
-                 f"Properties: {client.get_blob_properties()}\n"
-                 f"Blob content head: {client.download_blob(encoding="utf-8").read(size=1)}")
+@app.service_bus_queue_trigger(arg_name="receivedmessage",
+                               queue_name="QUEUE_NAME",
+                               connection="SERVICEBUS_CONNECTION")
+def servicebus_queue_trigger(receivedmessage: servicebus.ServiceBusReceivedMessage):
+    logging.info("Python ServiceBus queue trigger processed message.")
+    logging.info("Receiving: %s\n"
+                 "Body: %s\n"
+                 "Enqueued time: %s\n"
+                 "Lock Token: %s\n"
+                 "Locked until : %s\n"
+                 "Message ID: %s\n"
+                 "Sequence number: %s\n",
+                 receivedmessage,
+                 receivedmessage.body,
+                 receivedmessage.enqueued_time_utc,
+                 receivedmessage.lock_token,
+                 receivedmessage.locked_until,
+                 receivedmessage.message_id,
+                 receivedmessage.sequence_number)
 ```
 
 ## Troubleshooting
@@ -84,10 +82,12 @@ Get started with our [ServiceBus samples](https://github.com/Azure/azure-functio
 Several samples are available in this GitHub repository. These samples provide example code for additional scenarios commonly encountered while working with Azure ServiceBus:
 
 * [servicebus_samples_single](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-bindings-servicebus/samples/servicebus_samples_single)  - Examples for using the ServiceBusReceivedMessage type:
-    * From ServiceBusTrigger
+    * From ServiceBus Queue Trigger (Single Message)
+    * From ServiceBus Topic Trigger (Single Message)
 
 * [servicebus_samples_batch](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-bindings-servicebus/samples/service_samples_batch) - Examples for interacting with batches:
-    * From ServiceBusTrigger
+    * From ServiceBus Queue Trigger (Batch)
+    * From ServiceBus Topic Trigger (Batch)
 
 
 ### Additional documentation
