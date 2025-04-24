@@ -4,9 +4,9 @@
 import json
 
 from azure.identity import DefaultAzureCredential
-from azure.cosmos import CosmosClient as CosmosClientSdk, ContainerProxy as ContainerProxySdk
+from azure.cosmos import ContainerProxy as ContainerProxySdk
 from azurefunctions.extensions.base import Datum, SdkType
-from .utils import get_connection_string, using_managed_identity
+from .utils import get_connection_string, using_managed_identity, get_cosmos_client
 
 
 class ContainerProxy(SdkType):
@@ -20,8 +20,6 @@ class ContainerProxy(SdkType):
         self._container_name = None
         self._connection = None
         self._using_managed_identity = False
-        self._partition_key = None
-        self._sql_query = None
         self._preferred_locations = None
         if self._data:
             self._version = data.version
@@ -44,15 +42,9 @@ class ContainerProxy(SdkType):
 
         We track if Managed Identity is being used through a flag.
         """
-        if self._data:
-            cosmos_client = (
-                CosmosClientSdk(
-                    url=self._connection, credential=DefaultAzureCredential()
-                )
-                if self._using_managed_identity
-                else CosmosClientSdk.from_connection_string(self._connection)
-            )
-            db_client = cosmos_client.get_database_client(self._database_name)
-            return db_client.get_container_client(self._container_name)
-        else:
+        if not self._data:
             raise ValueError(f"Unable to create {self.__class__.__name__} SDK type.")
+        
+        cosmos_client = get_cosmos_client(self._using_managed_identity, self._connection, self._preferred_locations)
+        db_client = cosmos_client.get_database_client(self._database_name)
+        return db_client.get_container_client(self._container_name)

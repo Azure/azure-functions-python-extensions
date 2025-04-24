@@ -77,18 +77,18 @@ class TestEventData(unittest.TestCase):
 
     def test_input_empty_mbd(self):
         datum: Datum = Datum(value={}, type="model_binding_data")
-        result: EventData = EventDataConverter.decode(
-            data=datum, trigger_metadata=None, pytype=EventData
-        )
-        self.assertIsNone(result)
+        with self.assertRaises(ValueError):
+            EventDataConverter.decode(
+                data=datum, trigger_metadata=None, pytype=EventData
+            )
 
     def test_input_empty_cmbd(self):
         datum: Datum = Datum(value=MockCMBD([None]),
                              type="collection_model_binding_data")
-        result: EventData = EventDataConverter.decode(
-            data=datum, trigger_metadata=None, pytype=EventData
-        )
-        self.assertEqual(result, [None])
+        with self.assertRaises(ValueError):
+            EventDataConverter.decode(
+                data=datum, trigger_metadata=None, pytype=EventData
+            )
 
     def test_input_populated_mbd(self):
         sample_mbd = MockMBD(

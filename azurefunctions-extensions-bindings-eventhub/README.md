@@ -4,10 +4,14 @@ Azure EventHub sdk (EventData).
 
 EventHub types can be generated from:
 
+* EventHub Triggers
+
+The supported EventHub SDK types include:
+
+* EventData
+
 [Source code](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-bindings-eventhub)
 [Package (PyPi)](https://pypi.org/project/azurefunctions-extensions-bindings-eventhub/)
-| API reference documentation
-| Product documentation
 | [Samples](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-bindings-eventhub/samples)
 
 

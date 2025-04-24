@@ -97,10 +97,10 @@ class TestStorageStreamDownloader(unittest.TestCase):
 
     def test_input_empty(self):
         datum: Datum = Datum(value={}, type="model_binding_data")
-        result: StorageStreamDownloader = BlobClientConverter.decode(
-            data=datum, trigger_metadata=None, pytype=StorageStreamDownloader
-        )
-        self.assertIsNone(result)
+        with self.assertRaises(ValueError):
+            BlobClientConverter.decode(
+                data=datum, trigger_metadata=None, pytype=StorageStreamDownloader
+            )
 
     def test_input_populated(self):
         content = {

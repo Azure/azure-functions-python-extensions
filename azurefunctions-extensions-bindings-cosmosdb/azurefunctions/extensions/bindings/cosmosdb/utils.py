@@ -1,6 +1,8 @@
 #  Copyright (c) Microsoft Corporation. All rights reserved.
 #  Licensed under the MIT License.
 import os
+from azure.identity import DefaultAzureCredential
+from azure.cosmos import CosmosClient as CosmosClientSdk
 
 
 def get_connection_string(connection_string: str) -> str:
@@ -35,3 +37,19 @@ def using_managed_identity(connection_name: str) -> bool:
     by checking for a __accountEndpoint suffix.
     """
     return os.getenv(connection_name + "__accountEndpoint") is not None
+
+
+def get_cosmos_client(using_managed_identity: bool, connection: str, preferred_locations: str) -> CosmosClientSdk:
+    pl = []
+    if preferred_locations:
+        pl = [l.strip() for l in preferred_locations.split(",")]
+
+    cosmos_client = (
+        CosmosClientSdk(
+            url=connection, credential=DefaultAzureCredential(),
+            preferred_locations=pl
+        )
+        if using_managed_identity
+        else CosmosClientSdk.from_connection_string(connection, preferred_locations=pl)
+    )
+    return cosmos_client
