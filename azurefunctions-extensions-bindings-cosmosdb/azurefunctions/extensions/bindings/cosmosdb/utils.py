@@ -52,4 +52,5 @@ def get_cosmos_client(using_managed_identity: bool, connection: str, preferred_l
         if using_managed_identity
         else CosmosClientSdk.from_connection_string(connection, preferred_locations=pl)
     )
+    
     return cosmos_client

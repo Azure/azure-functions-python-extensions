@@ -94,16 +94,16 @@ class TestCosmosClient(unittest.TestCase):
 
     def test_input_empty(self):
         datum: Datum = Datum(value={}, type="model_binding_data")
-        result: CosmosClient = CosmosClientConverter.decode(
-            data=datum, trigger_metadata=None, pytype=CosmosClient
-        )
-        self.assertIsNone(result)
+        with self.assertRaises(ValueError):
+            CosmosClientConverter.decode(
+                data=datum, trigger_metadata=None, pytype=CosmosClient
+            )
 
     def test_input_populated(self):
         content = {
             "DatabaseName": "test-db",
             "ContainerName": "test-items",
-            "Connection": "AzureWebJobsStorage"
+            "Connection": "CosmosDBConnection"
         }
 
         sample_mbd = MockMBD(
@@ -147,7 +147,7 @@ class TestCosmosClient(unittest.TestCase):
             )
         self.assertEqual(
             e.exception.args[0],
-            "Storage account connection string NotARealConnectionString does not exist. "
+            "Cosmos DB connection string NotARealConnectionString does not exist. "
             "Please make sure that it is a defined App Setting.",
         )
 
@@ -207,7 +207,7 @@ class TestCosmosClient(unittest.TestCase):
         content = {
             "DatabaseName": "test-db",
             "ContainerName": "test-items",
-            "Connection": "AzureWebJobsStorage",
+            "Connection": "CosmosDBConnection",
         }
 
         sample_mbd = MockMBD(

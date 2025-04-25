@@ -94,16 +94,16 @@ class TestContainerProxy(unittest.TestCase):
 
     def test_input_empty(self):
         datum: Datum = Datum(value={}, type="model_binding_data")
-        result: ContainerProxy = CosmosClientConverter.decode(
-            data=datum, trigger_metadata=None, pytype=ContainerProxy
-        )
-        self.assertIsNone(result)
+        with self.assertRaises(ValueError):
+            CosmosClientConverter.decode(
+                data=datum, trigger_metadata=None, pytype=ContainerProxy
+            )
 
     def test_input_populated(self):
         content = {
             "DatabaseName": "test-db",
             "ContainerName": "test-items",
-            "Connection": "AzureWebJobsStorage"
+            "Connection": "CosmosDBConnection"
         }
 
         sample_mbd = MockMBD(
@@ -146,7 +146,7 @@ class TestContainerProxy(unittest.TestCase):
             )
         self.assertEqual(
             e.exception.args[0],
-            "Storage account connection string NotARealConnectionString does not exist. "
+            "Cosmos DB connection string NotARealConnectionString does not exist. "
             "Please make sure that it is a defined App Setting.",
         )
 
@@ -171,7 +171,7 @@ class TestContainerProxy(unittest.TestCase):
             )
         self.assertEqual(
             e.exception.args[0],
-            "Storage account connection string cannot be None. Please provide a connection string.",
+            "Cosmos DB connection string cannot be None. Please provide a connection string.",
         )
 
     def test_input_populated_managed_identity_input(self):
@@ -205,7 +205,7 @@ class TestContainerProxy(unittest.TestCase):
         content = {
             "DatabaseName": "test-db",
             "ContainerName": "test-items",
-            "Connection": "AzureWebJobsStorage"
+            "Connection": "CosmosDBConnection"
         }
 
         sample_mbd = MockMBD(
