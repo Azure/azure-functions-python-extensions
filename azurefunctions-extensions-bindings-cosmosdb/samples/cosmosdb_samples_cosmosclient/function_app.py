@@ -13,18 +13,15 @@ DESCRIPTION:
 USAGE:
     Set the environment variables with your own values before running the
     sample:
-    1) AzureWebJobsStorage - the connection string to your storage account
-
-    Set database_name and container_name to the path to the container you want to use
-    as inputs to the function (required).
+    1) CosmosDBConnection - the connection string to your Cosmos DB instance
 """
 
 
 @app.route(route="cosmos")
-@app.cosmos_db_input(arg_name="container",
+@app.cosmos_db_input(arg_name="client",
                      connection="CosmosDBConnection",
-                     database_name="db_name",
-                     container_name="container_name")
+                     database_name=None,
+                     container_name=None)
 def get_docs(req: func.HttpRequest, client: cosmos.CosmosClient):
     databases = client.list_databases()
     for db in databases:

@@ -18,9 +18,9 @@ DESCRIPTION:
 USAGE:
     Set the environment variables with your own values before running the
     sample:
-    1) AzureWebJobsStorage - the connection string to your storage account
+    1) CosmosDBConnection - the connection string to your Cosmos DB instance
 
-    Set database_name and container_name to the path to the container you want to use
+    Set database_name and container_name to the database name the and container name you want to use
     as inputs to the function (required).
 """
 

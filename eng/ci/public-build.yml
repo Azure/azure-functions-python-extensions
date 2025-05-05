@@ -43,3 +43,27 @@ extends:
       - stage: Build
         jobs:
           - template: /eng/templates/jobs/build.yml@self
+      - stage: RunBaseTests
+        dependsOn: Build
+        jobs:
+          - template: /eng/templates/official/jobs/base-unit-tests.yml@self
+      - stage: RunBlobTests
+        dependsOn: Build
+        jobs:
+          - template: /eng/templates/official/jobs/blob-unit-tests.yml@self
+      - stage: RunCosmosDBTests
+        dependsOn: Build
+        jobs:
+          - template: /eng/templates/official/jobs/cosmosdb-unit-tests.yml@self
+      - stage: RunEventHubTests
+        dependsOn: Build
+        jobs:
+          - template: /eng/templates/official/jobs/eventhub-unit-tests.yml@self
+      - stage: RunServiceBusTests
+        dependsOn: Build
+        jobs:
+          - template: /eng/templates/official/jobs/servicebus-unit-tests.yml@self
+      - stage: RunFastApiTests
+        dependsOn: Build
+        jobs:
+          - template: /eng/templates/official/jobs/fastapi-unit-tests.yml@self
