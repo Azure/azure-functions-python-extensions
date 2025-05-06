@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "azurefunctions-extensions-bindings-servicebus"
+dynamic = ["version"]
+requires-python = ">=3.9"
+authors = [{ name = "Azure Functions team at Microsoft Corp.", email = "azurefunctions@microsoft.com"}]
+description = "ServiceBus Python worker extension for Azure Functions."
+readme = "README.md"
+license = {text = "MIT License"}
+classifiers= [
+        'License :: OSI Approved :: MIT License',
+        'Intended Audience :: Developers',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
+        'Programming Language :: Python :: 3.12',
+        'Programming Language :: Python :: 3.13',
+        'Operating System :: Microsoft :: Windows',
+        'Operating System :: POSIX',
+        'Operating System :: MacOS :: MacOS X',
+        'Environment :: Web Environment',
+        'Development Status :: 5 - Production/Stable',
+    ]
+dependencies = [
+    'azurefunctions-extensions-base',
+    'azure-servicebus~=7.14.2',
+    'uamqp~=1.6.11'
+    ]
+
+[project.optional-dependencies]
+dev = [
+    'flake8',
+    'mypy',
+    'pytest',
+    'pytest-cov',
+    'coverage',
+    'pytest-instafail',
+    'pre-commit'
+    ]
+
+[tool.setuptools.dynamic]
+version = {attr = "azurefunctions.extensions.bindings.servicebus.__version__"}
+
+[tool.setuptools.packages.find]
+exclude = [
+    'azurefunctions.extensions.bindings','azurefunctions.extensions',
+    'azurefunctions', 'tests', 'samples'
+    ]

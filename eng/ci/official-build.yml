@@ -51,6 +51,14 @@ extends:
         dependsOn: Build
         jobs:
           - template: /eng/templates/official/jobs/blob-unit-tests.yml@self
+      - stage: RunEventHubTests
+        dependsOn: Build
+        jobs:
+          - template: /eng/templates/official/jobs/eventhub-unit-tests.yml@self
+      - stage: RunServiceBusTests
+        dependsOn: Build
+        jobs:
+          - template: /eng/templates/official/jobs/servicebus-unit-tests.yml@self
       - stage: RunFastApiTests
         dependsOn: Build
         jobs:
