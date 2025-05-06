@@ -44,7 +44,7 @@ import logging
 import azure.functions as func
 import azurefunctions.extensions.bindings.servicebus as servicebus
 
-app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
+app = func.FunctionApp(http_auth_level=func.AuthLevel.FUNCTION)
 
 @app.service_bus_queue_trigger(arg_name="receivedmessage",
                                queue_name="QUEUE_NAME",

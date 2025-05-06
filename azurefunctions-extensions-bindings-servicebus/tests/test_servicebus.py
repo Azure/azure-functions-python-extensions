@@ -10,6 +10,7 @@ from azurefunctions.extensions.base import Datum
 
 from azurefunctions.extensions.bindings.servicebus import (ServiceBusReceivedMessage,
                                                            ServiceBusConverter)
+from azurefunctions.extensions.bindings.servicebus.utils import get_decoded_message
 
 
 SERVICEBUS_SAMPLE_CONTENT = b"_\241S\374f\335OI\202]\356\033|4<\373\000Sp\300\013\005@@pH\031\010\000@R\001\000Sq\301$\002\243\020x-opt-lock-token\230\374S\241_\335fIO\202]\356\033|4<\373\000Sr\301U\006\243\023x-opt-enqueued-time\203\000\000\001\216v\307\333\310\243\025x-opt-sequence-numberU\014\243\022x-opt-locked-until\203\000\000\001\216v\310\3067\000Ss\300?\r\241 f00d2a33551440389d68e299d31adc7c@@@@@@@\203\000\000\001\216\276\340\343\310\203\000\000\001\216v\307\333\310@@@\000Su\240\005hello"  # noqa: E501
@@ -141,4 +142,12 @@ class TestServiceBus(unittest.TestCase):
         self.assertEqual(
             e.exception.args[0],
             "Unexpected type of data received for the 'servicebus' binding: 'str'",
+        )
+
+    def test_input_get_decoded_message_ex(self):
+        with self.assertRaises(ValueError) as e:
+            _ = get_decoded_message("Invalid message")
+        self.assertEqual(
+            e.exception.args[0],
+            "Failed to decode ServiceBus content: must be str, not bytes",
         )

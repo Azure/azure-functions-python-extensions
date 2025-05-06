@@ -23,7 +23,7 @@ def get_amqp_message(message: bytes, index: int):
     Get the amqp message from the model_binding_data content
     and create the message.
     """
-    amqp_message = message[index + len(b"x-opt-lock-token"):]
+    amqp_message = message[index + len(_X_OPT_LOCK_TOKEN):]
     decoded_message = uamqp.Message().decode_from_bytes(amqp_message)
 
     return decoded_message
@@ -39,12 +39,15 @@ def get_decoded_message(content: bytes):
     return.
     """
     if content:
-        index = content.find(b"x-opt-lock-token")
+        try:
+            index = content.find(_X_OPT_LOCK_TOKEN)
 
-        lock_token = get_lock_token(content, index)
-        delivery_anno_dict = {_X_OPT_LOCK_TOKEN: lock_token}
+            lock_token = get_lock_token(content, index)
+            delivery_anno_dict = {_X_OPT_LOCK_TOKEN: lock_token}
 
-        decoded_message = get_amqp_message(content, index)
-        decoded_message.delivery_annotations = delivery_anno_dict
-        return decoded_message
+            decoded_message = get_amqp_message(content, index)
+            decoded_message.delivery_annotations = delivery_anno_dict
+            return decoded_message
+        except Exception as e:
+            raise ValueError(f"Failed to decode ServiceBus content: {e}") from e
     return None
