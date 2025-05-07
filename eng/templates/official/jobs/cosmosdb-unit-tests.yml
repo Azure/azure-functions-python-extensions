@@ -25,6 +25,5 @@ jobs:
       - bash: |
           python -m pytest -q --instafail azurefunctions-extensions-bindings-cosmosdb/tests/
         env:
-          AzureWebJobsStorage: $(AzureWebJobsStorage)
           input: $(input__accountEndpoint)
         displayName: "Running Cosmos DB $(PYTHON_VERSION) Python Extension Tests"

@@ -3,7 +3,6 @@
 
 import json
 
-from azure.identity import DefaultAzureCredential
 from azure.cosmos import DatabaseProxy as DatabaseProxySdk
 from azurefunctions.extensions.base import Datum, SdkType
 from .utils import get_connection_string, using_managed_identity, get_cosmos_client
@@ -38,12 +37,13 @@ class DatabaseProxy(SdkType):
         """
         There are two ways to create a CosmosClient:
         1. Through the constructor: this is the only option when using Managed Identity
-        2. Through from_connection_string: this is the only option when not using Managed Identity
+        2. Through from_connection_string: when not using Managed Identity
 
         We track if Managed Identity is being used through a flag.
         """
         if not self._data:
             raise ValueError(f"Unable to create {self.__class__.__name__} SDK type.")
-        
-        cosmos_client = get_cosmos_client(self._using_managed_identity, self._connection, self._preferred_locations)
+
+        cosmos_client = get_cosmos_client(self._using_managed_identity, 
+                                          self._connection, self._preferred_locations)
         return cosmos_client.get_database_client(self._database_name)

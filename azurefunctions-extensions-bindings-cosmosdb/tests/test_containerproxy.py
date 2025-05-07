@@ -9,7 +9,9 @@ from typing import Optional
 from azure.cosmos import ContainerProxy as ContainerProxySdk
 from azurefunctions.extensions.base import Datum
 
-from azurefunctions.extensions.bindings.cosmosdb import CosmosClientConverter, ContainerProxy
+from azurefunctions.extensions.bindings.cosmosdb import (
+    CosmosClientConverter, ContainerProxy
+)
 
 
 # Mock classes for testing
@@ -141,7 +143,7 @@ class TestContainerProxy(unittest.TestCase):
 
         with self.assertRaises(ValueError) as e:
             datum: Datum = Datum(value=sample_mbd, type="model_binding_data")
-            result: ContainerProxy = CosmosClientConverter.decode(
+            CosmosClientConverter.decode(
                 data=datum, trigger_metadata=None, pytype=ContainerProxy
             )
         self.assertEqual(
@@ -166,12 +168,13 @@ class TestContainerProxy(unittest.TestCase):
 
         with self.assertRaises(ValueError) as e:
             datum: Datum = Datum(value=sample_mbd, type="model_binding_data")
-            result: ContainerProxy = CosmosClientConverter.decode(
+            CosmosClientConverter.decode(
                 data=datum, trigger_metadata=None, pytype=ContainerProxy
             )
         self.assertEqual(
             e.exception.args[0],
-            "Cosmos DB connection string cannot be None. Please provide a connection string.",
+            "Cosmos DB connection string cannot be None. "
+            "Please provide a connection string or account endpoint.",
         )
 
     def test_input_populated_managed_identity_input(self):
@@ -225,7 +228,8 @@ class TestContainerProxy(unittest.TestCase):
     def test_container_proxy_invalid_creation(self):
         # Create test binding
         mock_cosmos = MockBinding(
-            name="cosmosDB", direction=MockBindingDirection.IN, data_type=None, type="cosmosDB"
+            name="cosmosDB", direction=MockBindingDirection.IN, data_type=None, 
+            type="cosmosDB"
         )
 
         # Create test input_types dict

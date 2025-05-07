@@ -142,7 +142,7 @@ class TestDatabaseProxy(unittest.TestCase):
 
         with self.assertRaises(ValueError) as e:
             datum: Datum = Datum(value=sample_mbd, type="model_binding_data")
-            result: DatabaseProxy = CosmosClientConverter.decode(
+            CosmosClientConverter.decode(
                 data=datum, trigger_metadata=None, pytype=DatabaseProxy
             )
         self.assertEqual(
@@ -167,12 +167,13 @@ class TestDatabaseProxy(unittest.TestCase):
 
         with self.assertRaises(ValueError) as e:
             datum: Datum = Datum(value=sample_mbd, type="model_binding_data")
-            result: DatabaseProxy = CosmosClientConverter.decode(
+            CosmosClientConverter.decode(
                 data=datum, trigger_metadata=None, pytype=DatabaseProxy
             )
         self.assertEqual(
             e.exception.args[0],
-            "Cosmos DB connection string cannot be None. Please provide a connection string.",
+            "Cosmos DB connection string cannot be None. "
+            "Please provide a connection string or account endpoint.",
         )
 
     def test_input_populated_managed_identity_input(self):
@@ -226,7 +227,8 @@ class TestDatabaseProxy(unittest.TestCase):
     def test_database_proxy_invalid_creation(self):
         # Create test binding
         mock_cosmos = MockBinding(
-            name="cosmosDB", direction=MockBindingDirection.IN, data_type=None, type="cosmosDB"
+            name="cosmosDB", direction=MockBindingDirection.IN, data_type=None,
+            type="cosmosDB"
         )
 
         # Create test input_types dict

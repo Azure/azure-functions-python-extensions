@@ -37,11 +37,12 @@ class CosmosClient(SdkType):
         """
         There are two ways to create a CosmosClient:
         1. Through the constructor: this is the only option when using Managed Identity
-        2. Through from_connection_string: this is the only option when not using Managed Identity
+        2. Through from_connection_string: when not using Managed Identity
 
         We track if Managed Identity is being used through a flag.
         """
         if not self._data:
             raise ValueError(f"Unable to create {self.__class__.__name__} SDK type.")
-        
-        return get_cosmos_client(self._using_managed_identity, self._connection, self._preferred_locations)
+
+        return get_cosmos_client(self._using_managed_identity, 
+                                 self._connection, self._preferred_locations)

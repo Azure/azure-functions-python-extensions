@@ -9,7 +9,9 @@ from typing import Optional
 from azure.cosmos import CosmosClient as CosmosClientSdk
 from azurefunctions.extensions.base import Datum
 
-from azurefunctions.extensions.bindings.cosmosdb import CosmosClient, CosmosClientConverter
+from azurefunctions.extensions.bindings.cosmosdb import (
+    CosmosClient, CosmosClientConverter
+)
 
 
 # Mock classes for testing
@@ -142,7 +144,7 @@ class TestCosmosClient(unittest.TestCase):
 
         with self.assertRaises(ValueError) as e:
             datum: Datum = Datum(value=sample_mbd, type="model_binding_data")
-            result: CosmosClient = CosmosClientConverter.decode(
+            CosmosClientConverter.decode(
                 data=datum, trigger_metadata=None, pytype=CosmosClient
             )
         self.assertEqual(
@@ -167,7 +169,7 @@ class TestCosmosClient(unittest.TestCase):
 
         with self.assertRaises(ValueError) as e:
             datum: Datum = Datum(value=sample_mbd, type="model_binding_data")
-            result: CosmosClient = CosmosClientConverter.decode(
+            CosmosClientConverter.decode(
                 data=datum, trigger_metadata=None, pytype=CosmosClient
             )
         self.assertEqual(
@@ -227,7 +229,8 @@ class TestCosmosClient(unittest.TestCase):
     def test_cosmos_client_invalid_creation(self):
         # Create test binding
         mock_cosmos = MockBinding(
-            name="cosmosDB", direction=MockBindingDirection.IN, data_type=None, type="cosmosDB"
+            name="cosmosDB", direction=MockBindingDirection.IN, data_type=None,
+            type="cosmosDB"
         )
 
         # Create test input_types dict
