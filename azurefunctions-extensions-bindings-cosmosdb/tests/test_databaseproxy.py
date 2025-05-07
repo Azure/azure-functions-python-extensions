@@ -9,7 +9,9 @@ from typing import Optional
 from azure.cosmos import DatabaseProxy as DatabaseProxySdk
 from azurefunctions.extensions.base import Datum
 
-from azurefunctions.extensions.bindings.cosmosdb import CosmosClientConverter, DatabaseProxy
+from azurefunctions.extensions.bindings.cosmosdb import (
+    CosmosClientConverter, DatabaseProxy
+)
 
 
 # Mock classes for testing

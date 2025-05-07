@@ -44,7 +44,7 @@ class ContainerProxy(SdkType):
         if not self._data:
             raise ValueError(f"Unable to create {self.__class__.__name__} SDK type.")
 
-        cosmos_client = get_cosmos_client(self._using_managed_identity, 
+        cosmos_client = get_cosmos_client(self._using_managed_identity,
                                           self._connection, self._preferred_locations)
         db_client = cosmos_client.get_database_client(self._database_name)
         return db_client.get_container_client(self._container_name)

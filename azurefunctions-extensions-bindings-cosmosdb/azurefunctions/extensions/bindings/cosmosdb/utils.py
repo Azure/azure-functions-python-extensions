@@ -39,7 +39,7 @@ def using_managed_identity(connection_name: str) -> bool:
     return os.getenv(connection_name + "__accountEndpoint") is not None
 
 
-def get_cosmos_client(using_managed_identity: bool, 
+def get_cosmos_client(using_managed_identity: bool,
                       connection: str, preferred_locations: str) -> CosmosClientSdk:
     pl = []
     if preferred_locations:

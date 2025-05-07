@@ -44,5 +44,5 @@ class CosmosClient(SdkType):
         if not self._data:
             raise ValueError(f"Unable to create {self.__class__.__name__} SDK type.")
 
-        return get_cosmos_client(self._using_managed_identity, 
+        return get_cosmos_client(self._using_managed_identity,
                                  self._connection, self._preferred_locations)

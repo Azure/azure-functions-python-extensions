@@ -228,7 +228,7 @@ class TestContainerProxy(unittest.TestCase):
     def test_container_proxy_invalid_creation(self):
         # Create test binding
         mock_cosmos = MockBinding(
-            name="cosmosDB", direction=MockBindingDirection.IN, data_type=None, 
+            name="cosmosDB", direction=MockBindingDirection.IN, data_type=None,
             type="cosmosDB"
         )
 
