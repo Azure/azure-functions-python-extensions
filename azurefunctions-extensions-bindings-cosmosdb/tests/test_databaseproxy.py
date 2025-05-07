@@ -105,7 +105,7 @@ class TestDatabaseProxy(unittest.TestCase):
         content = {
             "DatabaseName": "test-db",
             "ContainerName": "test-items",
-            "Connection": "AzureWebJobsStorage"
+            "Connection": "CosmosDBConnection"
         }
 
         sample_mbd = MockMBD(
