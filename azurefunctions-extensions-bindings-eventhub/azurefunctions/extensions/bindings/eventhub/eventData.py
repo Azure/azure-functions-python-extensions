@@ -48,5 +48,5 @@ class EventData(SdkType):
         # https://github.com/Azure/azure-sdk-for-python/issues/39711
         if self.decoded_message:
             return EventDataSDK._from_message(self.decoded_message)
-
-        return None
+        else:
+            raise ValueError(f"Unable to create {self.__class__.__name__} SDK type.")

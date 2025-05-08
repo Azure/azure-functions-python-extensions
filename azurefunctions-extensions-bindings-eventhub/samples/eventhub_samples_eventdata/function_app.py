@@ -10,7 +10,7 @@ from typing import List
 import azure.functions as func
 import azurefunctions.extensions.bindings.eventhub as eh
 
-app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
+app = func.FunctionApp(http_auth_level=func.AuthLevel.FUNCTION)
 
 """
 FOLDER: eventhub_samples_eventdata
@@ -30,7 +30,7 @@ USAGE:
 
 
 @app.event_hub_message_trigger(
-    arg_name="event", event_hub_name="EVENTHUB_NAME", connection="AzureWebJobsStorage"
+    arg_name="event", event_hub_name="EVENTHUB_NAME", connection="EventHubConnection"
 )
 def eventhub_trigger(event: eh.EventData):
     logging.info(
@@ -40,7 +40,7 @@ def eventhub_trigger(event: eh.EventData):
 
 
 @app.event_hub_message_trigger(
-    arg_name="events", event_hub_name="EVENTHUB_NAME", connection="AzureWebJobsStorage", cardinality="many"
+    arg_name="events", event_hub_name="EVENTHUB_NAME", connection="EventHubConnection", cardinality="many"
 )
 def eventhub_trigger(events: List[eh.EventData]):
     for event in events:
