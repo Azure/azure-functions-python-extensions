@@ -4,10 +4,14 @@ Azure EventHub sdk (EventData).
 
 EventHub types can be generated from:
 
+* EventHub Triggers
+
+The supported EventHub SDK types include:
+
+* EventData
+
 [Source code](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-bindings-eventhub)
 [Package (PyPi)](https://pypi.org/project/azurefunctions-extensions-bindings-eventhub/)
-| API reference documentation
-| Product documentation
 | [Samples](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-bindings-eventhub/samples)
 
 
@@ -51,7 +55,7 @@ import logging
 import azure.functions as func
 import azurefunctions.extensions.bindings.eventhub as eh
 
-app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
+app = func.FunctionApp(http_auth_level=func.AuthLevel.FUNCTION)
 
 @app.event_hub_message_trigger(
     arg_name="event", event_hub_name="EVENTHUB_NAME", connection="AzureWebJobsStorage"

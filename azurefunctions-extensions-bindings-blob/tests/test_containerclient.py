@@ -94,10 +94,10 @@ class TestContainerClient(unittest.TestCase):
 
     def test_input_empty(self):
         datum: Datum = Datum(value={}, type="model_binding_data")
-        result: ContainerClient = BlobClientConverter.decode(
-            data=datum, trigger_metadata=None, pytype=ContainerClient
-        )
-        self.assertIsNone(result)
+        with self.assertRaises(ValueError):
+            BlobClientConverter.decode(
+                data=datum, trigger_metadata=None, pytype=ContainerClient
+            )
 
     def test_input_populated(self):
         content = {

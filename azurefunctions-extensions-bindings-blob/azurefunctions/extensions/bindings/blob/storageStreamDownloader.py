@@ -48,4 +48,4 @@ class StorageStreamDownloader(SdkType):
                 blob=self._blobName,
             ).download_blob()
         else:
-            return None
+            raise ValueError(f"Unable to create {self.__class__.__name__} SDK type.")

@@ -7,7 +7,7 @@ import time
 import azure.functions as func
 from azurefunctions.extensions.http.fastapi import Request, StreamingResponse
 
-app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
+app = func.FunctionApp(http_auth_level=func.AuthLevel.FUNCTION)
 
 
 def generate_sensor_data():
