@@ -3,10 +3,10 @@
 
 import json
 
-from azure.identity import DefaultAzureCredential
-from azure.storage.blob import BlobServiceClient
 from azurefunctions.extensions.base import Datum, SdkType
-from .utils import get_connection_string, using_managed_identity
+from .utils import (using_system_managed_identity,
+                    using_user_managed_identity,
+                    get_blob_service_client)
 
 
 class ContainerClient(SdkType):
@@ -25,9 +25,12 @@ class ContainerClient(SdkType):
             self._source = data.source
             self._content_type = data.content_type
             content_json = json.loads(data.content)
-            self._connection = get_connection_string(content_json.get("Connection"))
-            self._using_managed_identity = using_managed_identity(
-                content_json.get("Connection")
+            self._connection = content_json.get("Connection")
+            self._system_managed_identity = using_system_managed_identity(
+                self._connection
+            )
+            self._user_managed_identity = using_user_managed_identity(
+                self._connection
             )
             self._containerName = content_json.get("ContainerName")
             self._blobName = content_json.get("BlobName")
@@ -35,15 +38,11 @@ class ContainerClient(SdkType):
     # Returns a ContainerClient
     def get_sdk_type(self):
         if self._data:
-            blob_service_client = (
-                BlobServiceClient(
-                    account_url=self._connection, credential=DefaultAzureCredential()
-                )
-                if self._using_managed_identity
-                else BlobServiceClient.from_connection_string(self._connection)
-            )
+            blob_service_client = get_blob_service_client(self._system_managed_identity,
+                                                          self._user_managed_identity,
+                                                          self._connection)
             return blob_service_client.get_container_client(
                 container=self._containerName
             )
         else:
-            return None
+            raise ValueError(f"Unable to create {self.__class__.__name__} SDK type.")

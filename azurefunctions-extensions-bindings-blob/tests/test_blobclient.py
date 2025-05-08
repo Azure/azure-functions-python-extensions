@@ -93,11 +93,15 @@ class TestBlobClient(unittest.TestCase):
             )
 
     def test_input_empty(self):
-        datum: Datum = Datum(value={}, type="model_binding_data")
-        result: BlobClient = BlobClientConverter.decode(
-            data=datum, trigger_metadata=None, pytype=BlobClient
+        with self.assertRaises(ValueError) as e:
+            datum: Datum = Datum(value={}, type="model_binding_data")
+            _: BlobClient = BlobClientConverter.decode(
+                data=datum, trigger_metadata=None, pytype=BlobClient
+            )
+        self.assertEqual(
+            e.exception.args[0],
+            "ValueError: Unable to create BlobClient SDK type.",
         )
-        self.assertIsNone(result)
 
     def test_input_populated(self):
         content = {

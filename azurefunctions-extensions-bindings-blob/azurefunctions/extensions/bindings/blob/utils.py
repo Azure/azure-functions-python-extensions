@@ -2,6 +2,9 @@
 #  Licensed under the MIT License.
 import os
 
+from azure.identity import DefaultAzureCredential, ManagedIdentityCredential
+from azure.storage.blob import BlobServiceClient
+
 
 def get_connection_string(connection_string: str) -> str:
     """
@@ -39,12 +42,45 @@ def get_connection_string(connection_string: str) -> str:
         )
 
 
-def using_managed_identity(connection_name: str) -> bool:
+def using_system_managed_identity(connection_name: str) -> bool:
     """
-    To determine if managed identity is being used, we check if the provided
-    connection string has either of the two suffixes:
+    To determine if system-assigned managed identity is being used, we check if
+    the provided connection string has either of the two suffixes:
     __serviceUri or __blobServiceUri.
     """
     return (os.getenv(connection_name + "__serviceUri") is not None) or (
         os.getenv(connection_name + "__blobServiceUri") is not None
     )
+
+
+def using_user_managed_identity(connection_name: str) -> bool:
+    """
+    To determine if user-assigned managed identity is being used, we check if
+    the provided connection string has the following suffixes:
+    __serviceUri and __credential, AND either __managedIdentityResourceId
+    or __clientID.
+
+    We are not verifying that the customer only has __managedIdentityResourceId
+    or __clientID. That check is handled by the (???).
+    """
+    return ((os.getenv(connection_name + "__serviceUri") is not None)
+            and (os.getenv(connection_name + "__credential") is not None)
+            and ((os.getenv(connection_name + "__managedIdentityResourceId")
+                  is not None)
+                 or (os.getenv(connection_name + "__clientID") is not None
+                     )))
+
+
+def get_blob_service_client(system_managed_identity: bool,
+                            user_managed_identity: bool,
+                            connection: str):
+    connection_string = get_connection_string(connection)
+    if user_managed_identity:
+        return BlobServiceClient(account_url=connection_string,
+                                 credential=ManagedIdentityCredential(
+                                     client_id=os.getenv(connection + "__clientID")))
+    elif system_managed_identity:
+        return BlobServiceClient(account_url=connection_string,
+                                 credential=DefaultAzureCredential())
+    else:
+        return BlobServiceClient.from_connection_string(connection_string)
