@@ -1,7 +1,17 @@
 parameters:
   - name: python_versions
     type: object
-    default: '{"python39": {PYTHON_VERSION: "3.9"}, "python310": {PYTHON_VERSION: "3.10"}, "python311": {PYTHON_VERSION: "3.11"}, "python312": {PYTHON_VERSION: "3.12"}, "python313": {PYTHON_VERSION: "3.13"}}'
+    default:
+      python39:
+        PYTHON_VERSION: '3.9'
+      python310:
+        PYTHON_VERSION: '3.10'
+      python311:
+        PYTHON_VERSION: '3.11'
+      python312:
+        PYTHON_VERSION: '3.12'
+      python313:
+        PYTHON_VERSION: '3.13'
 
 jobs:
   - job: "BaseTests"
