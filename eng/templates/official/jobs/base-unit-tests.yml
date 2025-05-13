@@ -1,20 +1,19 @@
 parameters:
-  - name: python_versions
+  - name: python_versions_list
     type: object
-    default:
-      # 3.8 is EOL, don't run tests for it
-      - python39: '3.9'
-      - python310: '3.10'
-      - python311: '3.11'
-      - python312: '3.12'
-      - python313: '3.13'
+    default: ['python39', 'python310', 'python311', 'python312', 'python313']
+  - name: python_version
+    type: object
+    default: ['3.9', '3.10', '3.11', '3.12', '3.13']
 
 jobs:
   - job: "BaseTests"
     displayName: "Base Extension Tests"
     dependsOn: []
     strategy:
-      matrix: ${{ parameters.python_versions }}
+      matrix: 
+        ${{ parameters.python_versions_list }}:
+          PYTHON_VERSION: ${{ parameters.python_version }}
     condition: always()
     steps:
       - task: UsePythonVersion@0
