@@ -133,7 +133,7 @@ jobs:
           python -m pip install --upgrade pip
           cd azurefunctions-extensions-bindings-servicebus
           python -m pip install -U -e .[dev]
-        displayName: 'Install EventHub Dependencies'
+        displayName: 'Install ServiceBus Dependencies'
       - bash: |
           python -m pytest -q --instafail azurefunctions-extensions-bindings-servicebus/tests/
         env:
