@@ -1,0 +1,30 @@
+jobs:
+  - job: "TestPython"
+    displayName: "Run Cosmos DB Tests"
+
+    strategy:
+      matrix:
+        python39:
+          PYTHON_VERSION: '3.9'
+        python310:
+          PYTHON_VERSION: '3.10'
+        python311:
+          PYTHON_VERSION: '3.11'
+        python312:
+          PYTHON_VERSION: '3.12'
+
+    steps:
+      - task: UsePythonVersion@0
+        inputs:
+          versionSpec: $(PYTHON_VERSION)
+      - bash: |
+          python -m pip install --upgrade pip
+          cd azurefunctions-extensions-bindings-cosmosdb
+          python -m pip install -U -e .[dev]
+        displayName: 'Install dependencies'
+      - bash: |
+          python -m pytest -q --instafail azurefunctions-extensions-bindings-cosmosdb/tests/
+        env:
+          CosmosDBConnection: $(CosmosDBConnection)
+          input__accountEndpoint: $(input__accountEndpoint)
+        displayName: "Running Cosmos DB $(PYTHON_VERSION) Python Extension Tests"

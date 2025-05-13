@@ -5,7 +5,7 @@
 import azure.functions as func
 from azurefunctions.extensions.http.fastapi import JSONResponse, Request
 
-app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
+app = func.FunctionApp(http_auth_level=func.AuthLevel.FUNCTION)
 
 
 @app.route(route="streaming_upload", methods=[func.HttpMethod.POST])

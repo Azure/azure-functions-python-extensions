@@ -1,0 +1,11 @@
+[flake8]
+# it's not a bug that we aren't using all of hacking, ignore:
+# H402: Module level import not at top of file
+# W503: Line break occurred before a binary operator
+# E731: Do not assign a lambda expression, use a def
+ignore = W503,E402,E731
+
+exclude = .git, __pycache__, build, dist, .eggs, .github, .local, docs/,
+          Samples, .env*, .vscode, venv*, *.venv*
+
+max-line-length = 88

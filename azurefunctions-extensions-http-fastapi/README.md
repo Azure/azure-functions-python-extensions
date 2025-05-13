@@ -1,7 +1,7 @@
 # Azure Functions Extensions Http FastApi library for Python
-This library contains HttpV2 extensions for FastApi Request/Response types to use in your function app code. 
+This library contains HttpV2 extensions for FastApi Request/Response types to use in your function app code.
 
-[Source code](https://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-extensions-http-fastapi)
+[Source code](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-http-fastapi)
 | [Package (PyPi)](https://pypi.org/project/azurefunctions-extensions-http-fastapi/)
 | [Developer Reference](https://learn.microsoft.com/en-us/azure/azure-functions/functions-reference-python?tabs=get-started%2Casgi%2Capplication-level&pivots=python-mode-decorators#http-streams-preview)
 | [Samples](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-http-fastapi/samples)
@@ -39,7 +39,7 @@ upload and download scenarios are now possible! Please reference the [FastApi do
 import azure.functions as func
 from azurefunctions.extensions.http.fastapi import Request, JSONResponse
 
-app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
+app = func.FunctionApp(http_auth_level=func.AuthLevel.FUNCTION)
 
 @app.route(route="streaming_upload", methods=[func.HttpMethod.POST])
 async def streaming_upload(req: Request) -> JSONResponse:

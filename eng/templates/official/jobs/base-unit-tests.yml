@@ -12,6 +12,8 @@ jobs:
           PYTHON_VERSION: '3.10'
         python311:
           PYTHON_VERSION: '3.11'
+        python312:
+          PYTHON_VERSION: '3.12'
 
     steps:
       - task: UsePythonVersion@0
@@ -23,5 +25,5 @@ jobs:
           python -m pip install -U -e .[dev]
         displayName: 'Install dependencies'
       - bash: |
-          python -m pytest -q --instafail azurefunctions-extensions-base/tests/ --ignore='azurefunctions-extensions-bindings-blob', --ignore='azurefunctions-extensions-http-fastapi'
+          python -m pytest -q --instafail azurefunctions-extensions-base/tests/ --ignore='azurefunctions-extensions-bindings-blob', --ignore='azurefunctions-extensions-http-fastapi', --ignore='azurefunctions-extensions-bindings-eventhub'
         displayName: "Running Base $(PYTHON_VERSION) Python Extension Tests"

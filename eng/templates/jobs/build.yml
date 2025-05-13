@@ -10,6 +10,15 @@ jobs:
         blob_extension:
           EXTENSION_DIRECTORY: 'azurefunctions-extensions-bindings-blob'
           EXTENSION_NAME: 'Blob'
+        cosmosdb_extension:
+          EXTENSION_DIRECTORY: 'azurefunctions-extensions-bindings-cosmosdb'
+          EXTENSION_NAME: 'CosmosDB'
+        eventhub_extension:
+          EXTENSION_DIRECTORY: 'azurefunctions-extensions-bindings-eventhub'
+          EXTENSION_NAME: 'EventHub'
+        servicebus_extension:
+          EXTENSION_DIRECTORY: 'azurefunctions-extensions-bindings-servicebus'
+          EXTENSION_NAME: 'ServiceBus'
         fastapi_extension:
           EXTENSION_DIRECTORY: 'azurefunctions-extensions-http-fastapi'
           EXTENSION_NAME: 'Http'
@@ -27,3 +36,8 @@ jobs:
           cd $(EXTENSION_DIRECTORY)
           python -m build
         displayName: 'Build $(EXTENSION_NAME) Extension'
+      - bash: |
+          pip install pip-audit
+          cd $(EXTENSION_DIRECTORY)
+          pip-audit .
+        displayName: 'Run vulnerability scan'
