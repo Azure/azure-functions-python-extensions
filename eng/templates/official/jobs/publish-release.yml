@@ -192,6 +192,7 @@ jobs:
       instructions: |
         1. Please wait and check if all goes green in the https://github.com/Azure/azure-functions-python-worker/pulls
         2. Merge the PR into worker dev branch
+    condition: always()
 
 - job: "PyPIPackage"
   dependsOn: ['FinishWorkerPr']
