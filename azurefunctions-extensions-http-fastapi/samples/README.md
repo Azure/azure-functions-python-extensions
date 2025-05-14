@@ -6,8 +6,8 @@ products:
   - azure
   - azure-functions
   - azure-functions-extensions
-  - azurefunctions-extensions-bindings-blob
-urlFragment: extension-blob-samples
+  - azurefunctions-extensions-http-fastapi
+urlFragment: extension-fastapi-samples
 ---
 
 # Azure Functions Extension FastAPI library for Python samples

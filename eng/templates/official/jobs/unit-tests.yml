@@ -96,8 +96,6 @@ jobs:
         displayName: 'Install EventHub Dependencies'
       - bash: |
           python -m pytest -q --instafail azurefunctions-extensions-bindings-eventhub/tests/
-        env:
-          AzureWebJobsStorage: $(AzureWebJobsStorage)
         displayName: "Running EventHub $(PYTHON_VERSION) Python Extension Tests"
 
   - job: "FastApiTests"
@@ -136,6 +134,4 @@ jobs:
         displayName: 'Install ServiceBus Dependencies'
       - bash: |
           python -m pytest -q --instafail azurefunctions-extensions-bindings-servicebus/tests/
-        env:
-          AzureWebJobsStorage: $(AzureWebJobsStorage)
         displayName: "Running ServiceBus $(PYTHON_VERSION) Python Extension Tests"

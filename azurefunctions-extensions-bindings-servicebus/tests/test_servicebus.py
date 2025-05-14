@@ -2,7 +2,6 @@
 #  Licensed under the MIT License.
 
 import unittest
-import sys
 from typing import List, Optional
 
 
@@ -145,23 +144,8 @@ class TestServiceBus(unittest.TestCase):
             "Unexpected type of data received for the 'servicebus' binding: 'str'",
         )
 
-    @unittest.skipIf(sys.version_info.minor >= 13, "Python 3.13"
-                                                   " throws a different error.")
     def test_input_get_decoded_message_ex(self):
         with self.assertRaises(ValueError) as e:
             _ = get_decoded_message("Invalid message")
-        self.assertEqual(
-            e.exception.args[0],
-            "Failed to decode ServiceBus content: must be str, not bytes",
-        )
 
-    @unittest.skipIf(sys.version_info.minor < 13, "Python 3.13"
-                                                  " throws a different error.")
-    def test_input_get_decoded_message_ex_313(self):
-        with self.assertRaises(ValueError) as e:
-            _ = get_decoded_message("Invalid message")
-        self.assertEqual(
-            e.exception.args[0],
-            "Failed to decode ServiceBus content: "
-            "find() argument 1 must be str, not bytes",
-        )
+        self.assertIn("Failed to decode ServiceBus content", e.exception.args[0])
