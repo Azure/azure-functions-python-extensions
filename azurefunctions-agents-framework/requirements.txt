@@ -1,0 +1,14 @@
+azure-functions
+mcp
+openai
+azure-ai-projects
+azure-identity
+azure-keyvault-secrets
+typing_extensions
+asyncio
+pydantic
+httpx
+aiohttp
+a2a-sdk
+isort
+black
