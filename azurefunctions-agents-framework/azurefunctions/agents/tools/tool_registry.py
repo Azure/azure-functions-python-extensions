@@ -85,8 +85,8 @@ class ToolRegistry:
         Returns:
             Tool execution result
         """
-        # Check if it's an MCP tool (contains ":")
-        if ":" in tool_name and self.mcp_manager:
+        # Check if it's an MCP tool (contains "-")
+        if "-" in tool_name and self.mcp_manager:
             return await self.mcp_manager.execute_tool(tool_name, arguments)
 
         # Otherwise, try function tools
@@ -121,7 +121,7 @@ class ToolRegistry:
             Tool schema dictionary if found, None otherwise
         """
         # Check MCP tools first if it's an MCP tool name
-        if ":" in tool_name and self.mcp_manager:
+        if "-" in tool_name and self.mcp_manager:
             return self.mcp_manager.get_tool_schema(tool_name)
 
         # Check function tools
@@ -159,7 +159,7 @@ class ToolRegistry:
             True if tool exists, False otherwise
         """
         # Check MCP tools
-        if ":" in tool_name and self.mcp_manager:
+        if "-" in tool_name and self.mcp_manager:
             return tool_name in self.mcp_manager.available_tools
 
         # Check function tools

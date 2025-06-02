@@ -61,7 +61,7 @@ class MCPToolManager:
 
             # Register tools from this server
             for tool in tools:
-                tool_key = f"{server.name}:{tool.name}"
+                tool_key = f"{server.name}-{tool.name}"
                 self.available_tools[tool_key] = tool
                 self.logger.info(f"Registered MCP tool: {tool_key}")
 
@@ -131,8 +131,8 @@ class MCPToolManager:
                 return {"error": f"MCP tool '{tool_name}' not found", "status": "error"}
 
             # Extract server name from tool name
-            server_name = tool_name.split(":", 1)[0]
-            actual_tool_name = tool_name.split(":", 1)[1]
+            server_name = tool_name.split("-", 1)[0]
+            actual_tool_name = tool_name.split("-", 1)[1]
 
             if server_name not in self.servers:
                 return {
@@ -164,7 +164,7 @@ class MCPToolManager:
         tools = []
 
         for tool_key, tool in self.available_tools.items():
-            server_name = tool_key.split(":", 1)[0]
+            server_name = tool_key.split("-", 1)[0]
 
             tool_info = {
                 "name": tool_key,

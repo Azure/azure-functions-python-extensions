@@ -243,26 +243,25 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
         )
         async def agent_endpoint(req: HttpRequest) -> HttpResponse:
             return await self._handle_agent_request(req)
-
+    
+        # @self.route(
+        #     route=f"{self.name.lower()}/tools",
+        #     auth_level=self._auth_level,
+        #     methods=["GET"],
+        # )
+        # def list_tools(req: HttpRequest) -> HttpResponse:
+        #     l = self.list_tools()
+        #     return HttpResponse(str(l), status_code=200, headers={"Content-Type": "application/json"})
         
-        @self.route(
-            route=f"{self.name.lower()}/tools",
-            auth_level=self._auth_level,
-            methods=["GET"],
-        )
-        def list_tools(req: HttpRequest) -> HttpResponse:
-            l = self.list_tools()
-            return HttpResponse(str(l), status_code=200, headers={"Content-Type": "application/json"})
-        
-        @self.route(
-            route=f"{self.name.lower()}/tool/{{tool_name}}",
-            auth_level=self._auth_level,
-            methods=["GET"],
-        )
-        def list_tools_details(req: HttpRequest) -> HttpResponse:
-            tool_name = req.route_params.get("tool_name")
-            tool = self.list_tools()["tool_name"]
-            return HttpResponse(str(tool), status_code=200, headers={"Content-Type": "application/json"})
+        # @self.route(
+        #     route=f"{self.name.lower()}/tool/{{tool_name}}",
+        #     auth_level=self._auth_level,
+        #     methods=["GET"],
+        # )
+        # def list_tools_details(req: HttpRequest) -> HttpResponse:
+        #     tool_name = req.route_params.get("tool_name")
+        #     tool = self.list_tools()["tool_name"]
+        #     return HttpResponse(str(tool), status_code=200, headers={"Content-Type": "application/json"})
 
     async def _handle_agent_request(self, req: HttpRequest) -> HttpResponse:
         """Handle requests to the agent endpoint."""
