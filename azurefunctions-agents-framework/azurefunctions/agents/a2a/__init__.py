@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 """A2A (Agent-to-Agent) protocol implementation."""
 
 from .client import A2AClient

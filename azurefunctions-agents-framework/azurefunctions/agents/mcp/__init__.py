@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 """MCP (Model Context Protocol) support for Azure Functions Agent Framework.
 
 This module provides support for integrating MCP servers and tools into Azure Function agents,

@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 """Azure Functions Agent Package
 
 Core agent framework for building intelligent Azure Functions with AI capabilities.
@@ -30,3 +33,7 @@ __all__ = [
     "MCPServerStreamableHttp",
     "MCPUtil",
 ]
+
+__version__ = "0.0.1b1"
+__author__ = "Microsoft Azure Functions Team"
+__license__ = "MIT"

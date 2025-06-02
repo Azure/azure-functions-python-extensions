@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 """Azure Functions Agent Framework
 
 A modern, extensible framework for building AI agents as Azure Functions with support for:
@@ -7,6 +10,4 @@ A modern, extensible framework for building AI agents as Azure Functions with su
 - Conversational AI capabilities
 - Function calling and tool execution
 """
-
-__version__ = "0.0.1b1"
-__author__ = "Microsoft Azure Functions Team"
+__path__ = __import__("pkgutil").extend_path(__path__, __name__)

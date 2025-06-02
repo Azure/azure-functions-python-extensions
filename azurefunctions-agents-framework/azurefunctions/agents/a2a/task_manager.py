@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 """A2A Task Manager - handles task lifecycle and execution."""
 
 import asyncio

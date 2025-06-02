@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 """Utility functions for MCP integration with Azure Functions Agent Framework.
 
 Based on the OpenAI agents SDK MCP utilities but adapted for our framework.

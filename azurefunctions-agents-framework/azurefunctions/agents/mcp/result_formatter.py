@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 """Shared utilities for formatting MCP tool results."""
 
 import logging

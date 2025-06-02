@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 """Tool registry - unified interface for both MCP and function tools."""
 
 import logging

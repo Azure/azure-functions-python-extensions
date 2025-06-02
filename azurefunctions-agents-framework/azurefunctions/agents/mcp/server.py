@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 """MCP Server implementations for Azure Functions Agent Framework.
 
 Based on the OpenAI agents SDK MCP implementation but adapted for Azure Functions.

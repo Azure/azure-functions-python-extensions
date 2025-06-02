@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 """LLM Client - unified interface for different model providers."""
 
 import asyncio

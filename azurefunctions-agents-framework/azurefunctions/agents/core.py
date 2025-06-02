@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 """Core AgentFunctionApp class - the main entry point for the agent framework."""
 
 import asyncio
@@ -56,6 +59,9 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
         mode: AgentMode = AgentMode.AZURE_FUNCTION_AGENT,
         version: str = "1.0.0",
         description: Optional[str] = None,
+        expose_agent_info: bool = True,
+        expose_instructions: bool = True,
+        expose_tools: bool = True,
     ):
         """
         Initialize the AgentFunctionApp.
@@ -71,6 +77,9 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
             mode: Operating mode (standard or A2A)
             version: Version of the agent
             description: Description of the agent for A2A protocol
+            expose_agent_info: Whether to expose agent information via GET endpoint (default: True)
+            expose_instructions: Whether to expose agent instructions via GET endpoint (default: True)
+            expose_tools: Whether to expose tool information via GET endpoint (default: True)
         """
         super().__init__(auth_level=http_auth_level)
 
@@ -83,6 +92,11 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
         self.version: str = version
         self.description: str = description or f"Azure Function Agent: {name}"
 
+        # Privacy/Security configuration
+        self.expose_agent_info: bool = expose_agent_info
+        self.expose_instructions: bool = expose_instructions
+        self.expose_tools: bool = expose_tools
+
         # Tool management
         self.tool_registry = ToolRegistry(MCPConfig())
 
@@ -93,8 +107,6 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
 
         # Only set default LLM config if explicitly requested and environment has API key
         if enable_conversational_agent and not llm_config:
-            import os
-
             if os.getenv("OPENAI_API_KEY") or os.getenv("AZURE_OPENAI_API_KEY"):
                 self.llm_config = LLMConfig(
                     provider=LLMProvider.OPENAI,
@@ -115,7 +127,7 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
             self.a2a_manager = A2AManager(self)
 
         # Logger
-        self.logger = logging.getLogger(f"AgentFunctionApp.{self.name}")
+        # logging = logging.getLogger(f"AgentFunctionApp.{self.name}")
 
         # Initialize LLM client if enabled
         if self.enable_conversational_agent and self.llm_config:
@@ -162,21 +174,21 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
     async def _async_register_mcp_tools(self):
         """Asynchronously connect to MCP servers and register their tools."""
         try:
-            self.logger.info(f"Connecting to {len(self.mcp_servers)} MCP servers...")
+            logging.info(f"Connecting to {len(self.mcp_servers)} MCP servers...")
             
             # Register each MCP server with the tool registry
             # The tool registry handles connection and tool discovery
             for server in self.mcp_servers:
                 success = await self.tool_registry.add_mcp_server(server)
                 if success:
-                    self.logger.info(f"Successfully registered MCP server: {server.name}")
+                    logging.info(f"Successfully registered MCP server: {server.name}")
                 else:
-                    self.logger.warning(f"Failed to register MCP server: {server.name}")
+                    logging.warning(f"Failed to register MCP server: {server.name}")
             
-            self.logger.info("MCP tools registration completed")
+            logging.info("MCP tools registration completed")
             
         except Exception as e:
-            self.logger.error(f"Failed to register MCP tools: {e}")
+            logging.error(f"Failed to register MCP tools: {e}")
 
     def tool(
         self,
@@ -210,7 +222,7 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
             )
 
             if not success:
-                self.logger.warning(f"Failed to register tool: {tool_name}")
+                logging.warning(f"Failed to register tool: {tool_name}")
 
             return f
 
@@ -225,12 +237,32 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
         """Register the main agent endpoint automatically."""
 
         @self.route(
-            route=f"{self.name.lower()}/{{action?}}",
+            route=f"{self.name.lower()}/actions/{{action?}}",
             auth_level=self._auth_level,
             methods=["GET", "POST"],
         )
         async def agent_endpoint(req: HttpRequest) -> HttpResponse:
             return await self._handle_agent_request(req)
+
+        
+        @self.route(
+            route=f"{self.name.lower()}/tools",
+            auth_level=self._auth_level,
+            methods=["GET"],
+        )
+        def list_tools(req: HttpRequest) -> HttpResponse:
+            l = self.list_tools()
+            return HttpResponse(str(l), status_code=200, headers={"Content-Type": "application/json"})
+        
+        @self.route(
+            route=f"{self.name.lower()}/tool/{{tool_name}}",
+            auth_level=self._auth_level,
+            methods=["GET"],
+        )
+        def list_tools_details(req: HttpRequest) -> HttpResponse:
+            tool_name = req.route_params.get("tool_name")
+            tool = self.list_tools()["tool_name"]
+            return HttpResponse(str(tool), status_code=200, headers={"Content-Type": "application/json"})
 
     async def _handle_agent_request(self, req: HttpRequest) -> HttpResponse:
         """Handle requests to the agent endpoint."""
@@ -243,7 +275,7 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
                 return await self._handle_post_request(req, action)
 
         except Exception as e:
-            self.logger.error(f"Error handling agent request: {str(e)}")
+            logging.error(f"Error handling agent request: {str(e)}")
             return HttpResponse(
                 json.dumps({"error": f"Internal server error: {str(e)}"}),
                 status_code=500,
@@ -252,15 +284,36 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
 
     async def _handle_get_request(self, action: Optional[str]) -> HttpResponse:
         """Handle GET requests - return agent info."""
+        # Check if agent info exposure is disabled
+        if not self.expose_agent_info:
+            return HttpResponse(
+                json.dumps({
+                    "error": "Agent information is not available",
+                    "message": "This agent has disabled information exposure for security reasons"
+                }),
+                status_code=403,
+                headers={"Content-Type": "application/json"},
+            )
+
+        # Build response based on what's allowed to be exposed
         agent_info = {
             "agent": self.name,
-            "instructions": await self._get_instructions(),
-            "tools": self.tool_registry.list_all_tools(),
-            "endpoints": {
-                "info": f"GET /api/{self.name.lower()}",
-                "invoke": f"POST /api/{self.name.lower()}",
-                "tool": f"POST /api/{self.name.lower()}/tool",
-            },
+            "version": self.version,
+        }
+
+        # Only include instructions if allowed
+        if self.expose_instructions:
+            agent_info["instructions"] = await self._get_instructions()
+
+        # Only include tools if allowed
+        if self.expose_tools:
+            agent_info["tools"] = self.tool_registry.list_all_tools()
+        
+        # Always include endpoints info (this is generally safe)
+        agent_info["endpoints"] = {
+            "info": f"GET /api/{self.name.lower()}",
+            "invoke": f"POST /api/{self.name.lower()}",
+            "tool": f"POST /api/{self.name.lower()}/tool",
         }
 
         if action:
@@ -462,7 +515,7 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
                             )
 
                             # Execute tool
-                            self.logger.info(f"Executing function tool: {tool_name}")
+                            logging.info(f"Executing function tool: {tool_name}")
                             tool_result = await self.tool_registry.execute_tool(
                                 tool_name, arguments
                             )
@@ -489,7 +542,7 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
                             )
 
                         except Exception as e:
-                            self.logger.error(f"Tool execution failed: {e}")
+                            logging.error(f"Tool execution failed: {e}")
                             # Add error result to conversation
                             chat_messages.append(
                                 ChatMessage(
@@ -547,7 +600,7 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
             }
 
         except Exception as e:
-            self.logger.error(f"Conversational processing failed: {e}")
+            logging.error(f"Conversational processing failed: {e}")
             return {
                 "agent": self.name,
                 "error": f"Failed to process conversational request: {str(e)}",
@@ -565,7 +618,7 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
         except KeyError:
             return {"error": f"Tool '{tool_name}' not found", "status": "error"}
         except Exception as e:
-            self.logger.error(f"Tool execution failed for {tool_name}: {str(e)}")
+            logging.error(f"Tool execution failed for {tool_name}: {str(e)}")
             return {"error": str(e), "status": "error"}
 
     def _prepare_tools_schema(self) -> Optional[List[Dict[str, Any]]]:
@@ -577,6 +630,10 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
         """List all registered tool names."""
         tools = self.tool_registry.list_all_tools()
         return [tool.get("name", "") for tool in tools if tool.get("name")]
+    
+    def list_tools_details(self) -> Dict[str, Any]:
+        """List all registered tool names."""
+        return self.tool_registry.list_all_tools()
 
     def get_tool(self, name: str) -> Optional[Dict[str, Any]]:
         """Get tool information by name."""
@@ -602,6 +659,46 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
         """Manually initialize the LLM client."""
         if self.llm_client:
             await self.llm_client.initialize()
+
+    # Privacy/Security configuration methods
+    def configure_privacy(
+        self,
+        expose_agent_info: Optional[bool] = None,
+        expose_instructions: Optional[bool] = None,
+        expose_tools: Optional[bool] = None,
+    ):
+        """
+        Configure what information is exposed via GET endpoints.
+        
+        Args:
+            expose_agent_info: Whether to expose any agent information (overrides other settings)
+            expose_instructions: Whether to expose agent instructions
+            expose_tools: Whether to expose tool information
+        """
+        if expose_agent_info is not None:
+            self.expose_agent_info = expose_agent_info
+        if expose_instructions is not None:
+            self.expose_instructions = expose_instructions
+        if expose_tools is not None:
+            self.expose_tools = expose_tools
+
+    def disable_info_exposure(self):
+        """Disable all information exposure via GET endpoints for maximum security."""
+        self.expose_agent_info = False
+        self.expose_instructions = False
+        self.expose_tools = False
+
+    def enable_info_exposure(self):
+        """Enable all information exposure via GET endpoints (default behavior)."""
+        self.expose_agent_info = True
+        self.expose_instructions = True
+        self.expose_tools = True
+
+    def expose_only_endpoints(self):
+        """Expose only endpoint information, hiding instructions and tools."""
+        self.expose_agent_info = True
+        self.expose_instructions = False
+        self.expose_tools = False
 
     @property
     def model(self) -> Optional[LLMClient]:

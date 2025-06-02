@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 """Tools module - handles both MCP and function-based tools."""
 
 from .function_tools import FunctionToolManager

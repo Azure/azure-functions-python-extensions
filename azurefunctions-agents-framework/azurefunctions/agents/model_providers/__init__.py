@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 """Model providers for different LLM services."""
 
 from .azure_openai_provider import AzureOpenAIProvider

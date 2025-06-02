@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 """A2A Manager - handles A2A protocol endpoints and capabilities for the agent."""
 
 import json

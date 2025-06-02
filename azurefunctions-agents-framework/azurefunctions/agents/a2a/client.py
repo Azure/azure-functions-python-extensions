@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 """A2A Client - for calling other A2A compliant agents."""
 
 import asyncio

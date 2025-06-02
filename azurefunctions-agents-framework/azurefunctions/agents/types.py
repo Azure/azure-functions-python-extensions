@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 """Core types and data structures for the Azure Functions Agent framework."""
 
 import abc
