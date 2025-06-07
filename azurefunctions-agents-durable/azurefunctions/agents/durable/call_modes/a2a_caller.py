@@ -40,7 +40,7 @@ class A2ATaskAgentCaller(BaseAgentCaller):
         """Get the activity name for A2A task calls."""
         return f"call_a2a_task_agent_{self.config.name}"
         
-    async def call_agent(self, context: df.DurableOrchestrationContext, method: str, 
+    def call_agent(self, context: df.DurableOrchestrationContext, method: str, 
                         args: Dict[str, Any] = None, kwargs: Dict[str, Any] = None) -> Any:
         """Call the A2A task agent using the orchestrator context.
         
@@ -66,8 +66,7 @@ class A2ATaskAgentCaller(BaseAgentCaller):
             "args": args,
             "kwargs": kwargs
         }
-        result = yield context.call_activity(activity_name, json.dumps(request_data))
-        return json.loads(result)
+        return context.call_activity(activity_name, json.dumps(request_data))
     
     async def _execute_a2a_task_call(self, method: str, args: Dict[str, Any], kwargs: Dict[str, Any]) -> AgentCallResponse:
         """Execute A2A task call by starting a new orchestration."""
@@ -129,7 +128,7 @@ class A2ASyncAgentCaller(BaseAgentCaller):
         """Get the activity name for A2A sync calls."""
         return f"call_a2a_sync_agent_{self.config.name}"
         
-    async def call_agent(self, context: df.DurableOrchestrationContext, method: str, 
+    def call_agent(self, context: df.DurableOrchestrationContext, method: str, 
                         args: Dict[str, Any] = None, kwargs: Dict[str, Any] = None) -> Any:
         """Call the A2A sync agent using the orchestrator context.
         

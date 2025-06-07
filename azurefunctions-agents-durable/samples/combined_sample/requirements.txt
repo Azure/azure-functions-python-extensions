@@ -1,3 +1,8 @@
-azure-functions==1.17.0
-azure-functions-durable>=1.2.4
-mcp-client>=0.1.0
+# /workspaces/azure-functions-python-extensions/azurefunctions-agents-durable/samples/combined_sample/requirements.txt
+azure-functions
+azure-functions-durable
+mcp[cli]>=1.6.0
+
+# Local development packages are installed in editable mode via the setup script
+ -e /workspaces/azure-functions-python-extensions/azurefunctions-agents-framework
+ -e /workspaces/azure-functions-python-extensions/azurefunctions-agents-durable

@@ -51,7 +51,7 @@ class MCPAgentCaller(BaseAgentCaller):
         """Get the activity name for MCP calls."""
         return f"call_mcp_agent_{self.config.name}"
     
-    async def call_agent(self, context: df.DurableOrchestrationContext, method: str, 
+    def call_agent(self, context: df.DurableOrchestrationContext, method: str, 
                         args: Dict[str, Any] = None, kwargs: Dict[str, Any] = None) -> Any:
         """Call the MCP agent using the orchestrator context.
         
@@ -77,8 +77,7 @@ class MCPAgentCaller(BaseAgentCaller):
             "args": args,
             "kwargs": kwargs
         }
-        result = yield context.call_activity(activity_name, json.dumps(request_data))
-        return json.loads(result)
+        return context.call_activity(activity_name, json.dumps(request_data))
     
     async def call_mcp_tool(self, context: df.DurableOrchestrationContext, tool_name: str, 
                            arguments: Dict[str, Any] = None) -> Any:
@@ -368,7 +367,7 @@ class MCPClientHelper:
             }
             return result
     
-    async def call_service(self, context: df.DurableOrchestrationContext, 
+    def call_service(self, context: df.DurableOrchestrationContext, 
                     tool_name: str, arguments: Optional[Dict] = None, 
                     sse_url: Optional[str] = None) -> Any:
         """Helper method to call MCP service from orchestrator (exact prototype pattern).

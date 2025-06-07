@@ -14,7 +14,7 @@ class BaseAgentCaller(ABC):
     def __init__(self, config: AgentConfig, app: Union[FunctionApp, df.DFApp]):
         self.config = config
         self.app = app    @abstractmethod
-    async def call_agent(self, context: df.DurableOrchestrationContext, method: str, 
+    def call_agent(self, context: df.DurableOrchestrationContext, method: str, 
                         args: Dict[str, Any] = None, kwargs: Dict[str, Any] = None) -> Any:
         """Call the agent with the specified method and parameters.
         

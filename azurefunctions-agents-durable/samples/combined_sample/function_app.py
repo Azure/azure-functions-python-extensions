@@ -3,17 +3,23 @@ Combined Sample: Durable Orchestrator calling both Hello World Agent and MCP Ser
 This demonstrates how to use the azure-functions-agents-durable framework to call different agent types
 """
 
+# Apply the import patch to fix azurefunctions.agents imports
+import patch_imports
+patch_imports.apply_patch()
+
 import json
 import logging
 import os
 from typing import Dict, Any
 
 import azure.functions as func
+from azure.functions import AuthLevel
+
 import azure.durable_functions as df
 from azurefunctions.agents.durable import (
     DFAgentFramework, AgentCaller, AgentConfig, CallMode, orchestrator
 )
-from azurefunctions.agent import AgentFunctionApp, MCPServerStdio
+from azurefunctions.agent import AgentFunctionApp, MCPServerStdio, LLMConfig, LLMProvider
 
 # Create the Function app and setup the agent framework
 app = df.DFApp()
@@ -34,7 +40,7 @@ def hello_name_http(req: func.HttpRequest) -> func.HttpResponse:
     name = req.params.get('name', req.get_json().get('name', 'Anonymous') if req.get_body() else 'Anonymous')
     return func.HttpResponse(f"Hello, {name}! Nice to meet you!")
 
-from azurefunctions.agent import AgentFunctionApp, MCPServerStdio
+from azurefunctions.agents import AgentFunctionApp, MCPServerStdio
 
 # Create Git MCP server based on your JSON configuration
 git_mcp_server = MCPServerStdio(
@@ -47,16 +53,26 @@ git_mcp_server = MCPServerStdio(
 
 # Create the Hello World Agent Function App
  
+# Configure LLM for conversational AI
+llm_config = LLMConfig(
+    provider=LLMProvider.AzureOpenAI,
+    model_name="gpt-4o",  # Using a cost-effective model
+    temperature=0.7,
+    max_tokens=1000,
+    # API key will be read from OPENAI_API_KEY environment variable
+    # Or you can set it explicitly: api_key="your-api-key-here"
+)
+ 
+# TODO What is the agent_mode? 
 helloAgent = AgentFunctionApp(
-    name="HelloWorldAgent",
-    instructions=HELLO_WORLD_INSTRUCTIONS,
+    name="hello_world_agent",
+    instructions="Say hello to the user",
     mcp_servers=[git_mcp_server],  # Conditional MCP
     http_auth_level=AuthLevel.ANONYMOUS,  # For easier testing - change for production
     llm_config=llm_config,
     enable_conversational_agent=True,
-    mode=agent_mode,
     version="1.0.0",
-    description="A helpful weather assistant agent that provides current conditions, forecasts, and weather advice",
+    description="A helpful weather assistant agent that provides current conditions, forecasts, and weather"
 )
 # MCP tools are automatically available alongside regular function tools. 
 
@@ -137,7 +153,7 @@ framework.register_agent(AgentConfig(
 #########################################
 
 @orchestrator(framework)
-async def multi_agent_orchestrator(context: df.DurableOrchestrationContext, agents: AgentCaller):
+def multi_agent_orchestrator(context: df.DurableOrchestrationContext, agents: AgentCaller):
     """
     Orchestrator function that calls both HTTP agent and MCP server
     
@@ -154,7 +170,7 @@ async def multi_agent_orchestrator(context: df.DurableOrchestrationContext, agen
     
     # Call the Hello World agent over HTTP
     logging.info("Calling Hello World agent via HTTP...")
-    hello_name_response = await agents.call_http_agent(
+    hello_name_response = yield agents.call_http_agent(
         context,
         "hello_world_agent", 
         "hello_name", 
@@ -163,24 +179,17 @@ async def multi_agent_orchestrator(context: df.DurableOrchestrationContext, agen
     
     # Call the MCP tool using the agent framework
     logging.info("Calling MCP agent...")
-    mcp_response = await agents.call_mcp_tool(
+    mcp_response = yield agents.call_mcp_tool(
         context,
         "mcp_agent",
         "hello_mcp",
         {"user_name": name}
     )
     
-    # We can also call the MCP tool directly via activity
-    direct_response = yield context.call_activity("mcp_call_service", {
-        "tool_name": "hello_mcp",
-        "arguments": {"user_name": f"{name} (direct)"}
-    })
-    
     # Return all responses
     return {
         "hello_name_response": hello_name_response,
-        "mcp_response": mcp_response,
-        "direct_response": direct_response
+        "mcp_response": mcp_response
     }
 
 #########################################
