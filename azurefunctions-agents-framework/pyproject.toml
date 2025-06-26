@@ -93,7 +93,7 @@ known_first_party = ["azurefunctions"]
 
 
 [tool.setuptools.packages.find]
-exclude = ["test_files_llm_created*"]
+exclude = ["test_files_llm_created*", "samples*"]
 
 [tool.setuptools.dynamic]
 version = {attr = "azurefunctions.agents.__version__"}

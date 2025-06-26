@@ -1,0 +1,9 @@
+# Sample Requirements
+azurefunctions-agent-framework[all]
+
+# Optional: Weather API integration
+requests>=2.28.0
+
+# Development dependencies
+pytest>=7.0.0
+pytest-asyncio>=0.21.0

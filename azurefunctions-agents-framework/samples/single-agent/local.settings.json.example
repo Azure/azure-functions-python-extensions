@@ -1,0 +1,37 @@
+# Environment Configuration for Azure Functions Agent Framework
+
+# OpenAI Configuration
+OPENAI_API_KEY=your_openai_api_key_here
+
+# Azure OpenAI Configuration (alternative to OpenAI)
+# AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
+# AZURE_OPENAI_API_KEY=your_azure_openai_key_here
+# AZURE_OPENAI_API_VERSION=2024-02-01
+
+# LLM Model Configuration
+LLM_MODEL_NAME=gpt-4o-mini
+LLM_TEMPERATURE=0.7
+LLM_MAX_TOKENS=1500
+
+# Weather API Configuration
+OPENWEATHER_API_KEY=your_openweather_api_key_here
+
+# Agent Configuration
+ENABLE_A2A_MODE=false
+ENABLE_MCP_SERVERS=false
+
+# Azure Functions Configuration
+FUNCTIONS_WORKER_RUNTIME=python
+FUNCTIONS_EXTENSION_VERSION=~4
+
+# Application Insights (optional)
+# APPINSIGHTS_INSTRUMENTATIONKEY=your_app_insights_key_here
+
+# Development Settings
+DEVELOPMENT_MODE=true
+LOG_LEVEL=INFO
+
+# Multi-Agent System Configuration
+MAX_CONCURRENT_AGENTS=4
+AGENT_TIMEOUT_SECONDS=30
+ENABLE_AGENT_COORDINATION=true
