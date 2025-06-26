@@ -6,17 +6,26 @@ This directory contains curated examples demonstrating various features and use 
 
 ```text
 samples/
-├── single-agent/           # Single agent examples
-│   └── weather_bot.py      # Weather assistant with tools
-├── multi-agent/           # Multi-agent system examples  
-│   └── travel_planner.py  # Collaborative travel planning system
+├── single-agent/           # Single agent Azure Function
+│   ├── function_app.py     # Weather bot Function App
+│   ├── host.json           # Azure Functions configuration
+│   ├── requirements.txt    # Python dependencies
+│   ├── local.settings.json.template # Environment template
+│   └── README.md           # Sample-specific documentation
+├── multi-agent/           # Multi-agent Azure Function system
+│   ├── function_app.py     # Travel planner Function App
+│   ├── host.json           # Azure Functions configuration
+│   ├── requirements.txt    # Python dependencies
+│   ├── local.settings.json.template # Environment template
+│   └── README.md           # Sample-specific documentation
 ├── providers/             # LLM provider examples
 │   ├── anthropic_claude.py # Anthropic Claude integration
-│   └── google_gemini.py   # Google Gemini integration  
+│   └── google_gemini.py   # Google Gemini integration
 ├── mcp-integration/       # Model Context Protocol examples
 │   └── weather_mcp_agent.py # Weather agent with MCP server
-└── advanced-features/     # Advanced functionality examples
-    └── streaming_responses.py # Server-sent events (SSE) streaming
+├── advanced-features/     # Advanced functionality examples
+│   └── streaming_responses.py # Server-sent events (SSE) streaming
+└── .env.example          # Global environment template
 ```
 
 ## 🚀 Getting Started
@@ -25,10 +34,13 @@ samples/
 
 1. **Python 3.9+** installed
 2. **Azure Functions Core Tools** installed:
+
    ```bash
    npm install -g azure-functions-core-tools@4
    ```
+
 3. **Framework installed**:
+
    ```bash
    pip install azurefunctions-agent-framework[all]
    ```
@@ -55,21 +67,25 @@ OPENWEATHER_API_KEY=your-openweather-api-key
 ### Running a Sample
 
 1. **Navigate to a sample directory**:
+
    ```bash
    cd samples/single-agent
    ```
 
 2. **Install dependencies**:
+
    ```bash
    pip install -r requirements.txt  # if present
    ```
 
 3. **Run locally**:
+
    ```bash
    func start
    ```
 
 4. **Test the agent**:
+
    ```bash
    # Single agent
    curl -X POST http://localhost:7071/api/WeatherBot/chat \
@@ -86,30 +102,34 @@ OPENWEATHER_API_KEY=your-openweather-api-key
 
 ### Single Agent Examples
 
-#### `weather_bot.py`
-- **Purpose**: Weather assistant with tool integration
-- **Features**: OpenWeatherMap API, tip calculator, clean architecture
-- **Endpoints**: `/api/WeatherBot/chat`, `/api/WeatherBot/info`
-- **Use Case**: Simple, focused single-purpose agent
+#### Weather Bot Function App
+
+- **Purpose**: Complete Azure Functions weather assistant with real-time data
+- **Features**: OpenWeatherMap API, temperature conversion, weather advice, health monitoring
+- **Endpoints**: `/api/WeatherBot/chat`, `/api/WeatherBot/info`, `/api/health`
+- **Use Case**: Production-ready single-agent Azure Function
 
 ### Multi-Agent Examples
 
-#### `travel_planner.py`
-- **Purpose**: Collaborative travel planning system
-- **Agents**: Flight Search, Price Comparison, Seat Selection, Booking
-- **Features**: Agent coordination, specialized responsibilities
-- **Endpoints**: `/api/agents/{agent_name}/chat`, `/api/agents`
-- **Use Case**: Complex workflows requiring multiple specialized agents
+#### Travel Planner Function App
+
+- **Purpose**: Multi-agent collaborative travel planning system
+- **Agents**: FlightAgent, HotelAgent, BudgetAgent with coordination
+- **Features**: Flight search, hotel booking, budget analysis, agent coordination
+- **Endpoints**: `/api/{AgentName}/chat`, `/api/agents`, `/api/plan-trip`
+- **Use Case**: Complex multi-agent workflows in Azure Functions
 
 ### Provider Examples
 
 #### `anthropic_claude.py`
+
 - **Purpose**: Demonstrates Anthropic Claude integration
 - **Features**: Claude-specific configurations, best practices
 - **Model**: claude-3-sonnet-20240229
 - **Use Case**: Leveraging Claude's strengths for specific tasks
 
-#### `google_gemini.py`  
+#### `google_gemini.py`
+
 - **Purpose**: Shows Google Gemini integration
 - **Features**: Gemini Pro model, Google AI configuration
 - **Model**: gemini-pro
@@ -118,6 +138,7 @@ OPENWEATHER_API_KEY=your-openweather-api-key
 ### MCP Integration Examples
 
 #### `weather_mcp_agent.py`
+
 - **Purpose**: Model Context Protocol server integration
 - **Features**: External MCP server communication, tool discovery
 - **Requirements**: MCP server running separately
@@ -126,6 +147,7 @@ OPENWEATHER_API_KEY=your-openweather-api-key
 ### Advanced Features Examples
 
 #### `streaming_responses.py`
+
 - **Purpose**: Real-time streaming responses
 - **Features**: Server-sent events (SSE), incremental responses
 - **Endpoints**: Streaming-enabled chat endpoints

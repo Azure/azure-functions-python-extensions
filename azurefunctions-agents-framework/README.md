@@ -1,16 +1,16 @@
 # Azure Functions Agent Framework
 
-A powerful, modern framework for building AI agents in Azure Functions with Python. Build single agents, multi-agent systems, and integrate with Azure services seamlessly.
+A powerful, production-ready framework for building AI agents in Azure Functions with Python. Deploy scalable single agents or collaborative multi-agent systems to Azure with enterprise-grade reliability.
 
 ## 🚀 Features
 
-- **Single & Multi-Agent Support**: Build focused single agents or collaborative multi-agent systems
-- **Multiple LLM Providers**: OpenAI, Anthropic Claude, Google Gemini, Ollama, Azure AI
-- **Model Context Protocol (MCP)**: Integrate with MCP servers for enhanced capabilities
-- **Agent-to-Agent Communication**: A2A SDK integration for inter-agent workflows
+- **Production-Ready Azure Functions**: Deploy agents as scalable Azure Functions with full HTTP API support
+- **Single & Multi-Agent Architecture**: Build focused single agents or collaborative multi-agent systems
+- **Multiple LLM Providers**: OpenAI, Anthropic Claude, Google Gemini, Ollama, Azure OpenAI
+- **Model Context Protocol (MCP)**: Integrate with MCP servers for enhanced tool capabilities
 - **Real-time Streaming**: Server-sent events (SSE) support for live responses
-- **Azure Integration**: Built-in support for Azure AI services, Key Vault, and more
-- **Modern Architecture**: Clean, maintainable code with proper separation of concerns
+- **Enterprise Integration**: Built-in Azure services support, Key Vault, monitoring, and logging
+- **Developer Experience**: Complete samples, local development tools, and comprehensive documentation
 
 ## 📦 Installation
 
@@ -44,83 +44,116 @@ pip install azurefunctions-agent-framework[all]
 
 ## 🏃‍♂️ Quick Start
 
-### Simple Weather Agent
+The fastest way to get started is with our production-ready samples:
+
+### 1. Try the Weather Bot (Single Agent)
+
+```bash
+# Clone and setup
+cd samples/single-agent
+cp local.settings.json.template local.settings.json
+# Add your OPENAI_API_KEY and OPENWEATHER_API_KEY
+
+# Install and run
+pip install -r requirements.txt
+func start
+
+# Test it
+curl -X POST http://localhost:7071/api/WeatherBot/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "What is the weather in Seattle?"}'
+```
+
+### 2. Try the Travel Planner (Multi-Agent)
+
+```bash
+# Setup multi-agent system
+cd samples/multi-agent
+cp local.settings.json.template local.settings.json
+# Add your API keys
+
+# Install and run
+pip install -r requirements.txt
+func start
+
+# Test different agents
+curl -X POST http://localhost:7071/api/agents/FlightAgent/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Find flights from NYC to LAX"}'
+```
+
+### 3. Build Your Own Agent
 
 ```python
 import azure.functions as func
 from azurefunctions.agents import Agent, AgentFunctionApp
 from azurefunctions.agents.types import LLMConfig, LLMProvider
 
-# Define your agent's tools
-def get_weather(location: str, units: str = "metric") -> str:
-    """Get current weather for a location."""
-    # Your weather API integration here
-    return f"Weather in {location}: 22°C, Sunny"
+def my_tool(query: str) -> str:
+    """Your custom tool implementation."""
+    return f"Processed: {query}"
 
-# Configure your LLM
+# Configure LLM
 llm_config = LLMConfig(
     provider=LLMProvider.OPENAI,
     model_name="gpt-4",
     api_key="your-openai-api-key"
 )
 
-# Create your agent
-weather_agent = Agent(
-    name="WeatherBot",
-    instructions="You are a helpful weather assistant. Use the weather tool to provide accurate forecasts.",
-    tools=[get_weather],
+# Create agent
+my_agent = Agent(
+    name="MyAgent",
+    instructions="You are a helpful assistant with custom tools.",
+    tools=[my_tool],
     llm_config=llm_config
 )
 
-# Create the Function App
-app = AgentFunctionApp(agents=[weather_agent])
-```
-
-### Multi-Agent Travel System
-
-```python
-from azurefunctions.agents import Agent, AgentFunctionApp
-
-# Weather Agent
-weather_agent = Agent(
-    name="WeatherAgent",
-    instructions="Provide weather information and travel advice based on conditions.",
-    tools=[get_weather, get_weather_forecast],
-    llm_config=llm_config
-)
-
-# Travel Agent  
-travel_agent = Agent(
-    name="TravelAgent",
-    instructions="Help plan trips, find destinations, and create itineraries.",
-    tools=[search_destinations, plan_itinerary],
-    llm_config=llm_config
-)
-
-# Budget Agent
-budget_agent = Agent(
-    name="BudgetAgent", 
-    instructions="Analyze costs and optimize travel budgets.",
-    tools=[calculate_costs, find_deals],
-    llm_config=llm_config
-)
-
-# Multi-agent app
-app = AgentFunctionApp(agents=[weather_agent, travel_agent, budget_agent])
+# Deploy as Azure Function
+app = AgentFunctionApp(agents={"MyAgent": my_agent})
 ```
 
 ## 🔧 API Endpoints
 
 ### Single Agent Mode
 
-- `POST /api/{agent_name}/chat` - Chat with the agent
-- `GET /api/{agent_name}/info` - Get agent information
+When deploying a single agent, you get clean, focused endpoints:
+
+```bash
+POST /api/{AgentName}/chat        # Chat with the agent
+GET  /api/{AgentName}/info        # Get agent information  
+GET  /api/health                  # Health check
+```
+
+**Example (Weather Bot):**
+
+```bash
+curl -X POST http://localhost:7071/api/WeatherBot/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "What is the weather in Tokyo?"}'
+```
 
 ### Multi-Agent Mode
 
-- `POST /api/agents/{name}/chat` - Chat with specific agent
-- `GET /api/agents` - List all agents
-- `POST /api/workflows` - Create agent workflows (coming soon)
+Multi-agent systems provide specialized endpoints for each agent:
+
+```bash
+POST /api/agents/{agent_name}/chat   # Chat with specific agent
+GET  /api/agents                     # List all available agents
+POST /api/plan-trip                  # Coordinate multiple agents (custom endpoint)
+GET  /api/health                     # System health check
+```
+
+**Example (Travel Planner):**
+
+```bash
+# Talk to flight agent
+curl -X POST http://localhost:7071/api/agents/FlightAgent/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Find flights from Seattle to Tokyo"}'
+
+# List all agents
+curl http://localhost:7071/api/agents
+```
 
 ## 🌐 Supported LLM Providers
 
@@ -284,15 +317,96 @@ cd my-agent-app
 func azure functionapp publish my-agent-app
 ```
 
-## 📚 Examples & Samples
+## 📚 Production-Ready Samples
 
-Check out the [`samples/`](./samples/) directory for complete examples:
+Our [`samples/`](./samples/) directory contains complete, deployable Azure Functions examples:
 
-- **Single Agent Examples**: Weather bot, assistant, document processor
-- **Multi-Agent Systems**: Travel planner, customer service, research assistant  
-- **MCP Integration**: Weather MCP server, external tool integration
-- **Provider Examples**: OpenAI, Claude, Gemini, Azure OpenAI
-- **Advanced Features**: Streaming, A2A communication, workflows
+### 🌤️ Single Agent - Weather Bot
+
+**Location**: [`samples/single-agent/`](./samples/single-agent/)
+
+A production-ready weather bot with:
+
+- **Real Weather Data**: OpenWeatherMap API integration
+- **Error Handling**: Comprehensive error handling and logging
+- **Health Checks**: Built-in health monitoring endpoints
+- **Azure Functions**: Complete function_app.py with HTTP triggers
+- **Security**: API key management and rate limiting ready
+
+```bash
+cd samples/single-agent && func start
+# POST /api/WeatherBot/chat - Chat with the weather bot
+# GET /api/WeatherBot/info - Get agent information
+# GET /api/health - Health check endpoint
+```
+
+### ✈️ Multi-Agent - Travel Planner
+
+**Location**: [`samples/multi-agent/`](./samples/multi-agent/)
+
+A collaborative multi-agent system featuring:
+
+- **FlightAgent**: Flight search and booking assistance
+- **HotelAgent**: Hotel recommendations and reservations  
+- **BudgetAgent**: Cost analysis and budget optimization
+- **Inter-Agent Communication**: Agents can collaborate on complex requests
+- **Scalable Architecture**: Each agent handles specialized tasks
+
+```bash
+cd samples/multi-agent && func start
+# POST /api/agents/FlightAgent/chat - Flight-specific queries
+# POST /api/agents/HotelAgent/chat - Hotel-specific queries
+# POST /api/agents/BudgetAgent/chat - Budget analysis
+# GET /api/agents - List all available agents
+```
+
+### 🔌 Provider Examples
+
+**Location**: [`samples/providers/`](./samples/providers/)
+
+Ready-to-use integrations with major LLM providers:
+
+- **Anthropic Claude**: [`anthropic_claude.py`](./samples/providers/anthropic_claude.py)
+- **Google Gemini**: [`google_gemini.py`](./samples/providers/google_gemini.py)
+- **Azure OpenAI**: Complete configuration examples in sample templates
+
+### 🛠️ MCP Integration
+
+**Location**: [`samples/mcp-integration/`](./samples/mcp-integration/)
+
+Model Context Protocol server integration:
+
+- **Weather MCP Agent**: [`weather_mcp_agent.py`](./samples/mcp-integration/weather_mcp_agent.py)
+- External tool server connections
+- Enhanced capabilities through MCP protocol
+
+### ⚡ Advanced Features
+
+**Location**: [`samples/advanced-features/`](./samples/advanced-features/)
+
+Advanced functionality demonstrations:
+
+- **Streaming Responses**: [`streaming_responses.py`](./samples/advanced-features/streaming_responses.py) - Server-sent events implementation
+- Real-time agent interactions
+- Performance optimization techniques
+
+### 🚀 Quick Testing
+
+Follow our [Quick Test Guide](./samples/QUICK_TEST.md) to get any sample running in under 5 minutes:
+
+```bash
+# Test single agent
+cd samples/single-agent
+cp local.settings.json.template local.settings.json
+# Add your API keys, then:
+func start
+
+# Test multi-agent system  
+cd samples/multi-agent
+cp local.settings.json.template local.settings.json
+# Add your API keys, then:
+func start
+```
 
 ## 🤝 Contributing
 

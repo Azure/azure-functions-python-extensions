@@ -298,52 +298,40 @@ weather_agent = Agent(
     name="WeatherBot",
     instructions=WEATHER_AGENT_INSTRUCTIONS,
     tools=[get_current_weather, convert_temperature, get_weather_advice],
-        llm_config=llm_config,
-        version="2.0.0",
-        description="A helpful weather and tip calculator assistant"
-    )
+    llm_config=llm_config,
+    enable_conversational_agent=True,
+    description="A helpful weather assistant agent that provides current conditions and weather advice",
+)
 
-    # Create Function App with single agent
-    app = AgentFunctionApp(agent=assistant_agent)
+# Create Function App
+app = AgentFunctionApp(agents={"WeatherBot": weather_agent})
 
-    print("1. Testing agent info:")
-    agent_info = await assistant_agent.get_agent_info()
-    print(f"Agent: {agent_info['agent']}")
-    print(f"Description: {agent_info['description']}")
-    print(f"Tools: {agent_info['tools']}")
-    print()
-
-    print("2. Testing tools:")
-    weather_result = get_weather("Seattle")
-    print(f"Weather tool: {weather_result}")
+# Health check endpoint
+@app.route(route="health", auth_level=AuthLevel.ANONYMOUS, methods=["GET"])
+async def health_check(req: func.HttpRequest) -> func.HttpResponse:
+    """Health check endpoint to verify the agent is running."""
     
-    tip_result = calculate_tip(50.0, 18.0)
-    print(f"Tip tool: {tip_result}")
-    print()
-
-    print("3. Testing request processing:")
-    test_request = {
-        "messages": [
-            {"role": "user", "content": "Hello, can you help me with weather and tips?"}
-        ]
+    api_status = "configured" if OPENWEATHER_API_KEY else "not_configured"
+    
+    health_info = {
+        "status": "healthy",
+        "agent_name": "WeatherBot",
+        "version": "2.0.0",
+        "llm_provider": llm_config.provider.value,
+        "llm_model": llm_config.model_name,
+        "weather_api_status": api_status,
+        "features": [
+            "Real-time weather data",
+            "Global location support",
+            "Temperature conversion",
+            "Weather advice",
+            "Modern agent framework"
+        ],
+        "timestamp": datetime.now().isoformat(),
     }
     
-    response = await assistant_agent.process_request(test_request)
-    print(f"Agent response: {json.dumps(response, indent=2)}")
-    print()
-
-    print("✅ Clean single agent setup completed!")
-    print()
-    print("🎉 NEW CLEAN ENDPOINTS:")
-    print("- POST /api/WeatherBot/chat - Chat with the agent")
-    print("- GET /api/WeatherBot/info - Get agent information")
-    print()
-    print("🔥 Benefits:")
-    print("- Clear agent identification in URL")
-    print("- Consistent with multi-agent patterns")
-    print("- No more confusing generic /api/chat")
-    print("- Agent name is explicit and discoverable")
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
+    return func.HttpResponse(
+        json.dumps(health_info, indent=2),
+        status_code=200,
+        headers={"Content-Type": "application/json"},
+    )

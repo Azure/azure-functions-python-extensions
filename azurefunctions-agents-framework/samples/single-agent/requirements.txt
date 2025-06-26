@@ -1,9 +1,9 @@
-# Sample Requirements
-azurefunctions-agent-framework[all]
+# Azure Functions Agent Framework
+azurefunctions-agent-framework[openai]
 
-# Optional: Weather API integration
-requests>=2.28.0
+# Weather API integration
+aiohttp>=3.8.0
 
-# Development dependencies
+# Development dependencies (optional)
 pytest>=7.0.0
 pytest-asyncio>=0.21.0
