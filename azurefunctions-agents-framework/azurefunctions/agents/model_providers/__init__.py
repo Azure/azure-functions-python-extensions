@@ -3,8 +3,36 @@
 
 """Model providers for different LLM services."""
 
-from .azure_openai_provider import AzureOpenAIProvider
 from .client import LLMClient
-from .openai_provider import OpenAIProvider
 
-__all__ = ["LLMClient", "OpenAIProvider", "AzureOpenAIProvider"]
+# Start with base exports
+__all__ = ["LLMClient"]
+
+# Optional providers - only import if dependencies are available
+try:
+    from .openai_provider import OpenAIProvider
+
+    __all__.append("OpenAIProvider")
+except ImportError:
+    pass
+
+try:
+    from .azure_openai_provider import AzureOpenAIProvider
+
+    __all__.append("AzureOpenAIProvider")
+except ImportError:
+    pass
+
+try:
+    from .anthropic_provider import AnthropicProvider
+
+    __all__.append("AnthropicProvider")
+except ImportError:
+    pass
+
+try:
+    from .google_provider import GoogleProvider
+
+    __all__.append("GoogleProvider")
+except ImportError:
+    pass

@@ -11,6 +11,15 @@ authors = [{ name = "Azure Functions team at Microsoft Corp.", email = "azurefun
 description = "Base Python worker extension for Azure Functions."
 readme = "README.md"
 license = {text = "MIT License"}
+dependencies = [
+    "azure-functions",
+    "mcp",
+    "typing_extensions",
+    "pydantic",
+    "httpx",
+    "aiohttp",
+    "a2a-sdk",
+]
 classifiers= [
         'License :: OSI Approved :: MIT License',
         'Intended Audience :: Developers',
@@ -26,6 +35,42 @@ classifiers= [
         'Environment :: Web Environment',
         'Development Status :: 5 - Production/Stable',
     ]
+
+[project.optional-dependencies]
+# Individual provider groups
+openai = ["openai>=1.0.0"]
+anthropic = ["anthropic>=0.20.0"]
+google = ["google-genai>=0.3.0"]
+ollama = ["ollama>=0.1.0"]
+azure-ai = ["azure-ai-inference"]
+
+# Azure services integration
+azure = [
+    "azure-ai-projects",
+    "azure-identity", 
+    "azure-keyvault-secrets"
+]
+
+# Combined groups
+all = [
+    "openai>=1.0.0",
+    "anthropic>=0.20.0",
+    "google-genai>=0.3.0", 
+    "ollama>=0.1.0",
+    "azure-ai-inference",
+    "azure-ai-projects",
+    "azure-identity",
+    "azure-keyvault-secrets"
+]
+
+# Development dependencies
+dev = [
+    "isort",
+    "black",
+    "pytest",
+    "pytest-asyncio",
+    "mypy"
+]
 
 [tool.black]
 line-length = 88

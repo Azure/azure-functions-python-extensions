@@ -8,8 +8,46 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from ..types import ChatMessage, LLMConfig, LLMProvider
-from .azure_openai_provider import AzureOpenAIProvider
-from .openai_provider import OpenAIProvider
+
+
+def _import_openai_provider():
+    """Lazy import for OpenAI provider to handle optional dependency."""
+    try:
+        from .openai_provider import OpenAIProvider
+
+        return OpenAIProvider
+    except ImportError:
+        return None
+
+
+def _import_azure_openai_provider():
+    """Lazy import for Azure OpenAI provider to handle optional dependency."""
+    try:
+        from .azure_openai_provider import AzureOpenAIProvider
+
+        return AzureOpenAIProvider
+    except ImportError:
+        return None
+
+
+def _import_anthropic_provider():
+    """Lazy import for Anthropic provider to handle optional dependency."""
+    try:
+        from .anthropic_provider import AnthropicProvider
+
+        return AnthropicProvider
+    except ImportError:
+        return None
+
+
+def _import_google_provider():
+    """Lazy import for Google provider to handle optional dependency."""
+    try:
+        from .google_provider import GoogleProvider
+
+        return GoogleProvider
+    except ImportError:
+        return None
 
 
 class LLMClient:
@@ -33,12 +71,37 @@ class LLMClient:
     def _create_provider(self):
         """Create the appropriate provider based on configuration."""
         if self.config.provider == LLMProvider.OPENAI:
+            OpenAIProvider = _import_openai_provider()
+            if OpenAIProvider is None:
+                raise ImportError(
+                    "Please install the `openai` package to use the OpenAI provider, "
+                    'you can use the `openai` optional group — `pip install "azurefunctions-agents-framework[openai]"`'
+                )
             return OpenAIProvider(self.config)
         elif self.config.provider == LLMProvider.AZURE_OPENAI:
+            AzureOpenAIProvider = _import_azure_openai_provider()
+            if AzureOpenAIProvider is None:
+                raise ImportError(
+                    "Please install the `openai` package to use the Azure OpenAI provider, "
+                    'you can use the `openai` optional group — `pip install "azurefunctions-agents-framework[openai]"`'
+                )
             return AzureOpenAIProvider(self.config)
         elif self.config.provider == LLMProvider.ANTHROPIC:
-            # TODO: Implement Anthropic provider
-            raise NotImplementedError("Anthropic provider not yet implemented")
+            AnthropicProvider = _import_anthropic_provider()
+            if AnthropicProvider is None:
+                raise ImportError(
+                    "Please install the `anthropic` package to use the Anthropic provider, "
+                    'you can use the `anthropic` optional group — `pip install "azurefunctions-agents-framework[anthropic]"`'
+                )
+            return AnthropicProvider(self.config)
+        elif self.config.provider == LLMProvider.GOOGLE:
+            GoogleProvider = _import_google_provider()
+            if GoogleProvider is None:
+                raise ImportError(
+                    "Please install the `google-genai` package to use the Google provider, "
+                    'you can use the `google` optional group — `pip install "azurefunctions-agents-framework[google]"`'
+                )
+            return GoogleProvider(self.config)
         elif self.config.provider == LLMProvider.OLLAMA:
             # TODO: Implement Ollama provider
             raise NotImplementedError("Ollama provider not yet implemented")
