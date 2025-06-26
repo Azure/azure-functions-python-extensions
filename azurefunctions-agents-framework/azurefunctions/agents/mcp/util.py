@@ -24,22 +24,25 @@ logger = logging.getLogger(__name__)
 
 class AgentError(Exception):
     """Base exception for agent-related errors."""
+
     pass
 
 
 class ModelBehaviorError(AgentError):
     """Error raised due to unexpected model behavior."""
+
     pass
 
 
 class UserError(AgentError):
     """Error raised due to user configuration or input issues."""
+
     pass
 
 
 class MCPTool:
     """Represents an MCP tool for the Azure Functions framework."""
-    
+
     def __init__(
         self,
         name: str,
@@ -74,17 +77,19 @@ class MCPUtil:
         """Get all function tools from a list of MCP servers."""
         tools = []
         tool_names: set[str] = set()
-        
+
         for server in servers:
-            server_tools = await cls.get_function_tools(server, convert_schemas_to_strict)
+            server_tools = await cls.get_function_tools(
+                server, convert_schemas_to_strict
+            )
             server_tool_names = {tool.name for tool in server_tools}
-            
+
             if len(server_tool_names & tool_names) > 0:
                 raise UserError(
                     f"Duplicate tool names found across MCP servers: "
                     f"{server_tool_names & tool_names}"
                 )
-            
+
             tool_names.update(server_tool_names)
             tools.extend(server_tools)
 
@@ -96,33 +101,36 @@ class MCPUtil:
     ) -> List[MCPTool]:
         """Get all function tools from a single MCP server."""
         logger.info(f"Fetching tools from MCP server: {server.name}")
-        
+
         try:
             mcp_tools = await server.list_tools()
             logger.info(f"Found {len(mcp_tools)} tools from server {server.name}")
-            
+
             tools = []
             for mcp_tool in mcp_tools:
                 tool = cls.to_function_tool(mcp_tool, server, convert_schemas_to_strict)
                 tools.append(tool)
-                
+
             return tools
-            
+
         except Exception as e:
             logger.error(f"Error fetching tools from MCP server {server.name}: {e}")
             raise
 
     @classmethod
     def to_function_tool(
-        cls, tool: "MCPTool", server: "MCPServer", convert_schemas_to_strict: bool = False
+        cls,
+        tool: "MCPTool",
+        server: "MCPServer",
+        convert_schemas_to_strict: bool = False,
     ) -> MCPTool:
         """Convert an MCP tool to an Azure Functions framework tool."""
-        
+
         # Extract schema information
-        schema = getattr(tool, 'inputSchema', {})
+        schema = getattr(tool, "inputSchema", {})
         if not schema:
             schema = {"type": "object", "properties": {}}
-        
+
         # MCP spec doesn't require the inputSchema to have `properties`, but our framework expects it.
         if "properties" not in schema:
             schema["properties"] = {}
@@ -147,7 +155,7 @@ class MCPUtil:
         cls, server: "MCPServer", tool: "MCPTool", input_json: str
     ) -> str:
         """Invoke an MCP tool and return the result as a string."""
-        
+
         try:
             json_data: Dict[str, Any] = json.loads(input_json) if input_json else {}
         except Exception as e:
@@ -170,10 +178,12 @@ class MCPUtil:
         return MCPResultFormatter.format_tool_result_as_string(result)
 
     @classmethod
-    def convert_mcp_tools_to_llm_schema(cls, mcp_tools: List[MCPTool]) -> List[Dict[str, Any]]:
+    def convert_mcp_tools_to_llm_schema(
+        cls, mcp_tools: List[MCPTool]
+    ) -> List[Dict[str, Any]]:
         """Convert MCP tools to LLM function calling schema."""
         llm_tools = []
-        
+
         for tool in mcp_tools:
             llm_tool = {
                 "type": "function",
@@ -181,10 +191,10 @@ class MCPUtil:
                     "name": tool.name,
                     "description": tool.description,
                     "parameters": tool.parameters_schema,
-                }
+                },
             }
             llm_tools.append(llm_tool)
-            
+
         return llm_tools
 
     @classmethod

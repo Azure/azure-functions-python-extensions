@@ -17,7 +17,9 @@ from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional
 
 from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
-from mcp import ClientSession, StdioServerParameters, Tool as MCPTool, stdio_client
+from mcp import ClientSession, StdioServerParameters
+from mcp import Tool as MCPTool
+from mcp import stdio_client
 from mcp.client.sse import sse_client
 from mcp.client.streamable_http import GetSessionIdCallback, streamablehttp_client
 from mcp.shared.message import SessionMessage
@@ -30,11 +32,13 @@ logger = logging.getLogger(__name__)
 
 class AgentError(Exception):
     """Base exception for agent-related errors."""
+
     pass
 
 
 class UserError(AgentError):
     """Error raised due to user configuration or input issues."""
+
     pass
 
 
@@ -68,7 +72,9 @@ class MCPServer(abc.ABC):
         pass
 
     @abc.abstractmethod
-    async def call_tool(self, tool_name: str, arguments: Optional[Dict[str, Any]]) -> CallToolResult:
+    async def call_tool(
+        self, tool_name: str, arguments: Optional[Dict[str, Any]]
+    ) -> CallToolResult:
         """Invoke a tool on the server."""
         pass
 
@@ -139,9 +145,11 @@ class _MCPServerWithClientSession(MCPServer, abc.ABC):
                 ClientSession(
                     read,
                     write,
-                    timedelta(seconds=self.client_session_timeout_seconds)
-                    if self.client_session_timeout_seconds
-                    else None,
+                    (
+                        timedelta(seconds=self.client_session_timeout_seconds)
+                        if self.client_session_timeout_seconds
+                        else None
+                    ),
                 )
             )
             server_result = await session.initialize()
@@ -155,7 +163,9 @@ class _MCPServerWithClientSession(MCPServer, abc.ABC):
     async def list_tools(self) -> List[MCPTool]:
         """List the tools available on the server."""
         if not self.session:
-            raise UserError("Server not initialized. Make sure you call `connect()` first.")
+            raise UserError(
+                "Server not initialized. Make sure you call `connect()` first."
+            )
 
         # Return from cache if caching is enabled, we have tools, and the cache is not dirty
         if self.cache_tools_list and not self._cache_dirty and self._tools_list:
@@ -168,10 +178,14 @@ class _MCPServerWithClientSession(MCPServer, abc.ABC):
         self._tools_list = (await self.session.list_tools()).tools
         return self._tools_list
 
-    async def call_tool(self, tool_name: str, arguments: Optional[Dict[str, Any]]) -> CallToolResult:
+    async def call_tool(
+        self, tool_name: str, arguments: Optional[Dict[str, Any]]
+    ) -> CallToolResult:
         """Invoke a tool on the server."""
         if not self.session:
-            raise UserError("Server not initialized. Make sure you call `connect()` first.")
+            raise UserError(
+                "Server not initialized. Make sure you call `connect()` first."
+            )
 
         return await self.session.call_tool(tool_name, arguments)
 
@@ -417,7 +431,9 @@ class MCPServerStreamableHttp(_MCPServerWithClientSession):
             url=self.params["url"],
             headers=self.params.get("headers"),
             timeout=self.params.get("timeout", timedelta(seconds=30)),
-            sse_read_timeout=self.params.get("sse_read_timeout", timedelta(seconds=60 * 5)),
+            sse_read_timeout=self.params.get(
+                "sse_read_timeout", timedelta(seconds=60 * 5)
+            ),
             terminate_on_close=self.params.get("terminate_on_close", True),
         )
 

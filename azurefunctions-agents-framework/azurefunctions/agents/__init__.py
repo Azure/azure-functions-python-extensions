@@ -6,8 +6,14 @@
 Core agent framework for building intelligent Azure Functions with AI capabilities.
 """
 
-from .core import AgentFunctionApp
-from .mcp import MCPServer, MCPServerSse, MCPServerStdio, MCPServerStreamableHttp, MCPUtil
+from .core import Agent, AgentFunctionApp, ReflectionAgent
+from .mcp import (
+    MCPServer,
+    MCPServerSse,
+    MCPServerStdio,
+    MCPServerStreamableHttp,
+    MCPUtil,
+)
 from .types import (
     AgentMode,
     ChatMessage,
@@ -19,7 +25,9 @@ from .types import (
 )
 
 __all__ = [
+    "Agent",
     "AgentFunctionApp",
+    "ReflectionAgent",
     "AgentMode",
     "TriggerType",
     "LLMConfig",
@@ -29,7 +37,7 @@ __all__ = [
     "MCPConfig",
     "MCPServer",
     "MCPServerSse",
-    "MCPServerStdio", 
+    "MCPServerStdio",
     "MCPServerStreamableHttp",
     "MCPUtil",
 ]

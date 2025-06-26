@@ -5,13 +5,14 @@
 
 import asyncio
 import logging
+import re
 from typing import Any, Dict, List, Optional
 
 from mcp import Tool as MCPTool
 from mcp.types import CallToolResult
 
-from ..types import MCPConfig
 from ..mcp.result_formatter import MCPResultFormatter
+from ..types import MCPConfig
 
 
 class MCPToolManager:
@@ -37,6 +38,35 @@ class MCPToolManager:
         self.servers: Dict[str, Any] = {}  # Store MCPServer instances
         self.available_tools: Dict[str, MCPTool] = {}
 
+    @staticmethod
+    def _sanitize_tool_name(name: str) -> str:
+        """
+        Sanitize tool name to match OpenAI's function name requirements.
+
+        OpenAI requires function names to match the pattern: ^[a-zA-Z0-9_-]+$
+        This means only alphanumeric characters, underscores, and hyphens are allowed.
+
+        Args:
+            name: Original tool name
+
+        Returns:
+            Sanitized tool name that matches OpenAI's requirements
+        """
+        # Replace any character that's not alphanumeric, underscore, or hyphen with underscore
+        sanitized = re.sub(r"[^a-zA-Z0-9_-]", "_", name)
+
+        # Remove multiple consecutive underscores
+        sanitized = re.sub(r"_+", "_", sanitized)
+
+        # Remove leading/trailing underscores
+        sanitized = sanitized.strip("_")
+
+        # Ensure it starts with a letter or underscore (OpenAI best practice)
+        if sanitized and not sanitized[0].isalpha() and sanitized[0] != "_":
+            sanitized = f"_{sanitized}"
+
+        return sanitized
+
     async def add_server(self, server) -> bool:
         """
         Add and connect to an MCP server.
@@ -61,9 +91,20 @@ class MCPToolManager:
 
             # Register tools from this server
             for tool in tools:
-                tool_key = f"{server.name}-{tool.name}"
+                # Create sanitized tool name for OpenAI compatibility
+                sanitized_server_name = self._sanitize_tool_name(server.name)
+                sanitized_tool_name = self._sanitize_tool_name(tool.name)
+                tool_key = f"{sanitized_server_name}-{sanitized_tool_name}"
+
+                # Store with original server and tool names for execution
+                tool._original_server_name = server.name
+                tool._original_tool_name = tool.name
+                tool._sanitized_name = tool_key
+
                 self.available_tools[tool_key] = tool
-                self.logger.info(f"Registered MCP tool: {tool_key}")
+                self.logger.info(
+                    f"Registered MCP tool: {tool_key} (original: {server.name}-{tool.name})"
+                )
 
             self.logger.info(f"Successfully added MCP server: {server.name}")
             return True
@@ -96,10 +137,11 @@ class MCPToolManager:
             del self.servers[server_name]
 
             # Remove tools from this server
+            sanitized_server_name = self._sanitize_tool_name(server_name)
             tools_to_remove = [
                 tool_key
                 for tool_key in self.available_tools.keys()
-                if tool_key.startswith(f"{server_name}:")
+                if tool_key.startswith(f"{sanitized_server_name}-")
             ]
 
             for tool_key in tools_to_remove:
@@ -130,22 +172,53 @@ class MCPToolManager:
             if tool_name not in self.available_tools:
                 return {"error": f"MCP tool '{tool_name}' not found", "status": "error"}
 
-            # Extract server name from tool name
-            server_name = tool_name.split("-", 1)[0]
-            actual_tool_name = tool_name.split("-", 1)[1]
+            # Get the tool to access original server and tool names
+            tool = self.available_tools[tool_name]
+            original_server_name = getattr(tool, "_original_server_name", None)
+            original_tool_name = getattr(tool, "_original_tool_name", None)
 
-            if server_name not in self.servers:
+            # Fall back to parsing sanitized name if original names not available
+            if not original_server_name or not original_tool_name:
+                # Extract server name from sanitized tool name
+                parts = tool_name.split("-", 1)
+                if len(parts) != 2:
+                    return {
+                        "error": f"Invalid MCP tool name format: {tool_name}",
+                        "status": "error",
+                    }
+
+                # Try to find the server by checking all server names
+                original_server_name = None
+                for server_name in self.servers.keys():
+                    if self._sanitize_tool_name(server_name) == parts[0]:
+                        original_server_name = server_name
+                        break
+
+                if not original_server_name:
+                    return {
+                        "error": f"MCP server for tool '{tool_name}' not found",
+                        "status": "error",
+                    }
+
+                # The tool name is the second part (already sanitized, but we need the original)
+                original_tool_name = parts[
+                    1
+                ]  # This might be sanitized, but should work for execution
+
+            if original_server_name not in self.servers:
                 return {
-                    "error": f"MCP server '{server_name}' not available",
+                    "error": f"MCP server '{original_server_name}' not available",
                     "status": "error",
                 }
 
-            server = self.servers[server_name]
+            server = self.servers[original_server_name]
 
-            self.logger.info(f"Executing MCP tool: {tool_name}")
+            self.logger.info(
+                f"Executing MCP tool: {tool_name} (original: {original_server_name}-{original_tool_name})"
+            )
 
-            # Execute the tool using the server's call_tool method
-            result = await server.call_tool(actual_tool_name, arguments)
+            # Execute the tool using the server's call_tool method with original tool name
+            result = await server.call_tool(original_tool_name, arguments)
 
             # Convert result to our standard format using shared formatter
             return MCPResultFormatter.format_tool_result(result)

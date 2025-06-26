@@ -32,14 +32,16 @@ class A2AManager:
             agent_app: The parent AgentFunctionApp instance
         """
         self.agent_app = agent_app
-        self.logger = logging.getLogger(f"A2AManager.{agent_app.name}")
+        # Get the single agent (A2A mode only supports single agent)
+        self.agent = next(iter(agent_app.agents.values()))
+        self.logger = logging.getLogger(f"A2AManager.{self.agent.name}")
         self.task_manager = A2ATaskManager()
         self.agent_card = self._create_agent_card()
 
         # Register A2A endpoints
         self._register_a2a_endpoints()
 
-    def _create_agent_card(self) -> AgentCard:
+    def _create_agent_card(self):
         """Create an AgentCard for A2A protocol using SDK types."""
         # Determine the base URL (this would typically come from environment or configuration)
         base_url = os.getenv(
@@ -48,13 +50,13 @@ class A2AManager:
 
         # Convert tools to skills format using SDK AgentSkill
         skills = []
-        for tool_name in self.agent_app.tool_registry.list_all_tools():
-            tool = self.agent_app.tool_registry.get_tool(tool_name)
-            if tool:
+        for tool_name in self.agent.tool_registry.list_all_tools():
+            tool_info = self.agent.tool_registry.get_tool_info(tool_name)
+            if tool_info:
                 skill = AgentSkill(
-                    id=tool.name,
-                    name=tool.name,
-                    description=tool.description,
+                    id=tool_info["name"],
+                    name=tool_info["name"],
+                    description=tool_info["description"],
                     inputModes=["text"],
                     outputModes=["text"],
                     tags=["function", "tool"],
@@ -75,9 +77,9 @@ class A2AManager:
 
         # Create the AgentCard using SDK structure
         return AgentCard(
-            name=self.agent_app.name,
-            description=self.agent_app.description,
-            version=self.agent_app.version,
+            name=self.agent.name,
+            description=self.agent.description,
+            version=self.agent.version,
             url=f"{base_url}/.well-known/agent.json",
             documentationUrl=None,
             provider=provider,
