@@ -1,0 +1,13 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "python",
+    "OPENAI_API_KEY": "your-openai-api-key-here",
+    "WEATHER_API_KEY": "your-weather-api-key-here-optional",
+    "GIT_REPO_PATH": "/path/to/your/git/repository"
+  },
+  "Host": {
+    "CORS": "*"
+  }
+}

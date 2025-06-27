@@ -176,11 +176,30 @@ test_mcp_integration.py
 mcp_test_*.log
 mcp_debug.log
 
-# Temporary test files
+# LLM generated test files directory
+test_files_llm_created/
+
+# Development and scratch files (but not samples)
+*_scratch.py
+scratch_*.py
+quick_test*.py
+debug_*.py
+temp_*.py
 temp_test_*
-scratch_*
 test_scratch*
 
+# Additional Azure Functions patterns
+.funcignore
+azure.err
+AZURE_CONFIG_DIR/
+
+# Additional virtual environment patterns
+.venv*/
+venv*/
+virtualenv/
+.virtualenv/
+pyvenv.cfg
+pip-selfcheck.json
 # OS specific files
 .DS_Store
 .DS_Store?

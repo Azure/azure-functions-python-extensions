@@ -1,0 +1,11 @@
+# SSE MCP Integration Requirements
+azure-functions
+openai>=1.0.0
+pydantic>=2.0.0
+httpx>=0.25.0
+mcp>=1.0.0
+fastapi>=0.104.0
+uvicorn>=0.24.0
+
+# For local development
+azure-functions-core-tools

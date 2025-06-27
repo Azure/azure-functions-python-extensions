@@ -97,6 +97,14 @@ class MCPConfig:
     max_retries: int = 3
 
 
+class MCPServerMode(Enum):
+    """MCP Server communication modes."""
+
+    STDIO = "stdio"  # Standard input/output communication
+    SSE = "sse"  # Server-sent events
+    STREAMABLE_HTTP = "streamable_http"  # Streamable HTTP communication
+
+
 # MCP Server types - forward reference to avoid circular imports
 # The actual implementation is in the mcp module
 MCPServer = Any  # Will be properly typed when importing from mcp module

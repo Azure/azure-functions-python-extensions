@@ -722,7 +722,6 @@ class ReflectionAgent(Agent):
         mcp_servers: Optional[List[Any]] = None,
         llm_config: Optional[LLMConfig] = None,
         enable_conversational_agent: bool = True,
-        mode: AgentMode = AgentMode.AZURE_FUNCTION_AGENT,
         version: str = "1.0.0",
         description: Optional[str] = None,
         expose_agent_info: bool = True,
@@ -753,7 +752,6 @@ class ReflectionAgent(Agent):
             mcp_servers=mcp_servers,
             llm_config=llm_config,
             enable_conversational_agent=enable_conversational_agent,
-            mode=mode,
             version=version,
             description=description or f"Reflection Agent: {name}",
             expose_agent_info=expose_agent_info,
@@ -1214,8 +1212,6 @@ Respond with only the improved response text.
             self.evaluation_prompt = evaluation_prompt
         if evaluation_function is not None:
             self.evaluation_function = evaluation_function
-        if enable_evaluation is not None:
-            self.enable_self_evaluation = enable_evaluation
 
         self.logger.info(
             f"Updated reflection config: max_iterations={self.max_reflection_iterations}, "

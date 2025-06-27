@@ -4,6 +4,7 @@
 """MCP Server implementations for Azure Functions Agent Framework.
 
 Based on the OpenAI agents SDK MCP implementation but adapted for Azure Functions.
+Provides a unified MCPServer class with configurable communication modes.
 """
 
 from __future__ import annotations
@@ -14,7 +15,7 @@ import logging
 from contextlib import AbstractAsyncContextManager, AsyncExitStack
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Dict, List, Literal, Optional, Union
 
 from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
 from mcp import ClientSession, StdioServerParameters
@@ -25,6 +26,8 @@ from mcp.client.streamable_http import GetSessionIdCallback, streamablehttp_clie
 from mcp.shared.message import SessionMessage
 from mcp.types import CallToolResult, InitializeResult
 from typing_extensions import NotRequired, TypedDict
+
+from ..types import MCPServerMode
 
 # Setup logger
 logger = logging.getLogger(__name__)
@@ -42,175 +45,15 @@ class UserError(AgentError):
     pass
 
 
-class MCPServer(abc.ABC):
-    """Base class for Model Context Protocol servers."""
-
-    @abc.abstractmethod
-    async def connect(self):
-        """Connect to the server. For example, this might mean spawning a subprocess or
-        opening a network connection. The server is expected to remain connected until
-        `cleanup()` is called.
-        """
-        pass
-
-    @property
-    @abc.abstractmethod
-    def name(self) -> str:
-        """A readable name for the server."""
-        pass
-
-    @abc.abstractmethod
-    async def cleanup(self):
-        """Cleanup the server. For example, this might mean closing a subprocess or
-        closing a network connection.
-        """
-        pass
-
-    @abc.abstractmethod
-    async def list_tools(self) -> List[MCPTool]:
-        """List the tools available on the server."""
-        pass
-
-    @abc.abstractmethod
-    async def call_tool(
-        self, tool_name: str, arguments: Optional[Dict[str, Any]]
-    ) -> CallToolResult:
-        """Invoke a tool on the server."""
-        pass
-
-
-class _MCPServerWithClientSession(MCPServer, abc.ABC):
-    """Base class for MCP servers that use a `ClientSession` to communicate with the server."""
-
-    def __init__(
-        self,
-        cache_tools_list: bool,
-        client_session_timeout_seconds: Optional[float],
-    ):
-        """
-        Args:
-            cache_tools_list: Whether to cache the tools list. If `True`, the tools list will be
-                cached and only fetched from the server once. If `False`, the tools list will be
-                fetched from the server on each call to `list_tools()`. The cache can be invalidated
-                by calling `invalidate_tools_cache()`. You should set this to `True` if you know the
-                server will not change its tools list, because it can drastically improve latency
-                (by avoiding a round-trip to the server every time).
-            client_session_timeout_seconds: the read timeout passed to the MCP ClientSession.
-        """
-        self.session: Optional[ClientSession] = None
-        self.exit_stack: AsyncExitStack = AsyncExitStack()
-        self._cleanup_lock: asyncio.Lock = asyncio.Lock()
-        self.cache_tools_list = cache_tools_list
-        self.server_initialize_result: Optional[InitializeResult] = None
-        self.client_session_timeout_seconds = client_session_timeout_seconds
-
-        # The cache is always dirty at startup, so that we fetch tools at least once
-        self._cache_dirty = True
-        self._tools_list: Optional[List[MCPTool]] = None
-
-    @abc.abstractmethod
-    def create_streams(
-        self,
-    ) -> AbstractAsyncContextManager[
-        tuple[
-            MemoryObjectReceiveStream[SessionMessage | Exception],
-            MemoryObjectSendStream[SessionMessage],
-            Optional[GetSessionIdCallback],
-        ]
-    ]:
-        """Create the streams for the server."""
-        pass
-
-    async def __aenter__(self):
-        await self.connect()
-        return self
-
-    async def __aexit__(self, exc_type, exc_value, traceback):
-        await self.cleanup()
-
-    def invalidate_tools_cache(self):
-        """Invalidate the tools cache."""
-        self._cache_dirty = True
-
-    async def connect(self):
-        """Connect to the server."""
-        try:
-            transport = await self.exit_stack.enter_async_context(self.create_streams())
-
-            # streamablehttp_client returns (read, write, get_session_id)
-            # sse_client returns (read, write)
-            read, write, *_ = transport
-
-            session = await self.exit_stack.enter_async_context(
-                ClientSession(
-                    read,
-                    write,
-                    (
-                        timedelta(seconds=self.client_session_timeout_seconds)
-                        if self.client_session_timeout_seconds
-                        else None
-                    ),
-                )
-            )
-            server_result = await session.initialize()
-            self.server_initialize_result = server_result
-            self.session = session
-        except Exception as e:
-            logger.error(f"Error initializing MCP server: {e}")
-            await self.cleanup()
-            raise
-
-    async def list_tools(self) -> List[MCPTool]:
-        """List the tools available on the server."""
-        if not self.session:
-            raise UserError(
-                "Server not initialized. Make sure you call `connect()` first."
-            )
-
-        # Return from cache if caching is enabled, we have tools, and the cache is not dirty
-        if self.cache_tools_list and not self._cache_dirty and self._tools_list:
-            return self._tools_list
-
-        # Reset the cache dirty to False
-        self._cache_dirty = False
-
-        # Fetch the tools from the server
-        self._tools_list = (await self.session.list_tools()).tools
-        return self._tools_list
-
-    async def call_tool(
-        self, tool_name: str, arguments: Optional[Dict[str, Any]]
-    ) -> CallToolResult:
-        """Invoke a tool on the server."""
-        if not self.session:
-            raise UserError(
-                "Server not initialized. Make sure you call `connect()` first."
-            )
-
-        return await self.session.call_tool(tool_name, arguments)
-
-    async def cleanup(self):
-        """Cleanup the server."""
-        async with self._cleanup_lock:
-            try:
-                await self.exit_stack.aclose()
-            except Exception as e:
-                logger.error(f"Error cleaning up server: {e}")
-            finally:
-                self.session = None
-
-
+# Parameter types for different MCP server modes
 class MCPServerStdioParams(TypedDict):
-    """Mirrors `mcp.client.stdio.StdioServerParameters`, but lets you
-    pass params without another import.
-    """
-
+    """Parameters for STDIO mode MCP server."""
+    
     command: str
     """The executable to run to start the server. For example, `python` or `node`."""
 
     args: NotRequired[List[str]]
-    """Command line args to pass to the `command` executable. For example, `['foo.py']` or
-    `['server.js', '--port', '8080']`."""
+    """Command line args to pass to the `command` executable."""
 
     env: NotRequired[Optional[Dict[str, str]]]
     """The environment variables to set for the server."""
@@ -219,22 +62,252 @@ class MCPServerStdioParams(TypedDict):
     """The working directory to use when spawning the process."""
 
     encoding: NotRequired[str]
-    """The text encoding used when sending/receiving messages to the server. Defaults to `utf-8`."""
+    """The text encoding used when sending/receiving messages. Defaults to `utf-8`."""
 
     encoding_error_handler: NotRequired[Literal["strict", "ignore", "replace"]]
-    """The text encoding error handler. Defaults to `strict`.
+    """The text encoding error handler. Defaults to `strict`."""
 
-    See https://docs.python.org/3/library/codecs.html#codec-base-classes for
-    explanations of possible values.
+
+class MCPServerSseParams(TypedDict):
+    """Parameters for SSE mode MCP server."""
+    
+    url: str
+    """The URL for the SSE endpoint."""
+
+    headers: NotRequired[Optional[Dict[str, str]]]
+    """Headers to include in the request."""
+
+    timeout: NotRequired[float]
+    """Connection timeout in seconds."""
+
+    sse_read_timeout: NotRequired[float]
+    """SSE read timeout in seconds."""
+
+
+class MCPServerStreamableHttpParams(TypedDict):
+    """Parameters for Streamable HTTP mode MCP server."""
+    
+    session_url: str
+    """The base URL for the MCP server's session endpoint."""
+
+    get_session_id: NotRequired[Optional[GetSessionIdCallback]]
+    """Function to retrieve the session ID."""
+
+    headers: NotRequired[Optional[Dict[str, str]]]
+    """Headers to include in requests."""
+
+    timeout: NotRequired[float]
+    """Connection timeout in seconds."""
+
+
+class MCPServer:
+    """Unified MCP server that supports multiple communication modes.
+    
+    This replaces the previous MCPServerStdio, MCPServerSse, and MCPServerStreamableHttp
+    classes with a single, configurable server class.
     """
 
+    def __init__(
+        self,
+        name: str,
+        mode: MCPServerMode,
+        params: Union[MCPServerStdioParams, MCPServerSseParams, MCPServerStreamableHttpParams],
+        cache_tools_list: bool = False,
+        client_session_timeout_seconds: Optional[float] = 5.0,
+    ):
+        """Create a new MCP server.
 
-class MCPServerStdio(_MCPServerWithClientSession):
-    """MCP server implementation that uses the stdio transport. See the [spec]
-    (https://spec.modelcontextprotocol.io/specification/2024-11-05/basic/transports/#stdio) for
-    details.
-    """
+        Args:
+            name: A readable name for the server.
+            mode: The communication mode to use (STDIO, SSE, or STREAMABLE_HTTP).
+            params: Mode-specific parameters. Use:
+                - MCPServerStdioParams for STDIO mode
+                - MCPServerSseParams for SSE mode  
+                - MCPServerStreamableHttpParams for STREAMABLE_HTTP mode
+            cache_tools_list: Whether to cache the tools list for performance.
+            client_session_timeout_seconds: The read timeout for the MCP ClientSession.
+        """
+        self._name = name
+        self.mode = mode
+        self.params = params
+        self.cache_tools_list = cache_tools_list
+        self.client_session_timeout_seconds = client_session_timeout_seconds
+        
+        # Validate that params match the mode
+        self._validate_params_for_mode(mode, params)
+        
+        self.session: Optional[ClientSession] = None
+        self._cleanup_context: Optional[AbstractAsyncContextManager] = None
+        self._tools_cache: Optional[List[MCPTool]] = None
 
+    @property
+    def name(self) -> str:
+        """A readable name for the server."""
+        return self._name
+
+    def _validate_params_for_mode(
+        self, 
+        mode: MCPServerMode, 
+        params: Union[MCPServerStdioParams, MCPServerSseParams, MCPServerStreamableHttpParams]
+    ) -> None:
+        """Validate that the params are appropriate for the given mode."""
+        if mode == MCPServerMode.STDIO:
+            # Check that required STDIO parameters are present
+            if not isinstance(params, dict) or 'command' not in params:
+                raise ValueError("STDIO mode requires MCPServerStdioParams with 'command' parameter")
+                
+        elif mode == MCPServerMode.SSE:
+            # Check that required SSE parameters are present
+            if not isinstance(params, dict) or 'url' not in params:
+                raise ValueError("SSE mode requires MCPServerSseParams with 'url' parameter")
+                
+        elif mode == MCPServerMode.STREAMABLE_HTTP:
+            # Check that required HTTP parameters are present
+            if not isinstance(params, dict) or 'session_url' not in params:
+                raise ValueError("STREAMABLE_HTTP mode requires MCPServerStreamableHttpParams with 'session_url' parameter")
+                
+        else:
+            raise ValueError(f"Unsupported MCP server mode: {mode}")
+
+    async def connect(self):
+        """Connect to the MCP server using the configured mode."""
+        if self.session is not None:
+            return  # Already connected
+
+        try:
+            if self.mode == MCPServerMode.STDIO:
+                await self._connect_stdio()
+            elif self.mode == MCPServerMode.SSE:
+                await self._connect_sse()
+            elif self.mode == MCPServerMode.STREAMABLE_HTTP:
+                await self._connect_streamable_http()
+            else:
+                raise ValueError(f"Unsupported MCP server mode: {self.mode}")
+                
+            logger.info(f"Successfully connected to MCP server '{self.name}' using {self.mode.value} mode")
+            
+        except Exception as e:
+            logger.error(f"Failed to connect to MCP server '{self.name}': {e}")
+            raise
+
+    async def _connect_stdio(self):
+        """Connect using STDIO transport."""
+        params = self.params
+        if not isinstance(params, dict) or 'command' not in params:
+            raise ValueError("STDIO mode requires MCPServerStdioParams with 'command'")
+            
+        # Convert to StdioServerParameters
+        stdio_params = StdioServerParameters(
+            command=params['command'],
+            args=params.get('args', []),
+            env=params.get('env'),
+            cwd=Path(params['cwd']) if params.get('cwd') else None,
+            encoding=params.get('encoding', 'utf-8'),
+            encoding_error_handler=params.get('encoding_error_handler', 'strict')
+        )
+        
+        # Create stdio client and session
+        stdio_read_stream, stdio_write_stream = await stdio_client(stdio_params)
+        self._cleanup_context = AsyncExitStack()
+        self.session = await self._cleanup_context.aenter(
+            ClientSession(
+                stdio_read_stream, 
+                stdio_write_stream, 
+                timeout_seconds=self.client_session_timeout_seconds
+            )
+        )
+        await self.session.initialize()
+
+    async def _connect_sse(self):
+        """Connect using SSE transport."""
+        params = self.params
+        if not isinstance(params, dict) or 'url' not in params:
+            raise ValueError("SSE mode requires MCPServerSseParams with 'url'")
+            
+        # Create SSE client and session
+        sse_read_stream, sse_write_stream = await sse_client(
+            url=params['url'],
+            headers=params.get('headers'),
+            timeout=params.get('timeout', 5.0),
+            sse_read_timeout=params.get('sse_read_timeout', 300.0)
+        )
+        self._cleanup_context = AsyncExitStack()
+        self.session = await self._cleanup_context.aenter(
+            ClientSession(
+                sse_read_stream, 
+                sse_write_stream, 
+                timeout_seconds=self.client_session_timeout_seconds
+            )
+        )
+        await self.session.initialize()
+
+    async def _connect_streamable_http(self):
+        """Connect using Streamable HTTP transport."""
+        params = self.params
+        if not isinstance(params, dict) or 'session_url' not in params:
+            raise ValueError("STREAMABLE_HTTP mode requires MCPServerStreamableHttpParams with 'session_url'")
+            
+        # Create streamable HTTP client and session
+        http_read_stream, http_write_stream = await streamablehttp_client(
+            session_url=params['session_url'],
+            get_session_id=params.get('get_session_id'),
+            headers=params.get('headers'),
+            timeout=params.get('timeout', 5.0)
+        )
+        self._cleanup_context = AsyncExitStack()
+        self.session = await self._cleanup_context.aenter(
+            ClientSession(
+                http_read_stream, 
+                http_write_stream, 
+                timeout_seconds=self.client_session_timeout_seconds
+            )
+        )
+        await self.session.initialize()
+
+    async def cleanup(self):
+        """Cleanup the server connection."""
+        if self._cleanup_context is not None:
+            await self._cleanup_context.aclose()
+            self._cleanup_context = None
+        self.session = None
+        self._tools_cache = None
+
+    async def list_tools(self) -> List[MCPTool]:
+        """List the tools available on the server."""
+        if self.session is None:
+            await self.connect()
+            
+        if self.cache_tools_list and self._tools_cache is not None:
+            return self._tools_cache
+            
+        assert self.session is not None
+        list_tools_result = await self.session.list_tools()
+        tools = list_tools_result.tools
+        
+        if self.cache_tools_list:
+            self._tools_cache = tools
+            
+        return tools
+
+    async def call_tool(
+        self, tool_name: str, arguments: Optional[Dict[str, Any]] = None
+    ) -> CallToolResult:
+        """Invoke a tool on the server."""
+        if self.session is None:
+            await self.connect()
+            
+        assert self.session is not None
+        return await self.session.call_tool(tool_name, arguments or {})
+
+    def invalidate_tools_cache(self):
+        """Invalidate the cached tools list."""
+        self._tools_cache = None
+
+
+# Backward compatibility aliases (deprecated)
+class MCPServerStdio(MCPServer):
+    """Deprecated: Use MCPServer with mode=MCPServerMode.STDIO instead."""
+    
     def __init__(
         self,
         params: MCPServerStdioParams,
@@ -242,76 +315,24 @@ class MCPServerStdio(_MCPServerWithClientSession):
         name: Optional[str] = None,
         client_session_timeout_seconds: Optional[float] = 5,
     ):
-        """Create a new MCP server based on the stdio transport.
-
-        Args:
-            params: The params that configure the server. This includes the command to run to
-                start the server, the args to pass to the command, the environment variables to
-                set for the server, the working directory to use when spawning the process, and
-                the text encoding used when sending/receiving messages to the server.
-            cache_tools_list: Whether to cache the tools list. If `True`, the tools list will be
-                cached and only fetched from the server once. If `False`, the tools list will be
-                fetched from the server on each call to `list_tools()`. The cache can be
-                invalidated by calling `invalidate_tools_cache()`. You should set this to `True`
-                if you know the server will not change its tools list, because it can drastically
-                improve latency (by avoiding a round-trip to the server every time).
-            name: A readable name for the server. If not provided, we'll create one from the
-                command.
-            client_session_timeout_seconds: the read timeout passed to the MCP ClientSession.
-        """
-        super().__init__(cache_tools_list, client_session_timeout_seconds)
-
-        self.params = StdioServerParameters(
-            command=params["command"],
-            args=params.get("args", []),
-            env=params.get("env"),
-            cwd=params.get("cwd"),
-            encoding=params.get("encoding", "utf-8"),
-            encoding_error_handler=params.get("encoding_error_handler", "strict"),
+        import warnings
+        warnings.warn(
+            "MCPServerStdio is deprecated. Use MCPServer with mode=MCPServerMode.STDIO instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+        super().__init__(
+            name=name or "MCPServerStdio",
+            mode=MCPServerMode.STDIO,
+            params=params,
+            cache_tools_list=cache_tools_list,
+            client_session_timeout_seconds=client_session_timeout_seconds
         )
 
-        self._name = name or f"stdio: {self.params.command}"
 
-    def create_streams(
-        self,
-    ) -> AbstractAsyncContextManager[
-        tuple[
-            MemoryObjectReceiveStream[SessionMessage | Exception],
-            MemoryObjectSendStream[SessionMessage],
-            Optional[GetSessionIdCallback],
-        ]
-    ]:
-        """Create the streams for the server."""
-        return stdio_client(self.params)
-
-    @property
-    def name(self) -> str:
-        """A readable name for the server."""
-        return self._name
-
-
-class MCPServerSseParams(TypedDict):
-    """Mirrors the params in`mcp.client.sse.sse_client`."""
-
-    url: str
-    """The URL of the server."""
-
-    headers: NotRequired[Optional[Dict[str, str]]]
-    """The headers to send to the server."""
-
-    timeout: NotRequired[float]
-    """The timeout for the HTTP request. Defaults to 5 seconds."""
-
-    sse_read_timeout: NotRequired[float]
-    """The timeout for the SSE connection, in seconds. Defaults to 5 minutes."""
-
-
-class MCPServerSse(_MCPServerWithClientSession):
-    """MCP server implementation that uses the HTTP with SSE transport. See the [spec]
-    (https://spec.modelcontextprotocol.io/specification/2024-11-05/basic/transports/#http-with-sse)
-    for details.
-    """
-
+class MCPServerSse(MCPServer):
+    """Deprecated: Use MCPServer with mode=MCPServerMode.SSE instead."""
+    
     def __init__(
         self,
         params: MCPServerSseParams,
@@ -319,75 +340,24 @@ class MCPServerSse(_MCPServerWithClientSession):
         name: Optional[str] = None,
         client_session_timeout_seconds: Optional[float] = 5,
     ):
-        """Create a new MCP server based on the HTTP with SSE transport.
-
-        Args:
-            params: The params that configure the server. This includes the URL of the server,
-                the headers to send to the server, the timeout for the HTTP request, and the
-                timeout for the SSE connection.
-            cache_tools_list: Whether to cache the tools list. If `True`, the tools list will be
-                cached and only fetched from the server once. If `False`, the tools list will be
-                fetched from the server on each call to `list_tools()`. The cache can be
-                invalidated by calling `invalidate_tools_cache()`. You should set this to `True`
-                if you know the server will not change its tools list, because it can drastically
-                improve latency (by avoiding a round-trip to the server every time).
-            name: A readable name for the server. If not provided, we'll create one from the
-                URL.
-            client_session_timeout_seconds: the read timeout passed to the MCP ClientSession.
-        """
-        super().__init__(cache_tools_list, client_session_timeout_seconds)
-
-        self.params = params
-        self._name = name or f"sse: {self.params['url']}"
-
-    def create_streams(
-        self,
-    ) -> AbstractAsyncContextManager[
-        tuple[
-            MemoryObjectReceiveStream[SessionMessage | Exception],
-            MemoryObjectSendStream[SessionMessage],
-            Optional[GetSessionIdCallback],
-        ]
-    ]:
-        """Create the streams for the server."""
-        return sse_client(
-            url=self.params["url"],
-            headers=self.params.get("headers"),
-            timeout=self.params.get("timeout", 5),
-            sse_read_timeout=self.params.get("sse_read_timeout", 60 * 5),
+        import warnings
+        warnings.warn(
+            "MCPServerSse is deprecated. Use MCPServer with mode=MCPServerMode.SSE instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+        super().__init__(
+            name=name or "MCPServerSse",
+            mode=MCPServerMode.SSE,
+            params=params,
+            cache_tools_list=cache_tools_list,
+            client_session_timeout_seconds=client_session_timeout_seconds
         )
 
-    @property
-    def name(self) -> str:
-        """A readable name for the server."""
-        return self._name
 
-
-class MCPServerStreamableHttpParams(TypedDict):
-    """Mirrors the params in`mcp.client.streamable_http.streamablehttp_client`."""
-
-    url: str
-    """The URL of the server."""
-
-    headers: NotRequired[Optional[Dict[str, str]]]
-    """The headers to send to the server."""
-
-    timeout: NotRequired[timedelta]
-    """The timeout for the HTTP request. Defaults to 30 seconds."""
-
-    sse_read_timeout: NotRequired[timedelta]
-    """The timeout for the SSE connection. Defaults to 5 minutes."""
-
-    terminate_on_close: NotRequired[bool]
-    """Terminate on close. Defaults to True."""
-
-
-class MCPServerStreamableHttp(_MCPServerWithClientSession):
-    """MCP server implementation that uses the Streamable HTTP transport. See the [spec]
-    (https://modelcontextprotocol.io/specification/2025-03-26/basic/transports#streamable-http)
-    for details.
-    """
-
+class MCPServerStreamableHttp(MCPServer):
+    """Deprecated: Use MCPServer with mode=MCPServerMode.STREAMABLE_HTTP instead."""
+    
     def __init__(
         self,
         params: MCPServerStreamableHttpParams,
@@ -395,49 +365,16 @@ class MCPServerStreamableHttp(_MCPServerWithClientSession):
         name: Optional[str] = None,
         client_session_timeout_seconds: Optional[float] = 5,
     ):
-        """Create a new MCP server based on the Streamable HTTP transport.
-
-        Args:
-            params: The params that configure the server. This includes the URL of the server,
-                the headers to send to the server, the timeout for the HTTP request, and the
-                timeout for the Streamable HTTP connection and whether we need to
-                terminate on close.
-            cache_tools_list: Whether to cache the tools list. If `True`, the tools list will be
-                cached and only fetched from the server once. If `False`, the tools list will be
-                fetched from the server on each call to `list_tools()`. The cache can be
-                invalidated by calling `invalidate_tools_cache()`. You should set this to `True`
-                if you know the server will not change its tools list, because it can drastically
-                improve latency (by avoiding a round-trip to the server every time).
-            name: A readable name for the server. If not provided, we'll create one from the
-                URL.
-            client_session_timeout_seconds: the read timeout passed to the MCP ClientSession.
-        """
-        super().__init__(cache_tools_list, client_session_timeout_seconds)
-
-        self.params = params
-        self._name = name or f"streamable_http: {self.params['url']}"
-
-    def create_streams(
-        self,
-    ) -> AbstractAsyncContextManager[
-        tuple[
-            MemoryObjectReceiveStream[SessionMessage | Exception],
-            MemoryObjectSendStream[SessionMessage],
-            Optional[GetSessionIdCallback],
-        ]
-    ]:
-        """Create the streams for the server."""
-        return streamablehttp_client(
-            url=self.params["url"],
-            headers=self.params.get("headers"),
-            timeout=self.params.get("timeout", timedelta(seconds=30)),
-            sse_read_timeout=self.params.get(
-                "sse_read_timeout", timedelta(seconds=60 * 5)
-            ),
-            terminate_on_close=self.params.get("terminate_on_close", True),
+        import warnings
+        warnings.warn(
+            "MCPServerStreamableHttp is deprecated. Use MCPServer with mode=MCPServerMode.STREAMABLE_HTTP instead.",
+            DeprecationWarning,
+            stacklevel=2
         )
-
-    @property
-    def name(self) -> str:
-        """A readable name for the server."""
-        return self._name
+        super().__init__(
+            name=name or "MCPServerStreamableHttp",
+            mode=MCPServerMode.STREAMABLE_HTTP,
+            params=params,
+            cache_tools_list=cache_tools_list,
+            client_session_timeout_seconds=client_session_timeout_seconds
+        )

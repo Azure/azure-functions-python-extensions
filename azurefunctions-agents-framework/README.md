@@ -35,10 +35,13 @@ pip install azurefunctions-agent-framework[google]
 # For Ollama (local models)
 pip install azurefunctions-agent-framework[ollama]
 
-# For Azure AI services
+# For Azure services integration (Key Vault, etc.)
 pip install azurefunctions-agent-framework[azure]
 
-# Install everything
+# Install all LLM providers
+pip install azurefunctions-agent-framework[openai,anthropic,google,ollama]
+
+# Install everything (all providers + Azure services)
 pip install azurefunctions-agent-framework[all]
 ```
 
@@ -155,6 +158,196 @@ curl -X POST http://localhost:7071/api/agents/FlightAgent/chat \
 curl http://localhost:7071/api/agents
 ```
 
+## 🏗️ Framework Architecture
+
+The Azure Functions Agent Framework follows a clean, modular architecture that separates concerns and enables flexible deployment patterns.
+
+### Core Components
+
+#### 1. **AgentFunctionApp** - The Function Host
+
+`AgentFunctionApp` is the Azure Functions hosting layer that manages HTTP endpoints, routing, and agent lifecycle:
+
+```python
+from azurefunctions.agents import AgentFunctionApp, AgentMode
+
+# Single-agent deployment
+app = AgentFunctionApp(
+    agents={"WeatherBot": weather_agent},
+    mode=AgentMode.AZURE_FUNCTION_AGENT
+)
+
+# Multi-agent deployment  
+app = AgentFunctionApp(
+    agents={
+        "FlightAgent": flight_agent,
+        "HotelAgent": hotel_agent,
+        "WeatherAgent": weather_agent
+    },
+    mode=AgentMode.AZURE_FUNCTION_AGENT
+)
+```
+
+**Key Responsibilities:**
+- **HTTP Endpoint Management**: Automatically registers routes based on deployment mode
+- **Request Routing**: Routes incoming requests to appropriate agents
+- **Authentication**: Handles Azure Functions authentication levels
+- **Agent Lifecycle**: Manages agent initialization and cleanup
+- **Error Handling**: Provides consistent error responses across all endpoints
+
+**Deployment Modes:**
+
+- `AZURE_FUNCTION_AGENT`: Standard HTTP endpoints for agent communication
+- `A2A`: Agent-to-Agent protocol endpoints (single-agent only)
+
+#### 2. **Agent** - The Core Agent Class
+
+`Agent` is the base class that represents a single AI agent with its capabilities:
+
+```python
+from azurefunctions.agents import Agent
+
+agent = Agent(
+    name="MyAgent",
+    instructions="You are a helpful assistant",
+    tools=[custom_tool],
+    mcp_servers=[mcp_server],
+    llm_config=llm_config,
+    enable_conversational_agent=True
+)
+```
+
+**Key Responsibilities:**
+
+- **Tool Management**: Registers and executes function tools and MCP tools
+- **LLM Integration**: Handles communication with language model providers
+- **MCP Integration**: Connects to Model Context Protocol servers
+- **Request Processing**: Processes chat requests and manages conversation flow
+- **Privacy Controls**: Manages information exposure via GET endpoints
+
+#### 3. **ReflectionAgent** - Advanced Self-Improving Agent
+
+`ReflectionAgent` extends the base `Agent` with self-evaluation and improvement capabilities:
+
+```python
+from azurefunctions.agents import ReflectionAgent
+
+reflection_agent = ReflectionAgent(
+    name="SmartAgent",
+    instructions="You are an AI that reflects on and improves responses",
+    llm_config=llm_config,
+    # Reflection-specific parameters
+    max_reflection_iterations=3,
+    reflection_threshold=0.8,
+    enable_self_evaluation=True
+)
+```
+
+**Advanced Capabilities:**
+- **Self-Evaluation**: Automatically assesses response quality using configurable criteria
+- **Iterative Improvement**: Refines responses through reflection loops
+- **Quality Thresholds**: Stops improvement when quality targets are met
+- **Custom Evaluation**: Supports custom evaluation functions and prompts
+- **Reflection Tracking**: Maintains history of improvement iterations
+
+### Architecture Patterns
+
+#### Single-Agent Pattern
+**Best for:** Focused, specialized applications
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│  HTTP Request   │───▶│ AgentFunctionApp │───▶│  Single Agent   │
+│                 │    │   (Routing)     │    │   (Processing)  │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+                                                        │
+                                                        ▼
+                                               ┌─────────────────┐
+                                               │   Tools & MCP   │
+                                               │    Servers      │
+                                               └─────────────────┘
+```
+
+**Endpoints Generated:**
+- `POST /api/{AgentName}/chat` - Chat with the agent
+- `GET /api/{AgentName}/info` - Get agent information
+
+#### Multi-Agent Pattern
+**Best for:** Complex workflows requiring specialized agents
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│  HTTP Request   │───▶│ AgentFunctionApp │───▶│  Agent Router   │
+│                 │    │   (Multi-mode)  │    │                 │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+                                                        │
+                                    ┌───────────────────┼───────────────────┐
+                                    ▼                   ▼                   ▼
+                           ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
+                           │  Flight Agent   │ │  Hotel Agent    │ │ Weather Agent   │
+                           │                 │ │                 │ │                 │
+                           └─────────────────┘ └─────────────────┘ └─────────────────┘
+```
+
+**Endpoints Generated:**
+- `POST /api/agents/{agent_name}/chat` - Chat with specific agent
+- `GET /api/agents` - List all agents
+- Custom workflow endpoints (optional)
+
+### Component Interaction Flow
+
+#### 1. Request Processing Flow
+```
+HTTP Request → AgentFunctionApp → Agent.process_request() → LLM + Tools → Response
+```
+
+#### 2. Tool Execution Flow
+```
+Agent → ToolRegistry → [FunctionTool | MCPTool] → Result → LLM → Final Response
+```
+
+#### 3. Reflection Flow (ReflectionAgent)
+```
+Initial Response → Self-Evaluation → Reflection → Improvement → Quality Check → Final Response
+```
+
+### Extensibility Points
+
+#### Custom Agent Types
+Extend the base `Agent` class to create specialized agent behaviors:
+
+```python
+class CustomAgent(Agent):
+    async def process_request(self, request_data):
+        # Custom pre-processing
+        result = await super().process_request(request_data)
+        # Custom post-processing
+        return result
+```
+
+#### Custom Tools
+Register functions as tools using the decorator pattern:
+
+```python
+@agent.tool
+def my_custom_tool(param: str) -> str:
+    """My custom tool description."""
+    return f"Processed: {param}"
+```
+
+#### MCP Server Integration
+Connect to external MCP servers for enhanced capabilities:
+
+```python
+agent.add_mcp_server(MCPServer(
+    name="MyMCPServer",
+    mode=MCPServerMode.SSE,
+    params=MCPServerSseParams(url="http://localhost:8080/mcp")
+))
+```
+
+This architecture provides clear separation of concerns, enabling you to build everything from simple single-purpose agents to complex multi-agent systems with enterprise-grade reliability and scalability.
+
 ## 🌐 Supported LLM Providers
 
 ### OpenAI
@@ -196,7 +389,8 @@ llm_config = LLMConfig(
     provider=LLMProvider.AZURE_OPENAI,
     model_name="gpt-4",
     endpoint="https://your-resource.openai.azure.com/",
-    api_key="your-azure-openai-key"
+    api_key="your-azure-openai-key",
+    api_version="2024-02-15-preview"  # or your preferred API version
 )
 ```
 
@@ -205,21 +399,80 @@ llm_config = LLMConfig(
 Connect your agents to MCP servers for enhanced capabilities:
 
 ```python
-from azurefunctions.agents.mcp import MCPConfig
+from azurefunctions.agents import Agent, MCPServer, MCPServerMode
+from azurefunctions.agents import MCPServerSseParams
 
-# Configure MCP server
-mcp_config = MCPConfig(
-    server_name="weather-mcp",
-    server_path="/path/to/mcp/server",
-    tools=["get_weather", "get_forecast"]
+# Configure MCP server (SSE mode example)
+mcp_server = MCPServer(
+    name="CodeExecutionMCPServer",
+    mode=MCPServerMode.SSE,
+    params=MCPServerSseParams(
+        url="http://localhost:7072/runtime/webhooks/mcp/sse",
+        headers={
+            "Authorization": "Bearer your-mcp-api-token"
+        },
+        timeout=5.0,
+        sse_read_timeout=300.0
+    ),
+    cache_tools_list=False
 )
 
 # Add to agent
-weather_agent = Agent(
-    name="WeatherBot",
-    instructions="Use MCP tools for weather data.",
-    mcp_config=mcp_config,
-    llm_config=llm_config
+code_agent = Agent(
+    name="CodeExecutionAgent", 
+    instructions="You are a code execution agent that can run Python code to perform tasks.",
+    mcp_servers=[mcp_server],
+    llm_config=llm_config,
+    description="A code execution agent that can run Python code to perform tasks."
+)
+```
+
+### MCP Server Modes
+
+The unified `MCPServer` supports three communication modes:
+
+**STDIO Mode** (subprocess communication):
+
+```python
+from azurefunctions.agents import MCPServerStdioParams
+
+mcp_server = MCPServer(
+    name="MyStdioServer",
+    mode=MCPServerMode.STDIO,
+    params=MCPServerStdioParams(
+        command="python",
+        args=["my_mcp_server.py"],
+        env={"API_KEY": "your-key"}
+    )
+)
+```
+
+**SSE Mode** (Server-Sent Events):
+
+```python
+from azurefunctions.agents import MCPServerSseParams
+
+mcp_server = MCPServer(
+    name="MySSEServer", 
+    mode=MCPServerMode.SSE,
+    params=MCPServerSseParams(
+        url="http://localhost:8080/sse",
+        headers={"Authorization": "Bearer token"}
+    )
+)
+```
+
+**Streamable HTTP Mode**:
+
+```python
+from azurefunctions.agents import MCPServerStreamableHttpParams
+
+mcp_server = MCPServer(
+    name="MyHttpServer",
+    mode=MCPServerMode.STREAMABLE_HTTP,
+    params=MCPServerStreamableHttpParams(
+        session_url="http://localhost:8080/session"
+    )
 )
 ```
 
@@ -277,7 +530,12 @@ OPENAI_API_KEY=your-openai-key
 ANTHROPIC_API_KEY=your-anthropic-key
 GOOGLE_API_KEY=your-google-key
 
-# Azure Services (optional)
+# Azure OpenAI (alternative to OpenAI)
+AZURE_OPENAI_API_KEY=your-azure-openai-key
+AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
+AZURE_OPENAI_API_VERSION=2024-02-15-preview
+
+# Azure Services (optional - for Key Vault, etc.)
 AZURE_CLIENT_ID=your-client-id
 AZURE_CLIENT_SECRET=your-client-secret
 AZURE_TENANT_ID=your-tenant-id
