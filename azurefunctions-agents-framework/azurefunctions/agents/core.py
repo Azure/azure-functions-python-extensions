@@ -21,6 +21,7 @@ from azure.functions import (
 )
 
 from .model_providers.client import LLMClient
+from .runner import Runner
 from .tools.tool_registry import ToolRegistry
 from .types import (
     AgentMode,
@@ -1266,7 +1267,7 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
 
     def __init__(
         self,
-        agents: Dict[str, Agent],
+        agents: Union[Dict[str, Agent], List[Agent]],
         mode: AgentMode = AgentMode.AZURE_FUNCTION_AGENT,
         http_auth_level: Union[AuthLevel, str] = AuthLevel.FUNCTION,
     ):
@@ -1274,25 +1275,47 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
         Initialize the AgentFunctionApp.
 
         Args:
-            agents: Dictionary of agent_name -> Agent instances
+            agents: Either a dictionary of agent_name -> Agent instances, or a list of Agent instances
+                   If a list is provided, agent names will be taken from Agent.name property
             mode: Operating mode (AZURE_FUNCTION_AGENT or A2A)
             http_auth_level: HTTP authentication level for endpoints
         """
         super().__init__(auth_level=http_auth_level)
 
-        # Validate inputs
-        if not agents:
-            raise ValueError("Must provide 'agents' dictionary with at least one agent")
+        # Convert list to dict if needed, using agent.name as keys
+        if isinstance(agents, list):
+            if not agents:
+                raise ValueError("Must provide at least one agent")
+            
+            # Check for duplicate names
+            agent_names = [agent.name for agent in agents]
+            if len(agent_names) != len(set(agent_names)):
+                duplicates = [name for name in agent_names if agent_names.count(name) > 1]
+                raise ValueError(f"Duplicate agent names found: {duplicates}")
+            
+            # Convert to dict using agent.name as key
+            agents_dict = {agent.name: agent for agent in agents}
+        elif isinstance(agents, dict):
+            if not agents:
+                raise ValueError("Must provide 'agents' dictionary with at least one agent")
+            agents_dict = agents.copy()
+        else:
+            raise ValueError("agents must be either a Dict[str, Agent] or List[Agent]")
 
         # Validate A2A mode constraints
-        if mode == AgentMode.A2A and len(agents) > 1:
+        if mode == AgentMode.A2A and len(agents_dict) > 1:
             raise ValueError(
                 "A2A mode is only supported for single-agent apps. Use AZURE_FUNCTION_AGENT mode for multi-agent apps."
             )
 
-        self.agents: Dict[str, Agent] = agents.copy()
+        self.agents: Dict[str, Agent] = agents_dict
         self.mode: AgentMode = mode
         self.logger = logging.getLogger("AgentFunctionApp")
+
+        # Create runners for each agent - always use agent.name as key for consistency
+        self.runners: Dict[str, Runner] = {
+            agent.name: Runner(agent) for agent in self.agents.values()
+        }
 
         # Initialize A2A manager if in A2A mode
         self.a2a_manager: Optional[A2AManager] = None
@@ -1347,7 +1370,9 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
 
     def _register_single_agent_endpoints(self):
         """Register endpoints for single-agent mode."""
-        agent_name = next(iter(self.agents.keys()))
+        # Use agent.name for consistency (runners are also keyed by agent.name)
+        agent = next(iter(self.agents.values()))
+        agent_name = agent.name
 
         @self.route(
             route=f"{agent_name}/chat",
@@ -1491,14 +1516,12 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
                 headers={"Content-Type": "application/json"},
             )
 
-        # Convert simple message format to OpenAI format if needed
-        if "message" in request_data and "messages" not in request_data:
-            request_data["messages"] = [
-                {"role": "user", "content": request_data["message"]}
-            ]
-
         try:
-            response = await agent.process_request(request_data)
+            # Use the Runner to process the request
+            # Since we now key runners by agent.name, we can access directly
+            runner = self.runners[agent.name]
+            response = await runner.run(request_data)
+            
             return HttpResponse(
                 json.dumps(
                     {
@@ -1512,7 +1535,7 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
                 headers={"Content-Type": "application/json"},
             )
         except Exception as e:
-            self.logger.error(f"Error processing chat request: {str(e)}")
+            self.logger.error(f"Error processing chat request: {e}")
             return HttpResponse(
                 json.dumps(
                     {"error": "Failed to process chat request", "message": str(e)}

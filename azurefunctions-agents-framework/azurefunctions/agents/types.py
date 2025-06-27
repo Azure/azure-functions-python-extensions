@@ -148,3 +148,29 @@ except ImportError:
         created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
         updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
         error: Optional[str] = None
+
+
+@dataclass
+class MessageRequest:
+    """
+    Structured request object that users can create and pass to the runner.
+    Provides a clean API for building agent requests.
+    """
+
+    message: Optional[str] = None
+    messages: Optional[List[Dict[str, str]]] = None
+    context: Optional[Dict[str, Any]] = None
+    tool_calls: Optional[List[Dict[str, Any]]] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary format for agent processing."""
+        result = {}
+        if self.message:
+            result["message"] = self.message
+        if self.messages:
+            result["messages"] = self.messages
+        if self.context:
+            result["context"] = self.context
+        if self.tool_calls:
+            result["tool_calls"] = self.tool_calls
+        return result
