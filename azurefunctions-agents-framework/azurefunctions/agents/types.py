@@ -150,9 +150,106 @@ except ImportError:
         error: Optional[str] = None
 
 
+# Abstract Request and Response classes for clean separation of concerns
+
+class Request(abc.ABC):
+    """Abstract base class for all agent requests."""
+
+    @abc.abstractmethod
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert request to dictionary format for agent processing."""
+        pass
+
+
+class Response(abc.ABC):
+    """Abstract base class for all agent responses."""
+
+    @abc.abstractmethod
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert response to dictionary format."""
+        pass
+
+
+@dataclass
+class ChatRequest(Request):
+    """
+    Concrete request class for chat-based agent interactions.
+    Provides a clean API for building agent requests.
+    """
+
+    message: Optional[str] = None
+    messages: Optional[List[Dict[str, str]]] = None
+    context: Optional[Dict[str, Any]] = None
+    tool_calls: Optional[List[Dict[str, Any]]] = None
+    user_id: Optional[str] = None
+    session_id: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary format for agent processing."""
+        result = {}
+        if self.message:
+            result["message"] = self.message
+        if self.messages:
+            result["messages"] = self.messages
+        if self.context:
+            result["context"] = self.context
+        if self.tool_calls:
+            result["tool_calls"] = self.tool_calls
+        if self.user_id:
+            result["user_id"] = self.user_id
+        if self.session_id:
+            result["session_id"] = self.session_id
+        return result
+
+
+@dataclass
+class ChatResponse(Response):
+    """
+    Concrete response class for chat-based agent interactions.
+    Contains the agent's response and metadata.
+    """
+
+    response: Optional[str] = None
+    messages: Optional[List[ChatMessage]] = None
+    context: Optional[Dict[str, Any]] = None
+    tool_calls: Optional[List[Dict[str, Any]]] = None
+    metadata: Optional[Dict[str, Any]] = None
+    status: str = "success"
+    error: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert response to dictionary format."""
+        result = {
+            "status": self.status
+        }
+        if self.response:
+            result["response"] = self.response
+        if self.messages:
+            result["messages"] = [
+                {
+                    "role": msg.role,
+                    "content": msg.content,
+                    **({"tool_calls": msg.tool_calls} if msg.tool_calls else {}),
+                    **({"tool_call_id": msg.tool_call_id} if msg.tool_call_id else {}),
+                    **({"name": msg.name} if msg.name else {})
+                }
+                for msg in self.messages
+            ]
+        if self.context:
+            result["context"] = self.context
+        if self.tool_calls:
+            result["tool_calls"] = self.tool_calls
+        if self.metadata:
+            result["metadata"] = self.metadata
+        if self.error:
+            result["error"] = self.error
+        return result
+
+
 @dataclass
 class MessageRequest:
     """
+    DEPRECATED: Use ChatRequest instead.
     Structured request object that users can create and pass to the runner.
     Provides a clean API for building agent requests.
     """

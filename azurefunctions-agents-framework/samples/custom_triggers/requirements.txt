@@ -1,0 +1,8 @@
+azure-functions>=1.11.0
+azure-functions-worker>=1.0.0
+azure-servicebus>=7.8.0
+openai>=1.0.0
+
+# For development/testing
+pytest>=7.0.0
+pytest-asyncio>=0.21.0

@@ -26,11 +26,15 @@ from .tools.tool_registry import ToolRegistry
 from .types import (
     AgentMode,
     ChatMessage,
+    ChatRequest,
+    ChatResponse,
     LLMConfig,
     LLMProvider,
     MaybeAwaitable,
     MCPConfig,
     MCPServer,
+    Request,
+    Response,
     ToolDefinition,
     ToolFunction,
 )
@@ -1263,6 +1267,7 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
     - HTTP authentication and routing
     - Automatic endpoint registration based on mode
     - A2A protocol support for agent interoperability
+    - Custom triggers mode (create_triggers=False) for manual integration
     """
 
     def __init__(
@@ -1270,6 +1275,7 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
         agents: Union[Dict[str, Agent], List[Agent]],
         mode: AgentMode = AgentMode.AZURE_FUNCTION_AGENT,
         http_auth_level: Union[AuthLevel, str] = AuthLevel.FUNCTION,
+        create_triggers: bool = True,
     ):
         """
         Initialize the AgentFunctionApp.
@@ -1279,6 +1285,8 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
                    If a list is provided, agent names will be taken from Agent.name property
             mode: Operating mode (AZURE_FUNCTION_AGENT or A2A)
             http_auth_level: HTTP authentication level for endpoints
+            create_triggers: Whether to automatically create HTTP trigger endpoints.
+                           Set to False when using custom triggers or manual integration.
         """
         super().__init__(auth_level=http_auth_level)
 
@@ -1310,6 +1318,7 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
 
         self.agents: Dict[str, Agent] = agents_dict
         self.mode: AgentMode = mode
+        self.create_triggers: bool = create_triggers
         self.logger = logging.getLogger("AgentFunctionApp")
 
         # Create runners for each agent - always use agent.name as key for consistency
@@ -1328,8 +1337,11 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
             f"Initialized AgentFunctionApp in {mode.value} mode with {len(self.agents)} agent(s): {list(self.agents.keys())}"
         )
 
-        # Register endpoints
-        self._register_endpoints()
+        # Register endpoints only if create_triggers is True
+        if self.create_triggers:
+            self._register_endpoints()
+        else:
+            self.logger.info("Skipping HTTP trigger creation (create_triggers=False). Use manual integration or custom triggers.")
 
     def _register_endpoints(self):
         """Register HTTP endpoints based on the selected mode."""
@@ -1490,30 +1502,26 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
         try:
             request_data = req.get_json() or {}
         except ValueError:
-            return HttpResponse(
-                json.dumps({"error": "Invalid JSON in request body"}),
-                status_code=400,
-                headers={"Content-Type": "application/json"},
+            return self._dict_to_http(
+                {"error": "Invalid JSON in request body"}, 
+                status_code=400
             )
 
         # Handle both simple message format and OpenAI messages format
         if "messages" not in request_data and "message" not in request_data:
-            return HttpResponse(
-                json.dumps(
-                    {
-                        "error": "Either 'message' or 'messages' is required",
-                        "examples": {
-                            "simple": {"message": "Hello, how are you?"},
-                            "openai": {
-                                "messages": [
-                                    {"role": "user", "content": "Hello, how are you?"}
-                                ]
-                            },
+            return self._dict_to_http(
+                {
+                    "error": "Either 'message' or 'messages' is required",
+                    "examples": {
+                        "simple": {"message": "Hello, how are you?"},
+                        "openai": {
+                            "messages": [
+                                {"role": "user", "content": "Hello, how are you?"}
+                            ]
                         },
-                    }
-                ),
-                status_code=400,
-                headers={"Content-Type": "application/json"},
+                    },
+                },
+                status_code=400
             )
 
         try:
@@ -1522,43 +1530,27 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
             runner = self.runners[agent.name]
             response = await runner.run(request_data)
             
-            return HttpResponse(
-                json.dumps(
-                    {
-                        "response": response.get("response", ""),
-                        "agent": agent.name,
-                        "timestamp": datetime.utcnow().isoformat(),
-                        "metadata": response,
-                    }
-                ),
-                status_code=200,
-                headers={"Content-Type": "application/json"},
-            )
+            # Convert Response object to HttpResponse
+            return self._response_to_http(response, agent_name=agent.name)
+            
         except Exception as e:
             self.logger.error(f"Error processing chat request: {e}")
-            return HttpResponse(
-                json.dumps(
-                    {"error": "Failed to process chat request", "message": str(e)}
-                ),
-                status_code=500,
-                headers={"Content-Type": "application/json"},
+            error_response = ChatResponse(
+                status="error",
+                error=f"Failed to process chat request: {str(e)}"
             )
+            return self._response_to_http(error_response, status_code=500)
 
     async def _handle_info_request(self, agent: Agent) -> HttpResponse:
         """Handle info requests for single agent mode."""
         try:
             agent_info = await agent.get_agent_info()
-            return HttpResponse(
-                json.dumps(agent_info),
-                status_code=200,
-                headers={"Content-Type": "application/json"},
-            )
+            return self._dict_to_http(agent_info)
         except Exception as e:
             self.logger.error(f"Error getting agent info: {str(e)}")
-            return HttpResponse(
-                json.dumps({"error": "Failed to get agent info", "message": str(e)}),
-                status_code=500,
-                headers={"Content-Type": "application/json"},
+            return self._dict_to_http(
+                {"error": "Failed to get agent info", "message": str(e)}, 
+                status_code=500
             )
 
     async def _handle_list_agents(self) -> HttpResponse:
@@ -1667,58 +1659,104 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
         """List all agent names."""
         return list(self.agents.keys())
 
-    # Legacy compatibility methods
-    def tool(
-        self,
-        func: Optional[ToolFunction] = None,
-        *,
-        name: Optional[str] = None,
-        description: Optional[str] = None,
-        parameters: Optional[Dict[str, Any]] = None,
-        required_params: Optional[List[str]] = None,
+    # Manual integration helpers for custom triggers
+    def get_runner(self, agent_name: str) -> Runner:
+        """
+        Get a runner for a specific agent.
+        
+        This method is useful when create_triggers=False and you want to 
+        integrate agent processing into your own custom triggers.
+        
+        Args:
+            agent_name: Name of the agent
+            
+        Returns:
+            Runner instance for the agent
+            
+        Raises:
+            KeyError: If agent_name is not found
+        """
+        if agent_name not in self.runners:
+            available_agents = list(self.runners.keys())
+            raise KeyError(f"Agent '{agent_name}' not found. Available agents: {available_agents}")
+        
+        return self.runners[agent_name]
+    
+    def get_single_runner(self) -> Runner:
+        """
+        Get the runner for the single agent (only works in single-agent mode).
+        
+        This is a convenience method for single-agent setups where you don't 
+        need to specify the agent name.
+        
+        Returns:
+            Runner instance for the single agent
+            
+        Raises:
+            ValueError: If not in single-agent mode
+        """
+        if len(self.runners) != 1:
+            raise ValueError("get_single_runner only works in single-agent mode")
+        
+        return next(iter(self.runners.values()))
+
+    def _response_to_http(
+        self, 
+        response: Response, 
         agent_name: Optional[str] = None,
-    ):
+        status_code: int = 200
+    ) -> HttpResponse:
         """
-        Legacy tool decorator for backward compatibility.
-
-        In multi-agent mode, specify agent_name to target a specific agent.
-        In single-agent mode, it will target the only agent.
+        Convert agent Response to Azure Functions HttpResponse.
+        
+        This is the only place in the framework that handles HTTP/Azure Functions logic.
+        
+        Args:
+            response: Response object from agent processing
+            agent_name: Name of the agent that generated the response
+            status_code: HTTP status code
+            
+        Returns:
+            Azure Functions HttpResponse
         """
-        if len(self.agents) == 1 and not agent_name:
-            # Single agent mode - use the only agent
-            agent = next(iter(self.agents.values()))
-            return agent.tool(
-                func,
-                name=name,
-                description=description,
-                parameters=parameters,
-                required_params=required_params,
-            )
-        elif agent_name and agent_name in self.agents:
-            # Multi-agent mode with specific agent
-            return self.agents[agent_name].tool(
-                func,
-                name=name,
-                description=description,
-                parameters=parameters,
-                required_params=required_params,
-            )
-        else:
-            raise ValueError(
-                f"Invalid agent_name '{agent_name}' or ambiguous multi-agent setup"
-            )
+        response_dict = response.to_dict()
+        
+        # Add agent metadata if provided
+        if agent_name:
+            response_dict["agent"] = agent_name
+            
+        # Add timestamp
+        response_dict["timestamp"] = datetime.utcnow().isoformat()
+        
+        # For error responses, use appropriate status code
+        if response_dict.get("status") == "error" or response_dict.get("error"):
+            status_code = 500 if status_code == 200 else status_code
+            
+        return HttpResponse(
+            json.dumps(response_dict),
+            status_code=status_code,
+            headers={"Content-Type": "application/json"},
+        )
 
-    # Legacy property accessors for backward compatibility
-    @property
-    def name(self) -> str:
-        """Legacy property for single-agent mode."""
-        if len(self.agents) == 1:
-            return next(iter(self.agents.values())).name
-        raise AttributeError("name property not available in multi-agent mode")
-
-    @property
-    def model(self) -> Optional[LLMClient]:
-        """Legacy property for single-agent mode."""
-        if len(self.agents) == 1:
-            return next(iter(self.agents.values())).model
-        raise AttributeError("model property not available in multi-agent mode")
+    def _dict_to_http(
+        self, 
+        data: Dict[str, Any], 
+        status_code: int = 200
+    ) -> HttpResponse:
+        """
+        Convert dictionary to Azure Functions HttpResponse.
+        
+        Utility method for non-agent responses like errors and info.
+        
+        Args:
+            data: Dictionary to convert
+            status_code: HTTP status code
+            
+        Returns:
+            Azure Functions HttpResponse
+        """
+        return HttpResponse(
+            json.dumps(data),
+            status_code=status_code,
+            headers={"Content-Type": "application/json"},
+        )

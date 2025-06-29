@@ -250,6 +250,71 @@ reflection_agent = ReflectionAgent(
 - **Custom Evaluation**: Supports custom evaluation functions and prompts
 - **Reflection Tracking**: Maintains history of improvement iterations
 
+#### 4. **Runner** - Agent Execution Abstraction
+
+`Runner` provides a clean, framework-agnostic abstraction for executing agents programmatically. It handles request normalization and response generation without any HTTP or Azure Functions dependencies:
+
+```python
+from azurefunctions.agents.runner import Runner
+from azurefunctions.agents.types import ChatRequest
+
+# Create a runner for an agent
+runner = Runner(agent)
+
+# Execute with different input types
+response = await runner.run("Simple string message")
+response = await runner.run({"message": "Dictionary input"})
+
+# Use structured requests (recommended)
+chat_request = ChatRequest(
+    message="What's the weather?",
+    user_id="user-123",
+    session_id="session-456",
+    context={"location": "Seattle"}
+)
+response = await runner.run(chat_request)
+```
+
+**Key Responsibilities:**
+- **Input Normalization**: Accepts strings, dicts, or structured Request objects
+- **Agent Execution**: Runs agents and handles async/sync execution patterns
+- **Response Generation**: Returns structured Response objects
+- **Framework Agnostic**: No HTTP, Azure Functions, or web-specific dependencies
+
+#### 5. **Request/Response Abstractions**
+
+The framework provides clean abstractions for agent input and output that separate business logic from transport concerns:
+
+```python
+from azurefunctions.agents.types import ChatRequest, ChatResponse
+
+# Structured request with rich metadata
+request = ChatRequest(
+    message="What's the weather in Seattle?",
+    user_id="user-123",
+    session_id="session-456",
+    context={"preferred_units": "fahrenheit"}
+)
+
+# Process and get structured response
+response = await runner.run(request)
+
+# Response contains rich information
+print(f"Status: {response.status}")
+print(f"Response: {response.response}")
+print(f"Context: {response.context}")
+print(f"Error: {response.error}")  # If any
+
+# Convert to different formats
+response_dict = response.to_dict()
+```
+
+**Benefits:**
+- **Type Safety**: Full type hints and validation
+- **Clean Separation**: Business logic separate from HTTP/transport concerns
+- **Testability**: Easy to test without HTTP infrastructure
+- **Flexibility**: Support different transport mechanisms (HTTP, message queues, etc.)
+
 ### Architecture Patterns
 
 #### Single-Agent Pattern
