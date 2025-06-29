@@ -117,46 +117,71 @@ app = AgentFunctionApp(agents={"MyAgent": my_agent})
 
 ## 🔧 API Endpoints
 
-### Single Agent Mode
+### Standard Agent Deployments
 
-When deploying a single agent, you get clean, focused endpoints:
+All standard agent deployments (single and multi-agent) use the same consistent API pattern:
 
 ```bash
-POST /api/{AgentName}/chat        # Chat with the agent
-GET  /api/{AgentName}/info        # Get agent information  
-GET  /api/health                  # Health check
+POST /api/agents/{agent_name}/chat    # Chat with any agent
+GET  /api/agents/{agent_name}/info    # Get agent information  
+GET  /api/agents                      # List all available agents
+GET  /api/health                      # Health check
 ```
 
-**Example (Weather Bot):**
+### A2A Protocol Deployments
+
+Agent-to-Agent (A2A) protocol deployments use A2A specification-compliant endpoints:
 
 ```bash
-curl -X POST http://localhost:7071/api/WeatherBot/chat \
+POST /api/{agent_name}/chat           # Chat with the agent (A2A spec)
+GET  /api/{agent_name}/info           # Get agent information (A2A spec)
+GET  /api/agents                      # List all available agents
+GET  /api/health                      # Health check
+```
+
+### Single Agent Example (Weather Bot)
+
+```bash
+# Chat with the agent
+curl -X POST http://localhost:7071/api/agents/WeatherBot/chat \
   -H "Content-Type: application/json" \
   -d '{"message": "What is the weather in Tokyo?"}'
+
+# Get agent info
+curl http://localhost:7071/api/agents/WeatherBot/info
+
+# List agents (will show 1 agent)
+curl http://localhost:7071/api/agents
+
+# Health check
+curl http://localhost:7071/api/health
 ```
 
-### Multi-Agent Mode
-
-Multi-agent systems provide specialized endpoints for each agent:
+### Multi-Agent Example (Travel Planner)
 
 ```bash
-POST /api/agents/{agent_name}/chat   # Chat with specific agent
-GET  /api/agents                     # List all available agents
-POST /api/plan-trip                  # Coordinate multiple agents (custom endpoint)
-GET  /api/health                     # System health check
-```
-
-**Example (Travel Planner):**
-
-```bash
-# Talk to flight agent
+# Chat with flight agent
 curl -X POST http://localhost:7071/api/agents/FlightAgent/chat \
   -H "Content-Type: application/json" \
   -d '{"message": "Find flights from Seattle to Tokyo"}'
 
-# List all agents
+# Chat with hotel agent
+curl -X POST http://localhost:7071/api/agents/HotelAgent/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Find hotels in Tokyo"}'
+
+# List all agents (will show multiple agents)
 curl http://localhost:7071/api/agents
+
+# Health check
+curl http://localhost:7071/api/health
 ```
+
+**Benefits of Unified Routing:**
+- Same API pattern works for single and multi-agent deployments
+- Easy to migrate from single to multi-agent (just add more agents)
+- Predictable and consistent for developers
+- Tools and integrations work across different deployment modes
 
 ## 🏗️ Framework Architecture
 
@@ -334,8 +359,9 @@ response_dict = response.to_dict()
 ```
 
 **Endpoints Generated:**
-- `POST /api/{AgentName}/chat` - Chat with the agent
-- `GET /api/{AgentName}/info` - Get agent information
+
+- `POST /api/agents/{AgentName}/chat` - Chat with the agent
+- `GET /api/agents/{AgentName}/info` - Get agent information
 
 #### Multi-Agent Pattern
 **Best for:** Complex workflows requiring specialized agents
@@ -355,23 +381,27 @@ response_dict = response.to_dict()
 ```
 
 **Endpoints Generated:**
+
 - `POST /api/agents/{agent_name}/chat` - Chat with specific agent
 - `GET /api/agents` - List all agents
-- Custom workflow endpoints (optional)
+- Custom application endpoints (optional)
 
 ### Component Interaction Flow
 
 #### 1. Request Processing Flow
+
 ```
 HTTP Request → AgentFunctionApp → Agent.process_request() → LLM + Tools → Response
 ```
 
 #### 2. Tool Execution Flow
+
 ```
 Agent → ToolRegistry → [FunctionTool | MCPTool] → Result → LLM → Final Response
 ```
 
 #### 3. Reflection Flow (ReflectionAgent)
+
 ```
 Initial Response → Self-Evaluation → Reflection → Improvement → Quality Check → Final Response
 ```

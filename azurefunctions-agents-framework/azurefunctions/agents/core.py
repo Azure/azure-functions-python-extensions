@@ -1258,16 +1258,26 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
     to appropriate agents. It supports both single-agent and multi-agent architectures,
     as well as A2A (Agent-to-Agent) protocol compliance.
 
-    The AgentFunctionApp handles all HTTP endpoint registration based on the selected mode:
-    - AZURE_FUNCTION_AGENT: Standard HTTP endpoints for agent communication
-    - A2A: Agent-to-Agent protocol endpoints (single-agent only)
-
     Features:
-    - Single and multi-agent support with clean endpoints
+    - Unified routing pattern for single and multi-agent deployments
+    - Clean, predictable API endpoints 
     - HTTP authentication and routing
-    - Automatic endpoint registration based on mode
-    - A2A protocol support for agent interoperability
+    - A2A protocol support with specification compliance
     - Custom triggers mode (create_triggers=False) for manual integration
+
+    API Endpoints:
+    
+    Standard Mode (AZURE_FUNCTION_AGENT):
+    - POST /api/agents/{agent_name}/chat - Chat with any agent
+    - GET /api/agents/{agent_name}/info - Get agent information
+    - GET /api/agents - List all available agents
+    - GET /api/health - System health check
+    
+    A2A Mode (A2A):
+    - POST /api/{agent_name}/chat - Chat with the agent (A2A spec compliance)
+    - GET /api/{agent_name}/info - Get agent information (A2A spec compliance)
+    - GET /api/agents - List all available agents
+    - GET /api/health - System health check
     """
 
     def __init__(
@@ -1344,13 +1354,12 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
             self.logger.info("Skipping HTTP trigger creation (create_triggers=False). Use manual integration or custom triggers.")
 
     def _register_endpoints(self):
-        """Register HTTP endpoints based on the selected mode."""
+        """Register HTTP endpoints with unified routing for all modes."""
         if self.mode == AgentMode.A2A:
             self._register_a2a_endpoints()
-        elif len(self.agents) == 1:
-            self._register_single_agent_endpoints()
         else:
-            self._register_multi_agent_endpoints()
+            # Use unified routing for both single and multi-agent modes
+            self._register_unified_endpoints()
 
     def _register_a2a_endpoints(self):
         """Register A2A protocol endpoints for single-agent A2A mode."""
@@ -1378,64 +1387,70 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
             agent = next(iter(self.agents.values()))
             return await self._handle_info_request(agent)
 
-        self.logger.info(f"Registered A2A endpoints for agent: {agent_name}")
-
-    def _register_single_agent_endpoints(self):
-        """Register endpoints for single-agent mode."""
-        # Use agent.name for consistency (runners are also keyed by agent.name)
-        agent = next(iter(self.agents.values()))
-        agent_name = agent.name
-
         @self.route(
-            route=f"{agent_name}/chat",
-            auth_level=self._auth_level,
-            methods=["POST"],
-        )
-        async def agent_chat(req: HttpRequest) -> HttpResponse:
-            """Chat with the agent."""
-            agent = next(iter(self.agents.values()))
-            return await self._handle_chat_request(agent, req)
-
-        @self.route(
-            route=f"{agent_name}/info",
+            route="agents",
             auth_level=self._auth_level,
             methods=["GET"],
         )
-        async def agent_info(req: HttpRequest) -> HttpResponse:
-            """Get agent information."""
-            agent = next(iter(self.agents.values()))
-            return await self._handle_info_request(agent)
+        async def list_agents_endpoint(req: HttpRequest) -> HttpResponse:
+            """List all available agents."""
+            return await self._handle_list_agents()
 
-        self.logger.info(
-            f"Registered single-agent endpoints: POST /api/{agent_name}/chat, GET /api/{agent_name}/info"
+        @self.route(
+            route="health",
+            auth_level=self._auth_level,
+            methods=["GET"],
         )
+        async def health_check(req: HttpRequest) -> HttpResponse:
+            """Health check endpoint."""
+            return await self._handle_health_check()
 
-    def _register_multi_agent_endpoints(self):
-        """Register endpoints for multi-agent mode."""
+        self.logger.info(f"Registered A2A endpoints with unified routing for agent: {agent_name}")
+
+    def _register_unified_endpoints(self):
+        """Register unified endpoints that work for both single and multi-agent modes."""
 
         @self.route(
             route="agents/{agent_name}/chat",
             auth_level=self._auth_level,
             methods=["POST"],
         )
-        async def multi_agent_chat(req: HttpRequest) -> HttpResponse:
+        async def agent_chat(req: HttpRequest) -> HttpResponse:
             """Chat with a specific agent."""
             agent_name = req.route_params.get("agent_name")
 
             if not agent_name or agent_name not in self.agents:
-                return HttpResponse(
-                    json.dumps(
-                        {
-                            "error": f"Agent '{agent_name}' not found",
-                            "available_agents": list(self.agents.keys()),
-                        }
-                    ),
-                    status_code=404,
-                    headers={"Content-Type": "application/json"},
+                return self._dict_to_http(
+                    {
+                        "error": f"Agent '{agent_name}' not found",
+                        "available_agents": list(self.agents.keys()),
+                    },
+                    status_code=404
                 )
 
             agent = self.agents[agent_name]
             return await self._handle_chat_request(agent, req)
+
+        @self.route(
+            route="agents/{agent_name}/info",
+            auth_level=self._auth_level,
+            methods=["GET"],
+        )
+        async def agent_info(req: HttpRequest) -> HttpResponse:
+            """Get information about a specific agent."""
+            agent_name = req.route_params.get("agent_name")
+
+            if not agent_name or agent_name not in self.agents:
+                return self._dict_to_http(
+                    {
+                        "error": f"Agent '{agent_name}' not found",
+                        "available_agents": list(self.agents.keys()),
+                    },
+                    status_code=404
+                )
+
+            agent = self.agents[agent_name]
+            return await self._handle_info_request(agent)
 
         @self.route(
             route="agents",
@@ -1447,29 +1462,17 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
             return await self._handle_list_agents()
 
         @self.route(
-            route="workflows",
-            auth_level=self._auth_level,
-            methods=["GET", "POST"],
-        )
-        async def workflows_endpoint(req: HttpRequest) -> HttpResponse:
-            """Handle workflow operations."""
-            if req.method == "GET":
-                return await self._handle_list_workflows()
-            elif req.method == "POST":
-                return await self._handle_create_workflow(req)
-
-        @self.route(
-            route="workflow/{workflow_id}",
+            route="health",
             auth_level=self._auth_level,
             methods=["GET"],
         )
-        async def get_workflow_endpoint(req: HttpRequest) -> HttpResponse:
-            """Get workflow status and results."""
-            workflow_id = req.route_params.get("workflow_id")
-            return await self._handle_get_workflow(workflow_id)
+        async def health_check(req: HttpRequest) -> HttpResponse:
+            """Health check endpoint."""
+            return await self._handle_health_check()
 
+        mode_description = "single-agent" if len(self.agents) == 1 else "multi-agent"
         self.logger.info(
-            f"Registered multi-agent endpoints for {len(self.agents)} agents"
+            f"Registered unified endpoints for {mode_description} mode with {len(self.agents)} agent(s): {list(self.agents.keys())}"
         )
 
     # Legacy handler methods removed - only clean endpoints are supported now
@@ -1553,6 +1556,36 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
                 status_code=500
             )
 
+    async def _handle_health_check(self) -> HttpResponse:
+        """Handle health check requests."""
+        try:
+            health_info = {
+                "status": "healthy",
+                "timestamp": datetime.utcnow().isoformat(),
+                "mode": self.mode.value,
+                "agents": {
+                    "total": len(self.agents),
+                    "names": list(self.agents.keys())
+                },
+                "endpoints": {
+                    "chat": "/api/agents/{agent_name}/chat",
+                    "info": "/api/agents/{agent_name}/info",
+                    "list": "/api/agents",
+                    "health": "/api/health"
+                }
+            }
+            return self._dict_to_http(health_info)
+        except Exception as e:
+            self.logger.error(f"Error in health check: {str(e)}")
+            return self._dict_to_http(
+                {
+                    "status": "unhealthy",
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "error": str(e)
+                }, 
+                status_code=500
+            )
+
     async def _handle_list_agents(self) -> HttpResponse:
         """Handle listing all agents in multi-agent mode."""
         try:
@@ -1593,45 +1626,6 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
                 status_code=500,
                 headers={"Content-Type": "application/json"},
             )
-
-    async def _handle_list_workflows(self) -> HttpResponse:
-        """Handle listing workflows (placeholder for future workflow engine)."""
-        return HttpResponse(
-            json.dumps(
-                {
-                    "workflows": [],
-                    "message": "Workflow engine not yet implemented. Use simplified_agent_framework.py for workflow demos.",
-                }
-            ),
-            status_code=200,
-            headers={"Content-Type": "application/json"},
-        )
-
-    async def _handle_create_workflow(self, req: HttpRequest) -> HttpResponse:
-        """Handle creating workflows (placeholder for future workflow engine)."""
-        return HttpResponse(
-            json.dumps(
-                {
-                    "error": "Workflow engine not yet implemented",
-                    "message": "Use simplified_agent_framework.py for workflow demos.",
-                }
-            ),
-            status_code=501,
-            headers={"Content-Type": "application/json"},
-        )
-
-    async def _handle_get_workflow(self, workflow_id: str) -> HttpResponse:
-        """Handle getting workflow status (placeholder for future workflow engine)."""
-        return HttpResponse(
-            json.dumps(
-                {
-                    "error": "Workflow engine not yet implemented",
-                    "message": "Use simplified_agent_framework.py for workflow demos.",
-                }
-            ),
-            status_code=501,
-            headers={"Content-Type": "application/json"},
-        )
 
     # Agent management methods
     def add_agent(self, agent: Agent) -> bool:
