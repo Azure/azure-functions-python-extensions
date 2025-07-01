@@ -48,7 +48,7 @@ class UserError(AgentError):
 # Parameter types for different MCP server modes
 class MCPServerStdioParams(TypedDict):
     """Parameters for STDIO mode MCP server."""
-    
+
     command: str
     """The executable to run to start the server. For example, `python` or `node`."""
 
@@ -70,7 +70,7 @@ class MCPServerStdioParams(TypedDict):
 
 class MCPServerSseParams(TypedDict):
     """Parameters for SSE mode MCP server."""
-    
+
     url: str
     """The URL for the SSE endpoint."""
 
@@ -86,7 +86,7 @@ class MCPServerSseParams(TypedDict):
 
 class MCPServerStreamableHttpParams(TypedDict):
     """Parameters for Streamable HTTP mode MCP server."""
-    
+
     session_url: str
     """The base URL for the MCP server's session endpoint."""
 
@@ -102,7 +102,7 @@ class MCPServerStreamableHttpParams(TypedDict):
 
 class MCPServer:
     """Unified MCP server that supports multiple communication modes.
-    
+
     This replaces the previous MCPServerStdio, MCPServerSse, and MCPServerStreamableHttp
     classes with a single, configurable server class.
     """
@@ -111,7 +111,9 @@ class MCPServer:
         self,
         name: str,
         mode: MCPServerMode,
-        params: Union[MCPServerStdioParams, MCPServerSseParams, MCPServerStreamableHttpParams],
+        params: Union[
+            MCPServerStdioParams, MCPServerSseParams, MCPServerStreamableHttpParams
+        ],
         cache_tools_list: bool = False,
         client_session_timeout_seconds: Optional[float] = 5.0,
     ):
@@ -122,7 +124,7 @@ class MCPServer:
             mode: The communication mode to use (STDIO, SSE, or STREAMABLE_HTTP).
             params: Mode-specific parameters. Use:
                 - MCPServerStdioParams for STDIO mode
-                - MCPServerSseParams for SSE mode  
+                - MCPServerSseParams for SSE mode
                 - MCPServerStreamableHttpParams for STREAMABLE_HTTP mode
             cache_tools_list: Whether to cache the tools list for performance.
             client_session_timeout_seconds: The read timeout for the MCP ClientSession.
@@ -132,10 +134,10 @@ class MCPServer:
         self.params = params
         self.cache_tools_list = cache_tools_list
         self.client_session_timeout_seconds = client_session_timeout_seconds
-        
+
         # Validate that params match the mode
         self._validate_params_for_mode(mode, params)
-        
+
         self.session: Optional[ClientSession] = None
         self._cleanup_context: Optional[AbstractAsyncContextManager] = None
         self._tools_cache: Optional[List[MCPTool]] = None
@@ -146,26 +148,34 @@ class MCPServer:
         return self._name
 
     def _validate_params_for_mode(
-        self, 
-        mode: MCPServerMode, 
-        params: Union[MCPServerStdioParams, MCPServerSseParams, MCPServerStreamableHttpParams]
+        self,
+        mode: MCPServerMode,
+        params: Union[
+            MCPServerStdioParams, MCPServerSseParams, MCPServerStreamableHttpParams
+        ],
     ) -> None:
         """Validate that the params are appropriate for the given mode."""
         if mode == MCPServerMode.STDIO:
             # Check that required STDIO parameters are present
-            if not isinstance(params, dict) or 'command' not in params:
-                raise ValueError("STDIO mode requires MCPServerStdioParams with 'command' parameter")
-                
+            if not isinstance(params, dict) or "command" not in params:
+                raise ValueError(
+                    "STDIO mode requires MCPServerStdioParams with 'command' parameter"
+                )
+
         elif mode == MCPServerMode.SSE:
             # Check that required SSE parameters are present
-            if not isinstance(params, dict) or 'url' not in params:
-                raise ValueError("SSE mode requires MCPServerSseParams with 'url' parameter")
-                
+            if not isinstance(params, dict) or "url" not in params:
+                raise ValueError(
+                    "SSE mode requires MCPServerSseParams with 'url' parameter"
+                )
+
         elif mode == MCPServerMode.STREAMABLE_HTTP:
             # Check that required HTTP parameters are present
-            if not isinstance(params, dict) or 'session_url' not in params:
-                raise ValueError("STREAMABLE_HTTP mode requires MCPServerStreamableHttpParams with 'session_url' parameter")
-                
+            if not isinstance(params, dict) or "session_url" not in params:
+                raise ValueError(
+                    "STREAMABLE_HTTP mode requires MCPServerStreamableHttpParams with 'session_url' parameter"
+                )
+
         else:
             raise ValueError(f"Unsupported MCP server mode: {mode}")
 
@@ -183,9 +193,11 @@ class MCPServer:
                 await self._connect_streamable_http()
             else:
                 raise ValueError(f"Unsupported MCP server mode: {self.mode}")
-                
-            logger.info(f"Successfully connected to MCP server '{self.name}' using {self.mode.value} mode")
-            
+
+            logger.info(
+                f"Successfully connected to MCP server '{self.name}' using {self.mode.value} mode"
+            )
+
         except Exception as e:
             logger.error(f"Failed to connect to MCP server '{self.name}': {e}")
             raise
@@ -193,27 +205,27 @@ class MCPServer:
     async def _connect_stdio(self):
         """Connect using STDIO transport."""
         params = self.params
-        if not isinstance(params, dict) or 'command' not in params:
+        if not isinstance(params, dict) or "command" not in params:
             raise ValueError("STDIO mode requires MCPServerStdioParams with 'command'")
-            
+
         # Convert to StdioServerParameters
         stdio_params = StdioServerParameters(
-            command=params['command'],
-            args=params.get('args', []),
-            env=params.get('env'),
-            cwd=Path(params['cwd']) if params.get('cwd') else None,
-            encoding=params.get('encoding', 'utf-8'),
-            encoding_error_handler=params.get('encoding_error_handler', 'strict')
+            command=params["command"],
+            args=params.get("args", []),
+            env=params.get("env"),
+            cwd=Path(params["cwd"]) if params.get("cwd") else None,
+            encoding=params.get("encoding", "utf-8"),
+            encoding_error_handler=params.get("encoding_error_handler", "strict"),
         )
-        
+
         # Create stdio client and session
         stdio_read_stream, stdio_write_stream = await stdio_client(stdio_params)
         self._cleanup_context = AsyncExitStack()
         self.session = await self._cleanup_context.aenter(
             ClientSession(
-                stdio_read_stream, 
-                stdio_write_stream, 
-                timeout_seconds=self.client_session_timeout_seconds
+                stdio_read_stream,
+                stdio_write_stream,
+                timeout_seconds=self.client_session_timeout_seconds,
             )
         )
         await self.session.initialize()
@@ -221,22 +233,22 @@ class MCPServer:
     async def _connect_sse(self):
         """Connect using SSE transport."""
         params = self.params
-        if not isinstance(params, dict) or 'url' not in params:
+        if not isinstance(params, dict) or "url" not in params:
             raise ValueError("SSE mode requires MCPServerSseParams with 'url'")
-            
+
         # Create SSE client and session
         sse_read_stream, sse_write_stream = await sse_client(
-            url=params['url'],
-            headers=params.get('headers'),
-            timeout=params.get('timeout', 5.0),
-            sse_read_timeout=params.get('sse_read_timeout', 300.0)
+            url=params["url"],
+            headers=params.get("headers"),
+            timeout=params.get("timeout", 5.0),
+            sse_read_timeout=params.get("sse_read_timeout", 300.0),
         )
         self._cleanup_context = AsyncExitStack()
         self.session = await self._cleanup_context.aenter(
             ClientSession(
-                sse_read_stream, 
-                sse_write_stream, 
-                timeout_seconds=self.client_session_timeout_seconds
+                sse_read_stream,
+                sse_write_stream,
+                timeout_seconds=self.client_session_timeout_seconds,
             )
         )
         await self.session.initialize()
@@ -244,22 +256,24 @@ class MCPServer:
     async def _connect_streamable_http(self):
         """Connect using Streamable HTTP transport."""
         params = self.params
-        if not isinstance(params, dict) or 'session_url' not in params:
-            raise ValueError("STREAMABLE_HTTP mode requires MCPServerStreamableHttpParams with 'session_url'")
-            
+        if not isinstance(params, dict) or "session_url" not in params:
+            raise ValueError(
+                "STREAMABLE_HTTP mode requires MCPServerStreamableHttpParams with 'session_url'"
+            )
+
         # Create streamable HTTP client and session
         http_read_stream, http_write_stream = await streamablehttp_client(
-            session_url=params['session_url'],
-            get_session_id=params.get('get_session_id'),
-            headers=params.get('headers'),
-            timeout=params.get('timeout', 5.0)
+            session_url=params["session_url"],
+            get_session_id=params.get("get_session_id"),
+            headers=params.get("headers"),
+            timeout=params.get("timeout", 5.0),
         )
         self._cleanup_context = AsyncExitStack()
         self.session = await self._cleanup_context.aenter(
             ClientSession(
-                http_read_stream, 
-                http_write_stream, 
-                timeout_seconds=self.client_session_timeout_seconds
+                http_read_stream,
+                http_write_stream,
+                timeout_seconds=self.client_session_timeout_seconds,
             )
         )
         await self.session.initialize()
@@ -276,17 +290,17 @@ class MCPServer:
         """List the tools available on the server."""
         if self.session is None:
             await self.connect()
-            
+
         if self.cache_tools_list and self._tools_cache is not None:
             return self._tools_cache
-            
+
         assert self.session is not None
         list_tools_result = await self.session.list_tools()
         tools = list_tools_result.tools
-        
+
         if self.cache_tools_list:
             self._tools_cache = tools
-            
+
         return tools
 
     async def call_tool(
@@ -295,7 +309,7 @@ class MCPServer:
         """Invoke a tool on the server."""
         if self.session is None:
             await self.connect()
-            
+
         assert self.session is not None
         return await self.session.call_tool(tool_name, arguments or {})
 
@@ -307,7 +321,7 @@ class MCPServer:
 # Backward compatibility aliases (deprecated)
 class MCPServerStdio(MCPServer):
     """Deprecated: Use MCPServer with mode=MCPServerMode.STDIO instead."""
-    
+
     def __init__(
         self,
         params: MCPServerStdioParams,
@@ -316,23 +330,24 @@ class MCPServerStdio(MCPServer):
         client_session_timeout_seconds: Optional[float] = 5,
     ):
         import warnings
+
         warnings.warn(
             "MCPServerStdio is deprecated. Use MCPServer with mode=MCPServerMode.STDIO instead.",
             DeprecationWarning,
-            stacklevel=2
+            stacklevel=2,
         )
         super().__init__(
             name=name or "MCPServerStdio",
             mode=MCPServerMode.STDIO,
             params=params,
             cache_tools_list=cache_tools_list,
-            client_session_timeout_seconds=client_session_timeout_seconds
+            client_session_timeout_seconds=client_session_timeout_seconds,
         )
 
 
 class MCPServerSse(MCPServer):
     """Deprecated: Use MCPServer with mode=MCPServerMode.SSE instead."""
-    
+
     def __init__(
         self,
         params: MCPServerSseParams,
@@ -341,23 +356,24 @@ class MCPServerSse(MCPServer):
         client_session_timeout_seconds: Optional[float] = 5,
     ):
         import warnings
+
         warnings.warn(
             "MCPServerSse is deprecated. Use MCPServer with mode=MCPServerMode.SSE instead.",
             DeprecationWarning,
-            stacklevel=2
+            stacklevel=2,
         )
         super().__init__(
             name=name or "MCPServerSse",
             mode=MCPServerMode.SSE,
             params=params,
             cache_tools_list=cache_tools_list,
-            client_session_timeout_seconds=client_session_timeout_seconds
+            client_session_timeout_seconds=client_session_timeout_seconds,
         )
 
 
 class MCPServerStreamableHttp(MCPServer):
     """Deprecated: Use MCPServer with mode=MCPServerMode.STREAMABLE_HTTP instead."""
-    
+
     def __init__(
         self,
         params: MCPServerStreamableHttpParams,
@@ -366,15 +382,16 @@ class MCPServerStreamableHttp(MCPServer):
         client_session_timeout_seconds: Optional[float] = 5,
     ):
         import warnings
+
         warnings.warn(
             "MCPServerStreamableHttp is deprecated. Use MCPServer with mode=MCPServerMode.STREAMABLE_HTTP instead.",
             DeprecationWarning,
-            stacklevel=2
+            stacklevel=2,
         )
         super().__init__(
             name=name or "MCPServerStreamableHttp",
             mode=MCPServerMode.STREAMABLE_HTTP,
             params=params,
             cache_tools_list=cache_tools_list,
-            client_session_timeout_seconds=client_session_timeout_seconds
+            client_session_timeout_seconds=client_session_timeout_seconds,
         )

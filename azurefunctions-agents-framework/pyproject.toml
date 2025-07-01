@@ -10,7 +10,7 @@ requires-python = ">=3.10"
 authors = [{ name = "Azure Functions team at Microsoft Corp.", email = "azurefunctions@microsoft.com"}]
 description = "Base Python worker extension for Azure Functions."
 readme = "README.md"
-license = {text = "MIT License"}
+license = "MIT"
 dependencies = [
     "azure-functions",
     "mcp",
@@ -21,7 +21,6 @@ dependencies = [
     "a2a-sdk",
 ]
 classifiers= [
-        'License :: OSI Approved :: MIT License',
         'Intended Audience :: Developers',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.10',

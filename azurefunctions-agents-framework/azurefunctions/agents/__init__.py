@@ -6,12 +6,13 @@
 Core agent framework for building intelligent Azure Functions with AI capabilities.
 """
 
-from .core import Agent, AgentFunctionApp, ReflectionAgent
+from .agents import Agent, ReflectionAgent
+from .core import AgentFunctionApp
 from .mcp import (
     MCPServer,
     MCPServerMode,
-    MCPServerStdioParams,
     MCPServerSseParams,
+    MCPServerStdioParams,
     MCPServerStreamableHttpParams,
     MCPUtil,
 )
@@ -44,6 +45,6 @@ __all__ = [
     "MCPUtil",
 ]
 
-__version__ = "0.0.1a1"
+__version__ = "0.0.1a2"
 __author__ = "Microsoft Azure Functions Team"
 __license__ = "MIT"

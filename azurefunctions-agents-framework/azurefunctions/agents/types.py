@@ -152,6 +152,7 @@ except ImportError:
 
 # Abstract Request and Response classes for clean separation of concerns
 
+
 class Request(abc.ABC):
     """Abstract base class for all agent requests."""
 
@@ -219,9 +220,7 @@ class ChatResponse(Response):
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert response to dictionary format."""
-        result = {
-            "status": self.status
-        }
+        result = {"status": self.status}
         if self.response:
             result["response"] = self.response
         if self.messages:
@@ -231,7 +230,7 @@ class ChatResponse(Response):
                     "content": msg.content,
                     **({"tool_calls": msg.tool_calls} if msg.tool_calls else {}),
                     **({"tool_call_id": msg.tool_call_id} if msg.tool_call_id else {}),
-                    **({"name": msg.name} if msg.name else {})
+                    **({"name": msg.name} if msg.name else {}),
                 }
                 for msg in self.messages
             ]

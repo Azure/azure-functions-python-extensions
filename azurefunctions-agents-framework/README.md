@@ -130,14 +130,22 @@ GET  /api/health                      # Health check
 
 ### A2A Protocol Deployments
 
-Agent-to-Agent (A2A) protocol deployments use A2A specification-compliant endpoints:
+Agent-to-Agent (A2A) protocol deployments follow the A2A specification and use JSON-RPC 2.0 over HTTP:
 
 ```bash
-POST /api/{agent_name}/chat           # Chat with the agent (A2A spec)
-GET  /api/{agent_name}/info           # Get agent information (A2A spec)
-GET  /api/agents                      # List all available agents
-GET  /api/health                      # Health check
+POST {agent_url}                      # JSON-RPC endpoint for all A2A methods
+GET  /.well-known/agent.json          # Agent Card discovery (A2A spec)
+GET  /api/agents                      # List all available agents (framework)
+GET  /api/health                      # Health check (framework)
 ```
+
+**A2A JSON-RPC Methods:**
+
+- `message/send` - Send messages to the agent
+- `message/stream` - Send messages with streaming responses
+- `tasks/get` - Get task status
+- `tasks/cancel` - Cancel tasks
+- Push notification configuration methods
 
 ### Single Agent Example (Weather Bot)
 
@@ -178,6 +186,7 @@ curl http://localhost:7071/api/health
 ```
 
 **Benefits of Unified Routing:**
+
 - Same API pattern works for single and multi-agent deployments
 - Easy to migrate from single to multi-agent (just add more agents)
 - Predictable and consistent for developers
@@ -214,6 +223,7 @@ app = AgentFunctionApp(
 ```
 
 **Key Responsibilities:**
+
 - **HTTP Endpoint Management**: Automatically registers routes based on deployment mode
 - **Request Routing**: Routes incoming requests to appropriate agents
 - **Authentication**: Handles Azure Functions authentication levels
@@ -269,6 +279,7 @@ reflection_agent = ReflectionAgent(
 ```
 
 **Advanced Capabilities:**
+
 - **Self-Evaluation**: Automatically assesses response quality using configurable criteria
 - **Iterative Improvement**: Refines responses through reflection loops
 - **Quality Thresholds**: Stops improvement when quality targets are met
@@ -301,6 +312,7 @@ response = await runner.run(chat_request)
 ```
 
 **Key Responsibilities:**
+
 - **Input Normalization**: Accepts strings, dicts, or structured Request objects
 - **Agent Execution**: Runs agents and handles async/sync execution patterns
 - **Response Generation**: Returns structured Response objects
@@ -335,6 +347,7 @@ response_dict = response.to_dict()
 ```
 
 **Benefits:**
+
 - **Type Safety**: Full type hints and validation
 - **Clean Separation**: Business logic separate from HTTP/transport concerns
 - **Testability**: Easy to test without HTTP infrastructure
@@ -343,9 +356,10 @@ response_dict = response.to_dict()
 ### Architecture Patterns
 
 #### Single-Agent Pattern
+
 **Best for:** Focused, specialized applications
 
-```
+```text
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │  HTTP Request   │───▶│ AgentFunctionApp │───▶│  Single Agent   │
 │                 │    │   (Routing)     │    │   (Processing)  │
@@ -364,9 +378,10 @@ response_dict = response.to_dict()
 - `GET /api/agents/{AgentName}/info` - Get agent information
 
 #### Multi-Agent Pattern
+
 **Best for:** Complex workflows requiring specialized agents
 
-```
+```text
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │  HTTP Request   │───▶│ AgentFunctionApp │───▶│  Agent Router   │
 │                 │    │   (Multi-mode)  │    │                 │
@@ -390,25 +405,26 @@ response_dict = response.to_dict()
 
 #### 1. Request Processing Flow
 
-```
+```text
 HTTP Request → AgentFunctionApp → Agent.process_request() → LLM + Tools → Response
 ```
 
 #### 2. Tool Execution Flow
 
-```
+```text
 Agent → ToolRegistry → [FunctionTool | MCPTool] → Result → LLM → Final Response
 ```
 
 #### 3. Reflection Flow (ReflectionAgent)
 
-```
+```text
 Initial Response → Self-Evaluation → Reflection → Improvement → Quality Check → Final Response
 ```
 
 ### Extensibility Points
 
 #### Custom Agent Types
+
 Extend the base `Agent` class to create specialized agent behaviors:
 
 ```python
@@ -421,6 +437,7 @@ class CustomAgent(Agent):
 ```
 
 #### Custom Tools
+
 Register functions as tools using the decorator pattern:
 
 ```python
@@ -431,6 +448,7 @@ def my_custom_tool(param: str) -> str:
 ```
 
 #### MCP Server Integration
+
 Connect to external MCP servers for enhanced capabilities:
 
 ```python
@@ -497,6 +515,18 @@ Connect your agents to MCP servers for enhanced capabilities:
 from azurefunctions.agents import Agent, MCPServer, MCPServerMode
 from azurefunctions.agents import MCPServerSseParams
 
+```python
+from azurefunctions.agents import Agent, MCPServer, MCPServerMode
+from azurefunctions.agents import MCPServerSseParams
+from azurefunctions.agents.types import LLMConfig, LLMProvider
+
+# Configure LLM for the agent
+llm_config = LLMConfig(
+    provider=LLMProvider.OPENAI,
+    model_name="gpt-4",
+    api_key="your-openai-api-key"
+)
+
 # Configure MCP server (SSE mode example)
 mcp_server = MCPServer(
     name="CodeExecutionMCPServer",
@@ -529,6 +559,7 @@ The unified `MCPServer` supports three communication modes:
 **STDIO Mode** (subprocess communication):
 
 ```python
+from azurefunctions.agents import MCPServer, MCPServerMode
 from azurefunctions.agents import MCPServerStdioParams
 
 mcp_server = MCPServer(
@@ -545,6 +576,7 @@ mcp_server = MCPServer(
 **SSE Mode** (Server-Sent Events):
 
 ```python
+from azurefunctions.agents import MCPServer, MCPServerMode
 from azurefunctions.agents import MCPServerSseParams
 
 mcp_server = MCPServer(
@@ -560,6 +592,7 @@ mcp_server = MCPServer(
 **Streamable HTTP Mode**:
 
 ```python
+from azurefunctions.agents import MCPServer, MCPServerMode
 from azurefunctions.agents import MCPServerStreamableHttpParams
 
 mcp_server = MCPServer(
