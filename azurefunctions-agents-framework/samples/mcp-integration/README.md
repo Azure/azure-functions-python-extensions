@@ -10,7 +10,7 @@ The Model Context Protocol (MCP) is an open protocol that enables AI application
 
 Each example is organized in its own directory with complete setup instructions, dependencies, and documentation:
 
-```
+```text
 mcp-integration/
 ├── weather-agent/          # Weather MCP integration example
 │   ├── weather_mcp_agent.py
@@ -42,6 +42,7 @@ mcp-integration/
 A comprehensive example showing how to integrate with a weather MCP server to provide weather information through natural language interactions.
 
 **Key Features:**
+
 - Weather information retrieval for any location
 - Type-safe MCP server configuration using `MCPServerStdioParams`
 - Robust error handling for network and API issues
@@ -62,6 +63,7 @@ func start
 Demonstrates integration with a Git MCP server for repository analysis and operations.
 
 **Key Features:**
+
 - Git repository analysis and insights
 - File listing, content reading, and git operations
 - Support for both local and remote Git MCP servers
@@ -82,6 +84,7 @@ func start
 A complete Server-Sent Events (SSE) based MCP implementation with both server and client components.
 
 **Key Features:**
+
 - FastAPI-based SSE MCP server with multiple demonstration tools
 - Azure Functions agent with automatic server lifecycle management
 - Real-time bidirectional communication using SSE and HTTP
@@ -129,16 +132,19 @@ curl -X POST "http://localhost:7071/api/{function_name}" \
 The Azure Functions Agent Framework supports three types of MCP server connections:
 
 ### 1. STDIO (Standard Input/Output)
+
 - Uses process spawning and pipe communication
 - Ideal for local MCP servers and command-line tools
 - Example: Weather agent using npm-installed weather server
 
 ### 2. SSE (Server-Sent Events)
+
 - Uses HTTP-based communication with Server-Sent Events
 - Perfect for web-based MCP servers and real-time applications
 - Example: SSE integration with FastAPI server
 
 ### 3. Streamable HTTP
+
 - Uses standard HTTP requests and responses
 - Best for REST API-style MCP servers
 - Example: Git agent connecting to HTTP-based git server
@@ -152,6 +158,7 @@ python test_examples.py
 ```
 
 This script checks:
+
 - Python syntax and compilation
 - Import dependencies
 - Configuration file validity
@@ -187,6 +194,6 @@ When adding new MCP integration examples:
 ## Resources
 
 - [Model Context Protocol Specification](https://modelcontextprotocol.io/)
-- [Azure Functions Documentation](https://docs.microsoft.com/en-us/azure/azure-functions/)
+- [Azure Functions Documentation](https://docs.microsoft.com/azure/azure-functions/)
 - [Azure Functions Agent Framework](../../README.md)
 - [MCP Server Registry](https://github.com/modelcontextprotocol/servers)

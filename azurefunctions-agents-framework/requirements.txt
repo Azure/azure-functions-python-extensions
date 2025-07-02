@@ -12,3 +12,5 @@ aiohttp
 a2a-sdk
 isort
 black
+pytest
+pytest-asyncio

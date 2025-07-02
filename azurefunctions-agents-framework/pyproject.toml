@@ -67,6 +67,7 @@ dev = [
     "black",
     "pytest",
     "pytest-asyncio",
+    "pytest-cov",
     "mypy"
 ]
 
@@ -95,3 +96,34 @@ exclude = ["test_files_llm_created*", "samples*"]
 
 [tool.setuptools.dynamic]
 version = {attr = "azurefunctions.agents.__version__"}
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q --strict-markers"
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+markers = [
+    "asyncio: marks tests as async (deselect with '-m \"not asyncio\"')",
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests"
+]
+asyncio_mode = "auto"
+
+[tool.coverage.run]
+source = ["azurefunctions"]
+omit = ["*/tests/*", "*/test_*", "*/__pycache__/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:"
+]
