@@ -401,6 +401,213 @@ response_dict = response.to_dict()
 - `GET /api/agents` - List all agents
 - Custom application endpoints (optional)
 
+## 🔄 Multi-Agent Handoffs
+
+The Azure Functions Agent Framework provides a powerful handoff system that enables agents to seamlessly collaborate and delegate tasks to each other. This system supports both **Swarm** (peer-to-peer) and **Coordinator** (manager-orchestrated) patterns for sophisticated multi-agent workflows.
+
+### Key Concepts
+
+#### Handoff Modes
+
+- **SWARM**: Agents collaborate organically, control bubbles up to user
+- **COORDINATOR**: One agent orchestrates others and returns consolidated result
+- **SEQUENTIAL**: Linear handoff chain between agents
+- **CONDITIONAL**: Handoff based on dynamic conditions
+
+#### Control Return Strategies
+
+- **BUBBLE_UP**: Return control to user/caller (default)
+- **RETURN_TO_CALLER**: Return to the agent that called this one
+- **CONTINUE_CHAIN**: Continue to next agent in chain
+- **END_CONVERSATION**: End the conversation
+
+### Quick Start: Swarm Pattern
+
+Agents collaborate peer-to-peer with results bubbling up:
+
+```python
+from azurefunctions.agents import Agent, AgentFunctionApp
+from azurefunctions.agents.handoff import HandoffConfig, HandoffTarget, HandoffMode
+
+# Create specialized agents
+weather_agent = Agent(
+    name="weather",
+    instructions="You provide weather information",
+    tools=[get_weather],
+    handoff_config=HandoffConfig(
+        mode=HandoffMode.SWARM,
+        targets=[HandoffTarget(agent_name="temperature_converter")]
+    )
+)
+
+temp_agent = Agent(
+    name="temperature_converter", 
+    instructions="You convert temperatures between units",
+    tools=[convert_temperature],
+    handoff_config=HandoffConfig(
+        mode=HandoffMode.SWARM,
+        targets=[HandoffTarget(agent_name="weather")]
+    )
+)
+
+# Deploy with handoff system
+app = AgentFunctionApp(agents=[weather_agent, temp_agent])
+```
+
+### Quick Start: Coordinator Pattern
+
+One agent orchestrates others and returns consolidated results:
+
+```python
+# Coordinator agent
+coordinator = Agent(
+    name="travel_coordinator",
+    instructions="You coordinate travel planning across multiple agents",
+    handoff_config=HandoffConfig(
+        mode=HandoffMode.COORDINATOR,
+        targets=[
+            HandoffTarget(agent_name="flight_agent"),
+            HandoffTarget(agent_name="hotel_agent"),
+            HandoffTarget(agent_name="weather_agent")
+        ]
+    )
+)
+
+# Specialist agents
+flight_agent = Agent(name="flight_agent", instructions="You search for flights", tools=[search_flights])
+hotel_agent = Agent(name="hotel_agent", instructions="You search for hotels", tools=[search_hotels])
+weather_agent = Agent(name="weather_agent", instructions="You provide weather info", tools=[get_weather])
+
+app = AgentFunctionApp(agents=[coordinator, flight_agent, hotel_agent, weather_agent])
+```
+
+### Runner-Based Handoffs
+
+The framework uses `Runner` objects for direct agent-to-agent communication:
+
+```python
+# Get runners from the app
+weather_runner = app.runners["weather"]
+temp_runner = app.runners["temperature_converter"]
+
+# Direct handoff between agents
+async def handle_request():
+    # Weather agent processes initial request
+    weather_response = await weather_runner.run("What's the weather in Seattle?")
+    
+    # Hand off to temperature converter
+    temp_response = await weather_runner.handoff_to(
+        target_agent="temperature_converter",
+        input_data={"celsius": 22, "target_unit": "fahrenheit"},
+        conversation_id="user-session-123",
+        reason="User requested temperature conversion"
+    )
+    
+    return temp_response
+```
+
+### Advanced Configuration
+
+#### Conditional Handoffs
+
+```python
+from azurefunctions.agents.handoff import HandoffConfig, HandoffTarget, HandoffMode
+
+def needs_translation(request_data):
+    """Check if the request needs translation."""
+    return any(keyword in request_data.get('message', '').lower() 
+              for keyword in ['translate', 'español', 'français'])
+
+agent = Agent(
+    name="multilingual_assistant",
+    instructions="You help with multilingual requests",
+    handoff_config=HandoffConfig(
+        mode=HandoffMode.CONDITIONAL,
+        targets=[
+            HandoffTarget(
+                agent_name="translator",
+                condition=needs_translation,
+                description="Hand off to translator for multilingual requests"
+            )
+        ]
+    )
+)
+```
+
+#### Context Passing
+
+```python
+HandoffTarget(
+    agent_name="specialist",
+    context_keys=["user_preferences", "session_data"],  # Pass specific context
+    description="Hand off with user context"
+)
+```
+
+#### AI-Powered Routing
+
+```python
+HandoffConfig(
+    mode=HandoffMode.COORDINATOR,
+    strategy=HandoffStrategy.BEST_MATCH,  # AI selects best agent
+    enable_auto_routing=True,
+    routing_instructions="Choose the agent best suited for the user's request"
+)
+```
+
+### Safety Features
+
+#### Loop Detection
+
+The framework automatically prevents infinite handoff loops:
+
+```python
+HandoffConfig(
+    max_hops=10,  # Maximum handoffs before stopping
+    # Framework tracks call stack and prevents cycles
+)
+```
+
+#### Validation
+
+All handoffs are validated before execution:
+
+```python
+# Check if handoff is possible
+if runner.can_handoff_to("target_agent"):
+    await runner.handoff_to("target_agent", data)
+```
+
+### HTTP API Integration
+
+Handoffs work seamlessly with the standard HTTP API:
+
+```bash
+# Request that triggers handoffs
+POST /api/agents/travel_coordinator/chat
+{
+  "message": "Plan a trip to Tokyo with flights and hotels"
+}
+
+# Response includes handoff execution details
+{
+  "agent": "travel_coordinator",
+  "response": "Complete travel plan with flights and hotels",
+  "handoff_path": ["travel_coordinator", "flight_agent", "hotel_agent"],
+  "conversation_id": "uuid-123"
+}
+```
+
+### Real-World Examples
+
+Our samples include complete handoff implementations:
+
+- **[Weather Advisory System](./samples/handoff-swarm/)** - Swarm pattern with peer-to-peer collaboration
+- **[Travel Coordinator](./samples/handoff-coordinator/)** - Coordinator pattern with centralized orchestration  
+- **[Customer Service Hub](./samples/handoff-conditional/)** - Conditional routing with AI-powered agent selection
+
+These samples demonstrate production-ready handoff patterns with complete Azure Functions deployment configurations.
+
 ### Component Interaction Flow
 
 #### 1. Request Processing Flow
@@ -744,6 +951,53 @@ cd samples/multi-agent && func start
 # POST /api/agents/HotelAgent/chat - Hotel-specific queries
 # POST /api/agents/BudgetAgent/chat - Budget analysis
 # GET /api/agents - List all available agents
+```
+
+### 🔄 Multi-Agent Handoff Samples
+
+**Swarm Pattern**: [`samples/handoff-swarm/`](./samples/handoff-swarm/)
+
+Weather advisory system with peer-to-peer collaboration:
+
+- **Decentralized Handoffs**: Agents collaborate organically
+- **Weather + Conversion + Advice**: Three specialized agents working together
+- **Dynamic Flows**: Conversation paths adapt based on needs
+- **Loop Detection**: Automatic prevention of infinite handoffs
+
+```bash
+cd samples/handoff-swarm && func start
+# POST /api/agents/weather/chat - Weather agent (main entry)
+# POST /api/weather-swarm - Demo endpoint showing handoff flow
+```
+
+**Coordinator Pattern**: [`samples/handoff-coordinator/`](./samples/handoff-coordinator/)
+
+Travel coordinator with centralized orchestration:
+
+- **Central Coordinator**: TravelCoordinator manages all specialists
+- **Unified Results**: Consolidated responses from multiple agents
+- **Workflow Management**: Parallel and sequential processing
+- **Complete Travel Planning**: Flights, hotels, weather, restaurants
+
+```bash
+cd samples/handoff-coordinator && func start
+# POST /api/agents/travel_coordinator/chat - Main coordinator
+# POST /api/travel-coordinator-demo - Demo endpoint
+```
+
+**Conditional Pattern**: [`samples/handoff-conditional/`](./samples/handoff-conditional/)
+
+Customer service hub with AI-powered routing:
+
+- **Intelligent Routing**: AI analyzes requests and routes appropriately
+- **Customer Context**: Takes into account customer history and preferences
+- **Automatic Escalation**: Detects complex issues requiring escalation
+- **Multi-Specialist Support**: Technical, billing, sales, and escalation teams
+
+```bash
+cd samples/handoff-conditional && func start
+# POST /api/agents/customer_service/chat - Smart router
+# POST /api/customer-service-demo - Demo with routing analysis
 ```
 
 ### 🔌 Provider Examples

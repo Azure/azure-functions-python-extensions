@@ -24,6 +24,7 @@ from azure.functions import (
 )
 
 from .agents import Agent, ReflectionAgent
+from .handoff import ControlFlowManager, HandoffEngine
 from .model_providers.client import LLMClient
 from .runner import Runner
 from .tools.tool_registry import ToolRegistry
@@ -127,10 +128,21 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
         self.create_triggers: bool = create_triggers
         self.logger = logging.getLogger("AgentFunctionApp")
 
-        # Create runners for each agent - always use agent.name as key for consistency
+        # Initialize handoff system for multi-agent support
+        self.control_flow_manager = ControlFlowManager()
+        self.handoff_engine = HandoffEngine(self.control_flow_manager)
+        self.handoff_engine.register_agents(self.agents)
+        
+        # Create runners for each agent with handoff engine
         self.runners: Dict[str, Runner] = {
-            agent.name: Runner(agent) for agent in self.agents.values()
+            agent.name: Runner(agent, self.handoff_engine) for agent in self.agents.values()
         }
+        
+        # Register all runners with each other for handoff operations
+        for runner_name, runner in self.runners.items():
+            for other_name, other_runner in self.runners.items():
+                if runner_name != other_name:
+                    runner.register_runner(other_name, other_runner)
 
         # Initialize A2A manager if in A2A mode
         self.a2a_manager: Optional["A2AManager"] = None
@@ -138,6 +150,9 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
             from .a2a.manager import A2AManager
 
             self.a2a_manager = A2AManager(self)
+        
+        # Start control flow cleanup task
+        self.control_flow_manager.start_cleanup_task()
 
         self.logger.info(
             f"Initialized AgentFunctionApp in {mode.value} mode with {len(self.agents)} agent(s): {list(self.agents.keys())}"

@@ -1,0 +1,10 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "python",
+    "OPENAI_API_KEY": "your-openai-api-key-here",
+    "ANTHROPIC_API_KEY": "your-anthropic-api-key-here",
+    "GOOGLE_API_KEY": "your-google-api-key-here"
+  }
+}

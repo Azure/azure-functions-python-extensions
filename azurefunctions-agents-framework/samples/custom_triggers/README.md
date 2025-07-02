@@ -141,11 +141,13 @@ async def process_document(blob: func.InputStream):
 The `Runner` accepts flexible request formats:
 
 ### Simple String
+
 ```python
 response = await runner.run("What's the weather?")
 ```
 
 ### Dictionary Format
+
 ```python
 response = await runner.run({
     "message": "What's the weather?",
@@ -154,6 +156,7 @@ response = await runner.run({
 ```
 
 ### OpenAI Messages Format
+
 ```python
 response = await runner.run({
     "messages": [
@@ -165,6 +168,7 @@ response = await runner.run({
 ```
 
 ### MessageRequest Object
+
 ```python
 request = runner.create_message_request(
     message="What's the weather?",
@@ -176,12 +180,14 @@ response = await runner.run(request)
 ## Runner Utilities
 
 ### HTTP Response Helper
+
 ```python
 # Automatically creates proper Azure Functions HttpResponse
 http_response = runner.to_http_response(response_data, status_code=200)
 ```
 
 ### Agent Information
+
 ```python
 # Get agent metadata
 info = await runner.get_agent_info()
@@ -189,6 +195,7 @@ info = await runner.get_agent_info()
 ```
 
 ### Synchronous Execution
+
 ```python
 # For non-async contexts
 response = runner.run_sync("Hello, agent!")
@@ -220,6 +227,7 @@ async def travel_endpoint(req: HttpRequest):
 ## Error Handling Patterns
 
 ### Validation and Error Responses
+
 ```python
 @app.route(route="safe-chat", methods=["POST"])
 async def safe_chat(req: HttpRequest) -> HttpResponse:
@@ -257,6 +265,7 @@ async def safe_chat(req: HttpRequest) -> HttpResponse:
 ## Testing Custom Triggers
 
 ### Local Testing
+
 ```python
 # For testing runner logic locally
 async def test_runner():
@@ -269,6 +278,7 @@ if __name__ == "__main__":
 ```
 
 ### Unit Testing
+
 ```python
 import pytest
 from unittest.mock import AsyncMock
@@ -286,6 +296,7 @@ async def test_custom_chat_endpoint():
 ## Configuration and Deployment
 
 ### Local Settings
+
 ```json
 // local.settings.json
 {
@@ -300,6 +311,7 @@ async def test_custom_chat_endpoint():
 ```
 
 ### Host Configuration
+
 ```json
 // host.json
 {
@@ -329,12 +341,14 @@ async def test_custom_chat_endpoint():
 If you're migrating from automatic mode (`create_triggers=True`) to custom mode:
 
 ### Before (Automatic)
+
 ```python
 app = AgentFunctionApp(agents=[agent])  # create_triggers=True by default
 # Framework creates /api/{agent-name}/chat automatically
 ```
 
 ### After (Custom)
+
 ```python
 app = AgentFunctionApp(agents=[agent], create_triggers=False)
 runner = app.get_single_runner()

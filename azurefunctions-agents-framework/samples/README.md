@@ -18,6 +18,24 @@ samples/
 │   ├── requirements.txt    # Python dependencies
 │   ├── local.settings.json.template # Environment template
 │   └── README.md           # Sample-specific documentation
+├── handoff-swarm/         # Swarm handoff pattern example
+│   ├── function_app.py     # Weather advisory system with peer-to-peer handoffs
+│   ├── host.json           # Azure Functions configuration
+│   ├── requirements.txt    # Python dependencies
+│   ├── local.settings.json.template # Environment template
+│   └── README.md           # Sample-specific documentation
+├── handoff-coordinator/   # Coordinator handoff pattern example
+│   ├── function_app.py     # Travel coordinator with centralized handoffs
+│   ├── host.json           # Azure Functions configuration
+│   ├── requirements.txt    # Python dependencies
+│   ├── local.settings.json.template # Environment template
+│   └── README.md           # Sample-specific documentation
+├── handoff-conditional/   # Conditional handoff pattern example
+│   ├── function_app.py     # Customer service hub with AI-powered routing
+│   ├── host.json           # Azure Functions configuration
+│   ├── requirements.txt    # Python dependencies
+│   ├── local.settings.json.template # Environment template
+│   └── README.md           # Sample-specific documentation
 ├── providers/             # LLM provider examples
 │   ├── anthropic_claude.py # Anthropic Claude integration
 │   └── google_gemini.py   # Google Gemini integration
@@ -25,6 +43,7 @@ samples/
 │   └── weather_mcp_agent.py # Weather agent with MCP server
 ├── advanced-features/     # Advanced functionality examples
 │   └── streaming_responses.py # Server-sent events (SSE) streaming
+├── custom_triggers/       # Custom trigger examples
 └── .env.example          # Global environment template
 ```
 
@@ -118,6 +137,32 @@ OPENWEATHER_API_KEY=your-openweather-api-key
 - **Features**: Flight search, hotel booking, budget analysis, agent coordination
 - **Endpoints**: `/api/{AgentName}/chat`, `/api/agents`, `/api/plan-trip`
 - **Use Case**: Complex multi-agent workflows in Azure Functions
+
+### Multi-Agent Handoff Examples
+
+#### Weather Advisory System (Swarm Pattern)
+
+- **Purpose**: Demonstrates peer-to-peer agent collaboration with bubbling results
+- **Agents**: WeatherAgent, TemperatureConverter, WeatherAdvisor with swarm handoffs
+- **Features**: Decentralized collaboration, dynamic conversation flows, loop detection
+- **Endpoints**: `/api/agents/{agent_name}/chat`, `/api/weather-swarm`
+- **Use Case**: Organic agent collaboration where expertise is shared peer-to-peer
+
+#### Travel Coordinator (Coordinator Pattern)
+
+- **Purpose**: Shows centralized orchestration with consolidated responses
+- **Agents**: TravelCoordinator managing FlightAgent, HotelAgent, WeatherAgent, RestaurantAgent
+- **Features**: Centralized control, workflow management, consolidated results
+- **Endpoints**: `/api/agents/travel_coordinator/chat`, `/api/travel-coordinator-demo`
+- **Use Case**: Complex workflows requiring central coordination and unified responses
+
+#### Customer Service Hub (Conditional Pattern)
+
+- **Purpose**: Demonstrates AI-powered routing with conditional handoffs
+- **Agents**: CustomerService (router), TechnicalSupport, BillingSupport, SalesSupport, EscalationSupport
+- **Features**: Intelligent request analysis, customer context awareness, automatic escalation
+- **Endpoints**: `/api/agents/customer_service/chat`, `/api/customer-service-demo`
+- **Use Case**: Smart routing systems that analyze requests and direct to appropriate specialists
 
 ### Provider Examples
 

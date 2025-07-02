@@ -33,6 +33,7 @@ A comprehensive Azure Functions application demonstrating multi-agent collaborat
 ### Prerequisites
 
 1. **Azure Functions Core Tools**:
+
    ```bash
    npm install -g azure-functions-core-tools@4
    ```
@@ -42,17 +43,20 @@ A comprehensive Azure Functions application demonstrating multi-agent collaborat
 ### Setup
 
 1. **Install Dependencies**:
+
    ```bash
    pip install -r requirements.txt
    ```
 
 2. **Configure Environment**:
-   ```bash
+   
+```bash
    cp local.settings.json.template local.settings.json
    ```
-   
+  
    Edit `local.settings.json` and add your OpenAI API key:
-   ```json
+   
+```json
    {
      "Values": {
        "OPENAI_API_KEY": "your-openai-api-key"
@@ -61,8 +65,9 @@ A comprehensive Azure Functions application demonstrating multi-agent collaborat
    ```
 
 3. **Run Locally**:
+   
    ```bash
-   func start
+func start
    ```
 
 ## Usage
@@ -70,6 +75,7 @@ A comprehensive Azure Functions application demonstrating multi-agent collaborat
 ### Individual Agent Endpoints
 
 **Flight Search Agent:**
+
 ```bash
 curl -X POST http://localhost:7071/api/FlightAgent/chat \
   -H "Content-Type: application/json" \
@@ -79,6 +85,7 @@ curl -X POST http://localhost:7071/api/FlightAgent/chat \
 ```
 
 **Hotel Search Agent:**
+
 ```bash
 curl -X POST http://localhost:7071/api/HotelAgent/chat \
   -H "Content-Type: application/json" \
@@ -88,6 +95,7 @@ curl -X POST http://localhost:7071/api/HotelAgent/chat \
 ```
 
 **Budget Planning Agent:**
+
 ```bash
 curl -X POST http://localhost:7071/api/BudgetAgent/chat \
   -H "Content-Type: application/json" \
@@ -99,6 +107,7 @@ curl -X POST http://localhost:7071/api/BudgetAgent/chat \
 ### Coordination Endpoint
 
 **Plan Complete Trip:**
+
 ```bash
 curl -X POST http://localhost:7071/api/plan-trip \
   -H "Content-Type: application/json" \
@@ -126,6 +135,7 @@ curl http://localhost:7071/api/health
 - `compare_flight_prices(flights_data)`: Analyze and compare flight prices
 
 **Sample Interaction:**
+
 ```text
 User: "I need a flight from New York to London on April 10th"
 Agent: *Searches flights, compares prices, recommends best options*
@@ -137,6 +147,7 @@ Agent: *Searches flights, compares prices, recommends best options*
 - `search_hotels(location, checkin_date, checkout_date, guests)`: Find hotels
 
 **Sample Interaction:**
+
 ```text
 User: "Find me a good hotel in downtown London for 2 nights"
 Agent: *Searches hotels, compares amenities and prices, provides recommendations*
@@ -148,6 +159,7 @@ Agent: *Searches hotels, compares amenities and prices, provides recommendations
 - `calculate_trip_budget(flights_data, hotels_data, daily_budget)`: Calculate total costs
 
 **Sample Interaction:**
+
 ```text
 User: "What's my total budget for the London trip?"
 Agent: *Calculates comprehensive budget breakdown with tips for saving money*
@@ -221,6 +233,7 @@ app = AgentFunctionApp(agents=[flight_agent, hotel_agent, budget_agent, restaura
 ### Deploy to Azure
 
 1. **Create Function App**:
+
    ```bash
    az functionapp create \
      --resource-group myResourceGroup \
@@ -233,7 +246,8 @@ app = AgentFunctionApp(agents=[flight_agent, hotel_agent, budget_agent, restaura
    ```
 
 2. **Configure App Settings**:
-   ```bash
+   
+```bash
    az functionapp config appsettings set \
      --name myTravelPlannerApp \
      --resource-group myResourceGroup \
@@ -241,8 +255,9 @@ app = AgentFunctionApp(agents=[flight_agent, hotel_agent, budget_agent, restaura
    ```
 
 3. **Deploy**:
+   
    ```bash
-   func azure functionapp publish myTravelPlannerApp
+func azure functionapp publish myTravelPlannerApp
    ```
 
 ## Extending the System

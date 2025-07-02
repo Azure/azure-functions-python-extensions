@@ -9,6 +9,15 @@ import logging
 import os
 from typing import Any, Callable, Dict, List, Optional, Union
 
+from .handoff import (
+    HandoffConfig, 
+    HandoffTarget, 
+    HandoffRequest, 
+    AgentResponse, 
+    ControlReturn,
+    HandoffMode,
+    HandoffStrategy
+)
 from .model_providers.client import LLMClient
 from .tools.tool_registry import ToolRegistry
 from .types import (
@@ -50,6 +59,7 @@ class Agent:
         expose_agent_info: bool = True,
         expose_instructions: bool = True,
         expose_tools: bool = True,
+        handoff_config: Optional[HandoffConfig] = None,
     ):
         """
         Initialize an Agent.
@@ -66,6 +76,7 @@ class Agent:
             expose_agent_info: Whether to expose agent information via GET endpoints
             expose_instructions: Whether to expose agent instructions via GET endpoints
             expose_tools: Whether to expose tool information via GET endpoints
+            handoff_config: Configuration for multi-agent handoffs
         """
         # Basic agent configuration
         self.name = name
@@ -78,6 +89,9 @@ class Agent:
         self.expose_agent_info = expose_agent_info
         self.expose_instructions = expose_instructions
         self.expose_tools = expose_tools
+
+        # Handoff configuration
+        self.handoff_config = handoff_config
 
         # Logger
         self.logger = logging.getLogger(f"Agent.{name}")
@@ -628,6 +642,158 @@ class Agent:
     def model(self) -> Optional[LLMClient]:
         """Expose the LLM model for advanced use cases."""
         return self.llm_client
+
+    # Handoff management methods
+    def configure_handoffs(
+        self,
+        targets: List[Union[str, HandoffTarget]],
+        mode: Optional[HandoffMode] = None,
+        strategy: Optional[HandoffStrategy] = None,
+        default_return: Optional[ControlReturn] = None,
+        **kwargs
+    ):
+        """
+        Configure handoff behavior for this agent.
+
+        Args:
+            targets: List of handoff targets (agent names or HandoffTarget objects)
+            mode: Handoff mode (swarm, coordinator, etc.)
+            strategy: Handoff strategy (direct, route, etc.)
+            default_return: Default control return behavior
+            **kwargs: Additional handoff configuration options
+        """
+        from .handoff import HandoffConfig, HandoffTarget as HTarget, HandoffMode, HandoffStrategy
+
+        # Convert string targets to HandoffTarget objects
+        handoff_targets = []
+        for target in targets:
+            if isinstance(target, str):
+                handoff_targets.append(HTarget(agent_name=target))
+            elif isinstance(target, HTarget):
+                handoff_targets.append(target)
+            else:
+                raise ValueError(f"Invalid handoff target type: {type(target)}")
+
+        # Create or update handoff config
+        self.handoff_config = HandoffConfig(
+            mode=mode or HandoffMode.SWARM,
+            strategy=strategy or HandoffStrategy.DIRECT,
+            targets=handoff_targets,
+            default_return=default_return or ControlReturn.BUBBLE_UP,
+            **kwargs
+        )
+
+        self.logger.info(
+            f"Configured handoffs for {self.name}: "
+            f"{len(handoff_targets)} targets, mode={self.handoff_config.mode.value}"
+        )
+
+    def add_handoff_target(
+        self,
+        agent_name: str,
+        condition: Optional[Union[str, Callable[..., bool]]] = None,
+        description: Optional[str] = None,
+        **kwargs
+    ):
+        """
+        Add a handoff target to this agent.
+
+        Args:
+            agent_name: Name of the target agent
+            condition: Optional condition for handoff (string or callable)
+            description: Description of when to use this handoff
+            **kwargs: Additional target configuration
+        """
+        from .handoff import HandoffTarget, HandoffConfig, HandoffMode
+
+        target = HandoffTarget(
+            agent_name=agent_name,
+            condition=condition,
+            description=description,
+            **kwargs
+        )
+
+        if not self.handoff_config:
+            self.handoff_config = HandoffConfig(mode=HandoffMode.SWARM)
+
+        self.handoff_config.targets.append(target)
+        self.logger.info(f"Added handoff target: {agent_name}")
+
+    def can_handoff_to(self, agent_name: str) -> bool:
+        """Check if this agent can hand off to the specified agent."""
+        if not self.handoff_config:
+            return False
+
+        return any(
+            target.agent_name == agent_name
+            for target in self.handoff_config.targets
+        )
+
+    def get_handoff_targets(self) -> List[str]:
+        """Get list of all possible handoff targets."""
+        if not self.handoff_config:
+            return []
+
+        return [target.agent_name for target in self.handoff_config.targets]
+
+    def request_handoff(
+        self,
+        target_agent: str,
+        input_data: Any,
+        reason: Optional[str] = None,
+        expected_return: ControlReturn = ControlReturn.RETURN_TO_CALLER,
+        **kwargs
+    ) -> HandoffRequest:
+        """
+        Create a handoff request to another agent.
+
+        Args:
+            target_agent: Name of the target agent
+            input_data: Data to pass to the target agent
+            reason: Reason for the handoff
+            expected_return: Expected control return behavior
+            **kwargs: Additional handoff options
+
+        Returns:
+            HandoffRequest object
+        """
+        return HandoffRequest(
+            target_agent=target_agent,
+            input_data=input_data,
+            reason=reason,
+            expected_return=expected_return,
+            **kwargs
+        )
+
+    def create_response(
+        self,
+        content: Any,
+        handoff_request: Optional[HandoffRequest] = None,
+        control_return: ControlReturn = ControlReturn.BUBBLE_UP,
+        context_updates: Optional[Dict[str, Any]] = None,
+        **kwargs
+    ) -> AgentResponse:
+        """
+        Create a standardized agent response.
+
+        Args:
+            content: The response content
+            handoff_request: Optional handoff request
+            control_return: Control return behavior
+            context_updates: Updates to shared context
+            **kwargs: Additional response metadata
+
+        Returns:
+            AgentResponse object
+        """
+        return AgentResponse(
+            agent_name=self.name,
+            content=content,
+            handoff_request=handoff_request,
+            control_return=control_return,
+            context_updates=context_updates or {},
+            metadata=kwargs
+        )
 
 
 class ReflectionAgent(Agent):

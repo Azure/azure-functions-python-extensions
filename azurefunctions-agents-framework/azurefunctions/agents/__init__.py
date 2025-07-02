@@ -8,6 +8,19 @@ Core agent framework for building intelligent Azure Functions with AI capabiliti
 
 from .agents import Agent, ReflectionAgent
 from .core import AgentFunctionApp
+from .runner import Runner
+from .handoff import (
+    AgentResponse,
+    ControlFlowManager,
+    ControlReturn,
+    HandoffConfig,
+    HandoffEngine,
+    HandoffMode,
+    HandoffRequest,
+    HandoffResult,
+    HandoffStrategy,
+    HandoffTarget,
+)
 from .mcp import (
     MCPServer,
     MCPServerMode,
@@ -27,15 +40,31 @@ from .types import (
 )
 
 __all__ = [
+    # Core Framework
     "Agent",
-    "AgentFunctionApp",
+    "AgentFunctionApp", 
     "ReflectionAgent",
+    "Runner",
     "AgentMode",
     "TriggerType",
     "LLMConfig",
     "LLMProvider",
     "ToolDefinition",
     "ChatMessage",
+    
+    # Multi-Agent Handoff System
+    "HandoffMode",
+    "HandoffStrategy", 
+    "ControlReturn",
+    "HandoffTarget",
+    "HandoffConfig",
+    "HandoffRequest",
+    "HandoffResult",
+    "AgentResponse",
+    "ControlFlowManager",
+    "HandoffEngine",
+    
+    # MCP Integration
     "MCPConfig",
     "MCPServer",
     "MCPServerMode",

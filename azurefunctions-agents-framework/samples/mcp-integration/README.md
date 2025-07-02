@@ -48,6 +48,7 @@ A comprehensive example showing how to integrate with a weather MCP server to pr
 - Ready for Azure Functions deployment
 
 **Quick Start:**
+
 ```bash
 cd weather-agent/
 pip install -r requirements.txt
@@ -67,6 +68,7 @@ Demonstrates integration with a Git MCP server for repository analysis and opera
 - Intelligent code structure analysis
 
 **Quick Start:**
+
 ```bash
 cd git-agent/
 pip install -r requirements.txt
@@ -86,6 +88,7 @@ A complete Server-Sent Events (SSE) based MCP implementation with both server an
 - Tools for echo, calculation, time operations, and more
 
 **Quick Start:**
+
 ```bash
 cd sse-integration/
 pip install -r requirements.txt

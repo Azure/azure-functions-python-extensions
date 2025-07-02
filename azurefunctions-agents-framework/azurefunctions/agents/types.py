@@ -270,3 +270,16 @@ class MessageRequest:
         if self.tool_calls:
             result["tool_calls"] = self.tool_calls
         return result
+
+
+# Import handoff types for convenience
+from .handoff import (
+    HandoffMode,
+    HandoffStrategy,
+    ControlReturn,
+    HandoffTarget,
+    HandoffConfig,
+    HandoffRequest,
+    HandoffResult,
+    AgentResponse as HandoffAgentResponse
+)

@@ -2,6 +2,7 @@ import asyncio
 import json
 from typing import Any, Dict, List, Optional, Union
 
+from .handoff import HandoffEngine, ControlFlowManager, HandoffRequest, HandoffResult
 from .types import ChatRequest, ChatResponse, MessageRequest, Request, Response
 
 # Type alias for request data - supporting both old and new abstractions
@@ -20,14 +21,17 @@ class Runner:
     Functions specific logic. For Azure Functions integration, use AgentFunctionApp.
     """
 
-    def __init__(self, agent):
+    def __init__(self, agent, handoff_engine: Optional[HandoffEngine] = None):
         """
         Initialize the runner with an agent.
 
         Args:
             agent: The Agent instance to run
+            handoff_engine: Optional handoff engine for multi-agent operations
         """
         self.agent = agent
+        self.handoff_engine = handoff_engine
+        self._other_runners: Dict[str, 'Runner'] = {}  # Registry of other agent runners
 
     async def run(self, request: RequestInput) -> Response:
         """
@@ -220,3 +224,119 @@ class Runner:
     def __repr__(self) -> str:
         """String representation of the runner."""
         return f"Runner(agent='{self.agent.name}')"
+
+    def register_runner(self, agent_name: str, runner: 'Runner'):
+        """Register another agent runner for handoff operations."""
+        self._other_runners[agent_name] = runner
+    
+    def unregister_runner(self, agent_name: str):
+        """Unregister an agent runner."""
+        if agent_name in self._other_runners:
+            del self._other_runners[agent_name]
+    
+    async def handoff_to(
+        self, 
+        target_agent: str, 
+        input_data: Any,
+        conversation_id: Optional[str] = None,
+        reason: Optional[str] = None,
+        expected_return: Optional[str] = None
+    ) -> Response:
+        """
+        Hand off execution to another agent.
+        
+        Args:
+            target_agent: Name of the target agent
+            input_data: Data to pass to the target agent
+            conversation_id: Optional conversation ID for context tracking
+            reason: Reason for the handoff
+            expected_return: Expected control return behavior
+            
+        Returns:
+            Response from the target agent or handoff chain
+        """
+        # Check if target runner is available
+        if target_agent not in self._other_runners:
+            raise ValueError(f"Target agent '{target_agent}' not found. Available: {list(self._other_runners.keys())}")
+        
+        target_runner = self._other_runners[target_agent]
+        
+        # If we have a handoff engine, use it for sophisticated control flow
+        if self.handoff_engine and conversation_id:
+            handoff_request = HandoffRequest(
+                target_agent=target_agent,
+                input_data=input_data,
+                reason=reason,
+                expected_return=expected_return
+            )
+            
+            result = await self.handoff_engine.execute_handoff(
+                conversation_id=conversation_id,
+                handoff_request=handoff_request,
+                current_agent=self.agent.name
+            )
+            
+            if result.success:
+                return self._create_response(result.response)
+            else:
+                return self._create_response({
+                    "error": result.error,
+                    "status": "handoff_failed"
+                })
+        
+        # Fallback to direct execution
+        else:
+            return await target_runner.run(input_data)
+    
+    def handoff_to_sync(
+        self, 
+        target_agent: str, 
+        input_data: Any,
+        conversation_id: Optional[str] = None,
+        reason: Optional[str] = None,
+        expected_return: Optional[str] = None
+    ) -> Response:
+        """Synchronous version of handoff_to."""
+        try:
+            loop = asyncio.get_running_loop()
+            import concurrent.futures
+            
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(
+                    asyncio.run, 
+                    self.handoff_to(target_agent, input_data, conversation_id, reason, expected_return)
+                )
+                return future.result()
+        except RuntimeError:
+            return asyncio.run(
+                self.handoff_to(target_agent, input_data, conversation_id, reason, expected_return)
+            )
+    
+    def can_handoff_to(self, target_agent: str) -> bool:
+        """
+        Check if this runner can hand off to the specified agent.
+        
+        Checks both:
+        1. If the target runner is registered
+        2. If the agent is configured to allow handoffs to this target
+        """
+        if target_agent not in self._other_runners:
+            return False
+            
+        # Check agent's handoff configuration
+        if hasattr(self.agent, 'handoff_config') and self.agent.handoff_config:
+            target_names = [target.agent_name for target in self.agent.handoff_config.targets]
+            return target_agent in target_names
+            
+        return True  # If no handoff config, allow all registered agents
+    
+    def get_handoff_targets(self) -> List[str]:
+        """Get list of available handoff targets."""
+        available_runners = list(self._other_runners.keys())
+        
+        # Filter by agent's handoff configuration if available
+        if hasattr(self.agent, 'handoff_config') and self.agent.handoff_config:
+            configured_targets = [target.agent_name for target in self.agent.handoff_config.targets]
+            return [target for target in configured_targets if target in available_runners]
+            
+        return available_runners
