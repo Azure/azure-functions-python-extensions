@@ -23,6 +23,7 @@ Flow:
 import asyncio
 import json
 import logging
+import os
 import azure.functions as func
 from datetime import datetime, timedelta
 from typing import Dict, Any, List
@@ -32,8 +33,6 @@ from azurefunctions.agents.handoff import (
     HandoffConfig, HandoffTarget, HandoffMode, ControlReturn
 )
 from azurefunctions.agents.types import LLMConfig, LLMProvider
-
-app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
 # Mock travel APIs
 async def search_flights(origin: str, destination: str, departure_date: str, return_date: str = None) -> Dict[str, Any]:
@@ -228,27 +227,44 @@ async def find_restaurants(location: str, cuisine_type: str = "local", budget: s
 # Configure LLM
 llm_config = LLMConfig(
     provider=LLMProvider.OPENAI,
-    model_name="gpt-4",
-    api_key_env_var="OPENAI_API_KEY"
+    model_name="gpt-4o-mini",  # Try the newer model
+    api_key=os.getenv("OPENAI_API_KEY"),
+    temperature=0.7  # Slightly higher temperature for more consistent tool usage
 )
+
+# NOTE: Manual handoff wrapper functions are no longer needed!
+# The framework now automatically registers handoff tools based on HandoffConfig.
+# The travel_coordinator agent will automatically have these tools available:
+# - handoff_to_flight_agent(message: str) -> str
+# - handoff_to_hotel_agent(message: str) -> str  
+# - handoff_to_weather_agent(message: str) -> str
+# - handoff_to_restaurant_agent(message: str) -> str
 
 # Travel Coordinator - Central orchestrator
 travel_coordinator = Agent(
     name="travel_coordinator",
-    instructions="""You are a travel planning coordinator. You orchestrate multiple specialist agents to create comprehensive travel plans.
+    instructions="""You are a travel planning coordinator. For EVERY travel request, you MUST call ALL FOUR handoff tools in sequence, no matter what.
 
-Your workflow:
-1. Analyze the user's travel request
-2. Determine which specialists are needed
-3. Hand off to flight agent for transportation
-4. Hand off to hotel agent for accommodation
-5. Hand off to weather agent for destination conditions
-6. Hand off to restaurant agent for dining recommendations
-7. Consolidate all information into a comprehensive travel plan
+CRITICAL RULE: You MUST call these 4 tools for EVERY travel planning request:
+1. handoff_to_flight_agent - for flight search
+2. handoff_to_hotel_agent - for hotel search  
+3. handoff_to_weather_agent - for weather forecast
+4. handoff_to_restaurant_agent - for restaurant recommendations
 
-You coordinate the entire travel planning process and return consolidated results to the user.
-Always provide a complete travel plan with all necessary details.
-""",
+DO NOT STOP after calling just one tool. DO NOT describe what you will do. CALL ALL FOUR TOOLS.
+
+Example workflow:
+User: "Plan my trip to Tokyo"
+You MUST:
+1. Call handoff_to_flight_agent("Search flights to Tokyo...")
+2. Call handoff_to_hotel_agent("Find hotels in Tokyo...")  
+3. Call handoff_to_weather_agent("Get weather for Tokyo...")
+4. Call handoff_to_restaurant_agent("Find restaurants in Tokyo...")
+
+Only after calling ALL FOUR tools should you provide a summary. Never stop at just one or two tools.
+
+IMPORTANT: Always actually invoke the functions - never just describe them in text. Call them immediately.""",
+    tools=[],  # No manual tools needed - handoff tools are auto-registered
     llm_config=llm_config,
     handoff_config=HandoffConfig(
         mode=HandoffMode.COORDINATOR,
@@ -335,11 +351,12 @@ Include local specialties and dining tips for the destination.
 
 # Create the multi-agent function app with coordinator pattern
 agent_app = AgentFunctionApp(
-    agents=[travel_coordinator, flight_agent, hotel_agent, weather_agent, restaurant_agent]
+    agents=[travel_coordinator, flight_agent, hotel_agent, weather_agent, restaurant_agent],
+    http_auth_level=func.AuthLevel.ANONYMOUS
 )
 
 # Manual function to demonstrate coordinator pattern
-@app.route(route="travel-coordinator", methods=["POST"])
+@agent_app.route(route="travel-coordinator", methods=["POST"])
 async def travel_coordinator_demo(req: func.HttpRequest) -> func.HttpResponse:
     """
     Demonstrate the coordinator pattern with centralized orchestration.
@@ -384,7 +401,7 @@ async def travel_coordinator_demo(req: func.HttpRequest) -> func.HttpResponse:
             conversation_id=conversation_id,
             reason="Search for flights for travel plan"
         )
-        travel_plan["flights"] = flight_response.content
+        travel_plan["flights"] = flight_response.response if flight_response and flight_response.response else {}
         
         # 2. Hotel search
         logging.info("Coordinator handing off to hotel agent")
@@ -399,7 +416,7 @@ async def travel_coordinator_demo(req: func.HttpRequest) -> func.HttpResponse:
             conversation_id=conversation_id,
             reason="Search for hotels for travel plan"
         )
-        travel_plan["hotels"] = hotel_response.content
+        travel_plan["hotels"] = hotel_response.response if hotel_response and hotel_response.response else {}
         
         # 3. Weather forecast
         logging.info("Coordinator handing off to weather agent")
@@ -412,7 +429,7 @@ async def travel_coordinator_demo(req: func.HttpRequest) -> func.HttpResponse:
             conversation_id=conversation_id,
             reason="Get weather forecast for travel destination"
         )
-        travel_plan["weather"] = weather_response.content
+        travel_plan["weather"] = weather_response.response if weather_response and weather_response.response else {}
         
         # 4. Restaurant recommendations
         logging.info("Coordinator handing off to restaurant agent")
@@ -426,7 +443,7 @@ async def travel_coordinator_demo(req: func.HttpRequest) -> func.HttpResponse:
             conversation_id=conversation_id,
             reason="Find dining recommendations for travel destination"
         )
-        travel_plan["restaurants"] = restaurant_response.content
+        travel_plan["restaurants"] = restaurant_response.response if restaurant_response and restaurant_response.response else {}
         
         # Coordinator consolidates all results
         consolidated_plan = {
@@ -441,14 +458,14 @@ async def travel_coordinator_demo(req: func.HttpRequest) -> func.HttpResponse:
             },
             "coordinated_plan": travel_plan,
             "recommendations": {
-                "recommended_flight": travel_plan["flights"].get("recommendations", {}).get("best_price"),
-                "recommended_hotel": travel_plan["hotels"].get("recommendations", {}).get("best_value"),
-                "weather_advice": travel_plan["weather"].get("recommendations", {}),
-                "must_try_restaurant": travel_plan["restaurants"].get("recommendations", {}).get("most_authentic")
+                "recommended_flight": travel_plan.get("flights", {}).get("recommendations", {}).get("cheapest"),
+                "recommended_hotel": travel_plan.get("hotels", {}).get("recommendations", {}).get("best_value"),
+                "weather_advice": travel_plan.get("weather", {}).get("recommendations", {}),
+                "must_try_restaurant": travel_plan.get("restaurants", {}).get("recommendations", {}).get("most_authentic")
             },
             "estimated_total_cost": {
-                "flight": travel_plan["flights"].get("best_price", 0) * 2,  # Round trip
-                "hotel": travel_plan["hotels"].get("price_range", {}).get("min", 0) * 7,  # 7 nights
+                "flight": travel_plan.get("flights", {}).get("best_price", 0) * 2,  # Round trip
+                "hotel": travel_plan.get("hotels", {}).get("price_range", {}).get("min", 0) * 7,  # 7 nights
                 "meals": 50 * 7 * guests,  # Estimated meal costs
                 "total": "Calculated based on selections"
             },
@@ -470,18 +487,3 @@ async def travel_coordinator_demo(req: func.HttpRequest) -> func.HttpResponse:
             status_code=500,
             mimetype="application/json"
         )
-
-# Health check
-@app.route(route="health", methods=["GET"])
-def health_check(req: func.HttpRequest) -> func.HttpResponse:
-    """Health check endpoint."""
-    return func.HttpResponse(
-        json.dumps({
-            "status": "healthy",
-            "sample": "handoff-coordinator",
-            "agents": ["travel_coordinator", "flight_agent", "hotel_agent", "weather_agent", "restaurant_agent"],
-            "pattern": "coordinator - centralized orchestration"
-        }),
-        status_code=200,
-        mimetype="application/json"
-    )

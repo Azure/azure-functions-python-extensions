@@ -196,6 +196,98 @@ curl http://localhost:7071/api/health
 
 The Azure Functions Agent Framework follows a clean, modular architecture that separates concerns and enables flexible deployment patterns.
 
+### Framework Architecture Overview
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                               Azure Functions Agent Framework                        │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                                    Application Layer                                 │
+├─────────────────────────────────────────────────────────────────────────────────────┤
+│  AgentFunctionApp (HTTP Host)  │  Custom Triggers  │  Manual Integration            │
+│  • Standard Endpoints          │  • Event-driven   │  • Direct Runner Usage        │
+│  • Multi-Agent Routing         │  • Message Queues  │  • Testing & Automation       │
+│  • A2A Protocol Support        │  • Custom Logic    │  • Programmatic Access        │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                                   Execution Layer                                    │
+├─────────────────────────────────────────────────────────────────────────────────────┤
+│                     Runner (Agent Execution Abstraction)                            │
+│  • Request/Response Normalization  • Multi-Agent Handoffs  • Framework Agnostic    │
+│  • Async/Sync Execution           • Conversation Management • Testing Support       │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                                    Agent Layer                                       │
+├─────────────────────────────────────────────────────────────────────────────────────┤
+│     Agent (Base)      │   ReflectionAgent    │    Custom Agent Types (Future)       │
+│  • Core Capabilities  │  • Self-Evaluation   │  • Specialized Behaviors             │
+│  • Tool Management    │  • Iterative Improve │  • Domain-Specific Logic             │
+│  • LLM Integration    │  • Quality Assessment│  • Extended Functionality            │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                              Core Framework Components                               │
+├─────────────────────────────────────────────────────────────────────────────────────┤
+│  Tool Registry      │  Handoff Engine    │  Control Flow Manager │ Request/Response │
+│  • Function Tools   │  • Multi-Agent     │  • Conversation State │ • Type Safety    │
+│  • MCP Integration  │  • Swarm Pattern   │  • Session Management │ • Serialization  │
+│  • Schema Generation│  • Coordinator     │  • Context Tracking   │ • Validation     │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                                 Integration Layer                                    │
+├─────────────────────────────────────────────────────────────────────────────────────┤
+│      LLM Providers           │        Tool Integration        │   External Services   │
+│  ┌─────────────────────┐     │  ┌─────────────────────────┐   │ ┌─────────────────────┐│
+│  │ • OpenAI            │     │  │ MCP Protocol            │   │ │ • Azure Services    ││
+│  │ • Anthropic Claude  │     │  │ • STDIO Servers         │   │ │ • Key Vault         ││
+│  │ • Google Gemini     │     │  │ • SSE Servers           │   │ │ • Cosmos DB         ││
+│  │ • Azure OpenAI      │     │  │ • HTTP Servers          │   │ │ • Service Bus       ││
+│  │ • Ollama (Local)    │     │  │                         │   │ │ • Storage           ││
+│  └─────────────────────┘     │  │ Function Tools          │   │ └─────────────────────┘│
+│                              │  │ • Python Functions      │   │                       │
+│                              │  │ • Async/Sync Support    │   │                       │
+│                              │  │ • Auto Schema Gen       │   │                       │
+│                              │  └─────────────────────────┘   │                       │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                              Alternative Framework Support (Future)                  │
+├─────────────────────────────────────────────────────────────────────────────────────┤
+│  Azure Functions          │  Semantic Kernel       │  OpenAI Agents SDK            │
+│  Agent Framework          │  Integration           │  Integration                  │
+│  (Current)                │  (Planned)             │  (Planned)                    │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Architecture Benefits
+
+#### **Layered Separation of Concerns**
+
+- **Application Layer**: HTTP handling, routing, and deployment patterns
+- **Execution Layer**: Framework-agnostic agent execution and handoff management  
+- **Agent Layer**: AI agent logic and specialized behaviors
+- **Core Framework**: Reusable components for tool management and workflow control
+- **Integration Layer**: External service connections and protocol implementations
+
+#### **Pluggable Components**
+
+- **LLM Providers**: Easy switching between OpenAI, Claude, Gemini, etc.
+- **Tool Systems**: Both function tools and MCP server integration
+- **Deployment Modes**: Azure Functions, custom triggers, or direct programmatic use
+- **Agent Types**: Base Agent, ReflectionAgent, and extensible custom types
+
+#### **Future Extensibility**
+
+- **Framework Interop**: Planned support for Semantic Kernel and OpenAI Agents SDK
+- **Protocol Standards**: MCP compliance enables broad tool ecosystem integration
+- **Custom Agent Types**: Architecture supports specialized agent implementations
+- **Multiple Hosting**: Framework designed to work beyond just Azure Functions
+
 ### Core Components
 
 #### 1. **AgentFunctionApp** - The Function Host

@@ -349,50 +349,6 @@ app = AgentFunctionApp(agents={
     "BudgetAgent": budget_agent
 })
 
-# Health check endpoint
-@app.route(route="health", auth_level=AuthLevel.ANONYMOUS, methods=["GET"])
-async def health_check(req: func.HttpRequest) -> func.HttpResponse:
-    """Health check endpoint for the multi-agent travel system."""
-    
-    health_info = {
-        "status": "healthy",
-        "system_name": "Multi-Agent Travel Planner",
-        "version": "2.0.0",
-        "agents": [
-            {
-                "name": "FlightAgent",
-                "description": "Flight search and price comparison",
-                "status": "active"
-            },
-            {
-                "name": "HotelAgent", 
-                "description": "Hotel search and accommodation recommendations",
-                "status": "active"
-            },
-            {
-                "name": "BudgetAgent",
-                "description": "Travel budget planning and cost analysis", 
-                "status": "active"
-            }
-        ],
-        "llm_provider": llm_config.provider.value,
-        "llm_model": llm_config.model_name,
-        "features": [
-            "Multi-agent collaboration",
-            "Flight search and comparison",
-            "Hotel recommendations", 
-            "Budget planning and optimization",
-            "Real-time cost calculations"
-        ],
-        "timestamp": datetime.now().isoformat(),
-    }
-    
-    return func.HttpResponse(
-        json.dumps(health_info, indent=2),
-        status_code=200,
-        headers={"Content-Type": "application/json"},
-    )
-
 # Agent coordination endpoint (optional - for demonstrating agent collaboration)
 @app.route(route="plan-trip", auth_level=AuthLevel.ANONYMOUS, methods=["POST"])
 async def plan_trip(req: func.HttpRequest) -> func.HttpResponse:

@@ -456,3 +456,69 @@ def select_specialists(travel_request):
 - Explore [Conditional Handoffs](../handoff-conditional/) for dynamic routing
 - Build your own coordinator with domain-specific specialists
 - Integrate with real travel APIs and external services
+
+## Auto-Registration of Handoff Tools
+
+This sample demonstrates the **automatic handoff tool registration** feature of the Azure Functions Agent Framework. The framework automatically registers handoff tools for agents based on their `HandoffConfig`, eliminating the need to manually write wrapper functions.
+
+### How It Works
+
+When an agent is created with a `HandoffConfig`, the framework automatically:
+
+1. **Auto-registers handoff tools** for each target agent specified in the configuration
+2. **Exposes tools to the LLM** with descriptive names like `handoff_to_flight_agent`
+3. **Handles tool execution** by delegating to the target agent's chat endpoint
+4. **Updates tools dynamically** when the handoff configuration changes
+
+### Before: Manual Wrapper Functions ❌
+
+```python
+# OLD WAY: Manual wrapper functions (no longer needed)
+async def call_flight_agent(origin: str, destination: str, departure_date: str) -> Dict[str, Any]:
+    """Manual wrapper function - NOT NEEDED ANYMORE"""
+    # Complex manual implementation...
+    pass
+
+travel_coordinator = Agent(
+    name="travel_coordinator",
+    tools=[call_flight_agent, call_hotel_agent, ...],  # Manual tools
+    handoff_config=HandoffConfig(...)
+)
+```
+
+### After: Automatic Registration ✅
+
+```python
+# NEW WAY: Automatic handoff tool registration
+travel_coordinator = Agent(
+    name="travel_coordinator",
+    instructions="Use handoff_to_flight_agent to search flights...",
+    tools=[],  # No manual tools needed!
+    handoff_config=HandoffConfig(
+        mode=HandoffMode.COORDINATOR,
+        targets=[
+            HandoffTarget(
+                agent_name="flight_agent",
+                description="Search for flights and transportation options"
+            ),
+            # Framework automatically creates: handoff_to_flight_agent(message: str)
+        ]
+    )
+)
+```
+
+### Automatic Tool Names
+
+The framework automatically creates tools with predictable names:
+
+- `HandoffTarget(agent_name="flight_agent")` → `handoff_to_flight_agent(message: str)`
+- `HandoffTarget(agent_name="hotel_agent")` → `handoff_to_hotel_agent(message: str)`
+- `HandoffTarget(agent_name="weather_agent")` → `handoff_to_weather_agent(message: str)`
+
+### Benefits
+
+- **🚀 Faster Development**: No need to write manual wrapper functions
+- **🔧 Less Boilerplate**: Framework handles tool creation automatically
+- **🎯 Consistent API**: Predictable tool names and signatures
+- **🔄 Dynamic Updates**: Tools update when handoff config changes
+- **📖 Better Documentation**: Tool descriptions come from HandoffTarget descriptions

@@ -305,33 +305,3 @@ weather_agent = Agent(
 
 # Create Function App
 app = AgentFunctionApp(agents={"WeatherBot": weather_agent})
-
-# Health check endpoint
-@app.route(route="health", auth_level=AuthLevel.ANONYMOUS, methods=["GET"])
-async def health_check(req: func.HttpRequest) -> func.HttpResponse:
-    """Health check endpoint to verify the agent is running."""
-    
-    api_status = "configured" if OPENWEATHER_API_KEY else "not_configured"
-    
-    health_info = {
-        "status": "healthy",
-        "agent_name": "WeatherBot",
-        "version": "2.0.0",
-        "llm_provider": llm_config.provider.value,
-        "llm_model": llm_config.model_name,
-        "weather_api_status": api_status,
-        "features": [
-            "Real-time weather data",
-            "Global location support",
-            "Temperature conversion",
-            "Weather advice",
-            "Modern agent framework"
-        ],
-        "timestamp": datetime.now().isoformat(),
-    }
-    
-    return func.HttpResponse(
-        json.dumps(health_info, indent=2),
-        status_code=200,
-        headers={"Content-Type": "application/json"},
-    )

@@ -52,6 +52,10 @@ class Runner:
         """
         request_data = self._normalize_request(request)
         response_data = await self.agent.process_request(request_data)
+        
+        # Process any handoff requests that were returned by tools
+        response_data = await self._process_handoff_requests(response_data, request_data)
+        
         return self._create_response(response_data)
 
     def run_sync(self, request: RequestInput) -> Response:
@@ -340,3 +344,92 @@ class Runner:
             return [target for target in configured_targets if target in available_runners]
             
         return available_runners
+    
+    async def _process_handoff_requests(self, response_data: Dict[str, Any], request_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Process any handoff requests that were returned by tools.
+        
+        Args:
+            response_data: The response from the agent
+            request_data: The original request data
+            
+        Returns:
+            Updated response data with actual handoff results
+        """
+        tool_results = response_data.get('tool_results', [])
+        
+        # Check if any tools returned handoff requests
+        handoff_requests = []
+        for i, tool_result in enumerate(tool_results):
+            result = tool_result.get('result', {})
+            
+            # Check if this is a handoff request (could be nested in status wrapper)
+            handoff_data = None
+            if isinstance(result, dict):
+                if result.get('handoff_requested'):
+                    handoff_data = result
+                elif result.get('result', {}).get('handoff_requested'):
+                    handoff_data = result.get('result', {})
+            
+            if handoff_data and handoff_data.get('handoff_requested'):
+                handoff_requests.append({
+                    'index': i,
+                    'tool_name': tool_result.get('tool'),
+                    'target_agent': handoff_data.get('target_agent'),
+                    'message': handoff_data.get('message'),
+                    'reason': handoff_data.get('reason'),
+                    'context': handoff_data.get('context', {})
+                })
+        
+        # Process handoff requests
+        if handoff_requests:
+            self.agent.logger.info(f"Processing {len(handoff_requests)} handoff requests")
+            
+            for handoff_request in handoff_requests:
+                target_agent = handoff_request['target_agent']
+                message = handoff_request['message']
+                index = handoff_request['index']
+                
+                try:
+                    # Execute the handoff using the proper framework mechanism
+                    handoff_response = await self.handoff_to(
+                        target_agent=target_agent,
+                        input_data={'message': message},
+                        reason=handoff_request.get('reason', f"Handoff to {target_agent}"),
+                        conversation_id=request_data.get('conversation_id')
+                    )
+                    
+                    # Replace the placeholder tool result with the actual handoff response
+                    if handoff_response and hasattr(handoff_response, 'response'):
+                        actual_result = {
+                            'handoff_executed': True,
+                            'target_agent': target_agent,
+                            'message': message,
+                            'response': handoff_response.response,
+                            'status': 'success'
+                        }
+                    else:
+                        actual_result = {
+                            'handoff_executed': False,
+                            'target_agent': target_agent,
+                            'error': 'No response from target agent',
+                            'status': 'error'
+                        }
+                    
+                    # Update the tool result
+                    tool_results[index]['result'] = actual_result
+                    
+                    self.agent.logger.info(f"Handoff to {target_agent} completed successfully")
+                    
+                except Exception as e:
+                    self.agent.logger.error(f"Handoff to {target_agent} failed: {e}")
+                    
+                    # Update with error result
+                    tool_results[index]['result'] = {
+                        'handoff_executed': False,
+                        'target_agent': target_agent,
+                        'error': str(e),
+                        'status': 'error'
+                    }
+        
+        return response_data

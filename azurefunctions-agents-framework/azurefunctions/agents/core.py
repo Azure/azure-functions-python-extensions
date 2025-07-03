@@ -133,6 +133,10 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
         self.handoff_engine = HandoffEngine(self.control_flow_manager)
         self.handoff_engine.register_agents(self.agents)
         
+        # Set agent registry on all agents for handoff tools
+        for agent in self.agents.values():
+            agent.set_agent_registry(self.agents)
+        
         # Create runners for each agent with handoff engine
         self.runners: Dict[str, Runner] = {
             agent.name: Runner(agent, self.handoff_engine) for agent in self.agents.values()

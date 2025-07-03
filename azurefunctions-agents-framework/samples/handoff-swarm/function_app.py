@@ -21,6 +21,7 @@ Flow:
 import asyncio
 import json
 import logging
+import os
 import azure.functions as func
 from typing import Dict, Any
 
@@ -29,8 +30,6 @@ from azurefunctions.agents.handoff import (
     HandoffConfig, HandoffTarget, HandoffMode, ControlReturn
 )
 from azurefunctions.agents.types import LLMConfig, LLMProvider
-
-app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
 # Mock weather API
 async def get_weather(location: str) -> Dict[str, Any]:
@@ -127,7 +126,7 @@ async def get_weather_advice(weather_data: Dict[str, Any]) -> Dict[str, Any]:
 llm_config = LLMConfig(
     provider=LLMProvider.OPENAI,
     model_name="gpt-4",
-    api_key_env_var="OPENAI_API_KEY"
+    api_key=os.getenv("OPENAI_API_KEY")
 )
 
 # Weather Agent - Main coordinator in swarm
@@ -208,11 +207,12 @@ You can hand back to other agents in the swarm as needed.
 
 # Create the multi-agent function app with handoff system
 agent_app = AgentFunctionApp(
-    agents=[weather_agent, temperature_converter, weather_advisor]
+    agents=[weather_agent, temperature_converter, weather_advisor],
+    http_auth_level=func.AuthLevel.ANONYMOUS
 )
 
 # Manual function to demonstrate direct runner usage
-@app.route(route="weather-swarm", methods=["POST"])
+@agent_app.route(route="weather-swarm", methods=["POST"])
 async def weather_swarm_demo(req: func.HttpRequest) -> func.HttpResponse:
     """
     Demonstrate the swarm pattern with direct runner handoffs.
@@ -277,9 +277,9 @@ async def weather_swarm_demo(req: func.HttpRequest) -> func.HttpResponse:
         result = {
             "pattern": "swarm",
             "location": location,
-            "weather_data": weather_response.content,
-            "temperature_conversion": temp_response.content,
-            "weather_advice": advice_response.content,
+            "weather_data": weather_response.response if weather_response and weather_response.response else {},
+            "temperature_conversion": temp_response.response if temp_response and temp_response.response else {},
+            "weather_advice": advice_response.response if advice_response and advice_response.response else {},
             "handoff_path": ["weather", "temperature_converter", "weather_advisor"],
             "conversation_id": conversation_id,
             "summary": f"Complete weather analysis for {location} using swarm collaboration"
@@ -298,18 +298,3 @@ async def weather_swarm_demo(req: func.HttpRequest) -> func.HttpResponse:
             status_code=500,
             mimetype="application/json"
         )
-
-# Health check
-@app.route(route="health", methods=["GET"])
-def health_check(req: func.HttpRequest) -> func.HttpResponse:
-    """Health check endpoint."""
-    return func.HttpResponse(
-        json.dumps({
-            "status": "healthy",
-            "sample": "handoff-swarm",
-            "agents": ["weather", "temperature_converter", "weather_advisor"],
-            "pattern": "swarm - peer-to-peer collaboration"
-        }),
-        status_code=200,
-        mimetype="application/json"
-    )

@@ -131,6 +131,9 @@ class Agent:
         # Register tools if provided
         self._register_tools(tools or [])
 
+        # Auto-register handoff tools if agent has handoff configuration
+        self._register_handoff_tools()
+
         # Mark MCP tools for registration if servers are provided
         self._mcp_tools_registered = False
         self._mcp_registration_needed = bool(self.mcp_servers)
@@ -687,6 +690,9 @@ class Agent:
             f"Configured handoffs for {self.name}: "
             f"{len(handoff_targets)} targets, mode={self.handoff_config.mode.value}"
         )
+        
+        # Re-register handoff tools with the new configuration
+        self._register_handoff_tools()
 
     def add_handoff_target(
         self,
@@ -795,6 +801,88 @@ class Agent:
             metadata=kwargs
         )
 
+    def _register_handoff_tools(self):
+        """Auto-register handoff tools for agents with HandoffConfig."""
+        if not self.handoff_config or not self.handoff_config.targets:
+            return
+
+        self.logger.info(f"Auto-registering handoff tools for agent '{self.name}'")
+        
+        # Register a tool for each handoff target
+        for target in self.handoff_config.targets:
+            tool_name = f"handoff_to_{target.agent_name}"
+            tool_description = target.description or f"Hand off conversation to {target.agent_name} agent"
+            
+            # Create the handoff function
+            def create_handoff_function(target_agent_name: str, target_description: str):
+                async def handoff_tool(
+                    message: str,
+                    reason: str = f"Handing off to {target_agent_name}",
+                    context: dict = None
+                ) -> dict:
+                    """
+                    Hand off the conversation to another agent.
+                    
+                    Args:
+                        message: The message/request to pass to the target agent
+                        reason: Reason for the handoff (optional)
+                        context: Additional context to pass (optional)
+                    
+                    Returns:
+                        dict: Handoff request that will be processed by the framework
+                    """
+                    return {
+                        "handoff_requested": True,
+                        "target_agent": target_agent_name,
+                        "message": message,
+                        "reason": reason,
+                        "context": context or {}
+                    }
+                
+                # Set function metadata
+                handoff_tool.__name__ = tool_name
+                handoff_tool.__doc__ = target_description
+                return handoff_tool
+            
+            # Create and register the handoff tool
+            handoff_function = create_handoff_function(target.agent_name, tool_description)
+            
+            # Register the tool with proper parameters
+            self.tool_registry.register_function_tool(
+                name=tool_name,
+                function=handoff_function,
+                description=tool_description,
+                parameters={
+                    "type": "object",
+                    "properties": {
+                        "message": {
+                            "type": "string",
+                            "description": "The message/request to pass to the target agent"
+                        },
+                        "reason": {
+                            "type": "string", 
+                            "description": "Reason for the handoff",
+                            "default": f"Handing off to {target.agent_name}"
+                        },
+                        "context": {
+                            "type": "object",
+                            "description": "Additional context to pass to the target agent",
+                            "default": {}
+                        }
+                    },
+                    "required": ["message"]
+                },
+                required_params=["message"]
+            )
+            
+            self.logger.info(f"Registered handoff tool '{tool_name}' for target '{target.agent_name}'")
+
+    # Agent registry for handoffs (set by AgentFunctionApp)
+    _agent_registry: Optional[Dict[str, 'Agent']] = None
+
+    def set_agent_registry(self, agent_registry: Dict[str, 'Agent']):
+        """Set the agent registry for handoff operations."""
+        self._agent_registry = agent_registry
 
 class ReflectionAgent(Agent):
     """

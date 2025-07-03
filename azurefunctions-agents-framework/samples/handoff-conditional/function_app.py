@@ -34,8 +34,6 @@ from azurefunctions.agents.handoff import (
 )
 from azurefunctions.agents.types import LLMConfig, LLMProvider
 
-app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
-
 # Mock customer data and systems
 CUSTOMER_DATABASE = {
     "customer_123": {
@@ -406,10 +404,13 @@ agents = {
     "escalation_support": escalation_support_agent
 }
 
-agent_app = AgentFunctionApp(agents=agents)
+agent_app = AgentFunctionApp(
+    agents=agents,
+    http_auth_level=func.AuthLevel.ANONYMOUS
+)
 
 # Demo endpoint to showcase conditional routing
-@app.route(route="customer-service-demo", auth_level=func.AuthLevel.ANONYMOUS)
+@agent_app.route(route="customer-service-demo", auth_level=func.AuthLevel.ANONYMOUS)
 async def customer_service_demo(req: func.HttpRequest) -> func.HttpResponse:
     """
     Demo endpoint showcasing conditional handoff routing.
@@ -476,24 +477,6 @@ async def customer_service_demo(req: func.HttpRequest) -> func.HttpResponse:
             status_code=500,
             mimetype="application/json"
         )
-
-# Health check endpoint
-@app.route(route="health", auth_level=func.AuthLevel.ANONYMOUS) 
-async def health_check(req: func.HttpRequest) -> func.HttpResponse:
-    """Health check endpoint."""
-    return func.HttpResponse(
-        json.dumps({
-            "status": "healthy",
-            "agents": list(agents.keys()),
-            "handoff_patterns": ["conditional", "escalation", "intelligent_routing"],
-            "timestamp": datetime.now().isoformat()
-        }),
-        status_code=200,
-        mimetype="application/json"
-    )
-
-# Include standard agent endpoints from AgentFunctionApp
-agent_app.setup_function_app(app)
 
 if __name__ == "__main__":
     # For local development
