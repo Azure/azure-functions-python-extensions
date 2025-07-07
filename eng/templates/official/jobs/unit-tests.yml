@@ -1,0 +1,137 @@
+parameters:
+  - name: python_versions
+    type: object
+    default:
+      # 3.8 is EOL. Don't run tests for it
+      python39:
+        PYTHON_VERSION: '3.9'
+      python310:
+        PYTHON_VERSION: '3.10'
+      python311:
+        PYTHON_VERSION: '3.11'
+      python312:
+        PYTHON_VERSION: '3.12'
+      python313:
+        PYTHON_VERSION: '3.13'
+
+jobs:
+  - job: "BaseTests"
+    displayName: "Base Extension Tests"
+    dependsOn: []
+    strategy:
+      matrix: ${{ parameters.python_versions }}
+    condition: always()
+    steps:
+      - task: UsePythonVersion@0
+        inputs:
+          versionSpec: $(PYTHON_VERSION)
+      - bash: |
+          python -m pip install --upgrade pip
+          cd azurefunctions-extensions-base
+          python -m pip install -U -e .[dev]
+        displayName: 'Install Base Dependencies'
+      - bash: |
+          python -m pytest -q --instafail azurefunctions-extensions-base/tests/
+        displayName: "Run Base Extension Tests for Python $(PYTHON_VERSION)"
+
+  - job: "BlobTests"
+    displayName: "Blob Extension Tests"
+    dependsOn: []
+    strategy:
+      matrix: ${{ parameters.python_versions }}
+    condition: always()
+    steps:
+      - task: UsePythonVersion@0
+        inputs:
+          versionSpec: $(PYTHON_VERSION)
+      - bash: |
+          python -m pip install --upgrade pip
+          cd azurefunctions-extensions-bindings-blob
+          python -m pip install -U -e .[dev]
+        displayName: 'Install Blob Dependencies'
+      - bash: |
+          python -m pytest -q --instafail azurefunctions-extensions-bindings-blob/tests/
+        env:
+          AzureWebJobsStorage: $(AzureWebJobsStorage)
+          input: $(input__serviceUri)
+          trigger: $(trigger__blobServiceUri)
+        displayName: "Run Blob Extension Tests for Python $(PYTHON_VERSION)"
+
+  - job: "CosmosDBTests"
+    displayName: "CosmosDB Extension Tests"
+    dependsOn: []
+    strategy:
+      matrix: ${{ parameters.python_versions }}
+    condition: always()
+    steps:
+      - task: UsePythonVersion@0
+        inputs:
+          versionSpec: $(PYTHON_VERSION)
+      - bash: |
+          python -m pip install --upgrade pip
+          cd azurefunctions-extensions-bindings-cosmosdb
+          python -m pip install -U -e .[dev]
+        displayName: 'Install CosmosDB Dependencies'
+      - bash: |
+          python -m pytest -q --instafail azurefunctions-extensions-bindings-cosmosdb/tests/
+        env:
+          CosmosDBConnection: $(CosmosDBConnection)
+          input__accountEndpoint: $(input__accountEndpoint)
+        displayName: "Running Cosmos DB $(PYTHON_VERSION) Python Extension Tests"
+
+  - job: "EventHubTests"
+    displayName: "EventHub Extension Tests"
+    dependsOn: []
+    strategy:
+      matrix: ${{ parameters.python_versions }}
+    condition: always()
+    steps:
+      - task: UsePythonVersion@0
+        inputs:
+          versionSpec: $(PYTHON_VERSION)
+      - bash: |
+          python -m pip install --upgrade pip
+          cd azurefunctions-extensions-bindings-eventhub
+          python -m pip install -U -e .[dev]
+        displayName: 'Install EventHub Dependencies'
+      - bash: |
+          python -m pytest -q --instafail azurefunctions-extensions-bindings-eventhub/tests/
+        displayName: "Running EventHub $(PYTHON_VERSION) Python Extension Tests"
+
+  - job: "FastApiTests"
+    displayName: "FastApi Extension Tests"
+    dependsOn: []
+    strategy:
+      matrix: ${{ parameters.python_versions }}
+    condition: always()
+    steps:
+      - task: UsePythonVersion@0
+        inputs:
+          versionSpec: $(PYTHON_VERSION)
+      - bash: |
+          python -m pip install --upgrade pip
+          cd azurefunctions-extensions-http-fastapi
+          python -m pip install -U -e .[dev]
+        displayName: 'Install FastApi Dependencies'
+      - bash: |
+          python -m pytest -q --instafail azurefunctions-extensions-http-fastapi/tests/
+        displayName: "Running FastApi $(PYTHON_VERSION) Python Extension Tests"
+
+  - job: "ServiceBusTests"
+    displayName: "ServiceBus Extension Tests"
+    dependsOn: []
+    strategy:
+      matrix: ${{ parameters.python_versions }}
+    condition: always()
+    steps:
+      - task: UsePythonVersion@0
+        inputs:
+          versionSpec: $(PYTHON_VERSION)
+      - bash: |
+          python -m pip install --upgrade pip
+          cd azurefunctions-extensions-bindings-servicebus
+          python -m pip install -U -e .[dev]
+        displayName: 'Install ServiceBus Dependencies'
+      - bash: |
+          python -m pytest -q --instafail azurefunctions-extensions-bindings-servicebus/tests/
+        displayName: "Running ServiceBus $(PYTHON_VERSION) Python Extension Tests"

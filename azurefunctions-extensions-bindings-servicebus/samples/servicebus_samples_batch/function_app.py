@@ -43,14 +43,12 @@ def servicebus_queue_trigger(receivedmessage: List[servicebus.ServiceBusReceived
                      "Body: %s\n"
                      "Enqueued time: %s\n"
                      "Lock Token: %s\n"
-                     "Locked until : %s\n"
                      "Message ID: %s\n"
                      "Sequence number: %s\n",
                      message,
                      message.body,
                      message.enqueued_time_utc,
                      message.lock_token,
-                     message.locked_until,
                      message.message_id,
                      message.sequence_number)
 
@@ -67,13 +65,11 @@ def servicebus_topic_trigger(receivedmessage: List[servicebus.ServiceBusReceived
                      "Body: %s\n"
                      "Enqueued time: %s\n"
                      "Lock Token: %s\n"
-                     "Locked until : %s\n"
                      "Message ID: %s\n"
                      "Sequence number: %s\n",
                      message,
                      message.body,
                      message.enqueued_time_utc,
                      message.lock_token,
-                     message.locked_until,
                      message.message_id,
                      message.sequence_number)

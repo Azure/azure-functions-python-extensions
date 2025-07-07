@@ -1,4 +1,4 @@
-# This Azure Function receives streaming data from a client and processes it in real-time.
+# This function app receives streaming data from a client and processes it in real-time.
 # It demonstrates streaming upload capabilities for scenarios such as uploading large files,
 # processing continuous data streams, or handling IoT device data.
 
