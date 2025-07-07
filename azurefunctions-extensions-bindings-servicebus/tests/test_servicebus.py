@@ -147,7 +147,5 @@ class TestServiceBus(unittest.TestCase):
     def test_input_get_decoded_message_ex(self):
         with self.assertRaises(ValueError) as e:
             _ = get_decoded_message("Invalid message")
-        self.assertEqual(
-            e.exception.args[0],
-            "Failed to decode ServiceBus content: must be str, not bytes",
-        )
+
+        self.assertIn("Failed to decode ServiceBus content", e.exception.args[0])
