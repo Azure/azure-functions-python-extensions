@@ -65,23 +65,30 @@ def using_user_managed_identity(connection_name: str) -> bool:
     """
     To determine if user-assigned managed identity is being used, we check if
     the provided connection string has the following suffixes:
-    __serviceUri and __credential, AND either __managedIdentityResourceId
-    or __clientID.
-
-    We are not verifying that the customer only has __managedIdentityResourceId
-    or __clientID. That check is handled by the (???).
+    __credential AND __clientID
     """
-    return ((os.getenv(connection_name + "__serviceUri") is not None)
-            and (os.getenv(connection_name + "__credential") is not None)
-            and ((os.getenv(connection_name + "__managedIdentityResourceId")
-                  is not None)
-                 or (os.getenv(connection_name + "__clientID") is not None
-                     )))
+    return (os.getenv(connection_name + "__credential") is not None) and (
+        os.getenv(connection_name + "__clientID") is not None
+    )
 
 
 def get_blob_service_client(system_managed_identity: bool,
                             user_managed_identity: bool,
                             connection: str):
+    """
+    Returns the BlobServiceClient.
+
+    How the BlobServiceClient is created depends on the authentication
+    strategy of the customer.
+
+    There are 3 cases:
+    1. The customer is using user-assigned managed identity -> the BlobServiceClient
+    must be created using a ManagedIdentityCredential.
+    2. The customer is using system based managed identity -> the BlobServiceClient
+    must be created using a DefaultAzureCredential.
+    3. The customer is not using managed identity -> the BlobServiceClient must
+    be created using a connection string.
+    """
     connection_string = get_connection_string(connection)
     if user_managed_identity:
         return BlobServiceClient(account_url=connection_string,
