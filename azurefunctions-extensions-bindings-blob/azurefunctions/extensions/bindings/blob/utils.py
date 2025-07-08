@@ -65,10 +65,10 @@ def using_user_managed_identity(connection_name: str) -> bool:
     """
     To determine if user-assigned managed identity is being used, we check if
     the provided connection string has the following suffixes:
-    __credential AND __clientID
+    __credential AND __clientId
     """
     return (os.getenv(connection_name + "__credential") is not None) and (
-        os.getenv(connection_name + "__clientID") is not None
+        os.getenv(connection_name + "__clientId") is not None
     )
 
 
@@ -93,7 +93,7 @@ def get_blob_service_client(system_managed_identity: bool,
     if user_managed_identity:
         return BlobServiceClient(account_url=connection_string,
                                  credential=ManagedIdentityCredential(
-                                     client_id=os.getenv(connection + "__clientID")))
+                                     client_id=os.getenv(connection + "__clientId")))
     elif system_managed_identity:
         return BlobServiceClient(account_url=connection_string,
                                  credential=DefaultAzureCredential())
