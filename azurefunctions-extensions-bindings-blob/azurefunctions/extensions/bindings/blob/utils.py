@@ -6,10 +6,23 @@ from azure.identity import DefaultAzureCredential, ManagedIdentityCredential
 from azure.storage.blob import BlobServiceClient
 
 
+def validate_connection_setting(connection_string: str) -> str:
+    """
+    Validates and returns the connection setting. The setting must
+    not be None - if it is, a ValueError will be raised.
+    """
+    if connection_string is None:
+        raise ValueError(
+            "Storage account connection string cannot be None. "
+            "Please provide a connection string."
+        )
+    else:
+        return connection_string
+
+
 def get_connection_string(connection_string: str) -> str:
     """
-    Validates and returns the connection string. If the connection string is
-    not an App Setting, an error will be thrown.
+    Returns the connection string.
 
     When using managed identity, the connection string variable name is formatted
     like so:
@@ -24,12 +37,7 @@ def get_connection_string(connection_string: str) -> str:
     3. Using managed identity for blob trigger: __blobServiceUri must be appended
     4. None of these cases existed, so the connection variable is invalid.
     """
-    if connection_string is None:
-        raise ValueError(
-            "Storage account connection string cannot be None. "
-            "Please provide a connection string."
-        )
-    elif connection_string in os.environ:
+    if connection_string in os.environ:
         return os.getenv(connection_string)
     elif connection_string + "__serviceUri" in os.environ:
         return os.getenv(connection_string + "__serviceUri")

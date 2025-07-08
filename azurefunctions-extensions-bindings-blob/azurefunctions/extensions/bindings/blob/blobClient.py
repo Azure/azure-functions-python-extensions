@@ -6,6 +6,7 @@ import json
 from azurefunctions.extensions.base import Datum, SdkType
 from .utils import (using_system_managed_identity,
                     using_user_managed_identity,
+                    validate_connection_setting,
                     get_blob_service_client)
 
 
@@ -25,7 +26,8 @@ class BlobClient(SdkType):
             self._source = data.source
             self._content_type = data.content_type
             content_json = json.loads(data.content)
-            self._connection = content_json.get("Connection")
+            self._connection = validate_connection_setting(
+                content_json.get("Connection"))
             self._system_managed_identity = using_system_managed_identity(
                 self._connection
             )

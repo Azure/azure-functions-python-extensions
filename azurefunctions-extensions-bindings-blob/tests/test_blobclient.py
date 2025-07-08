@@ -100,7 +100,7 @@ class TestBlobClient(unittest.TestCase):
             )
         self.assertEqual(
             e.exception.args[0],
-            "ValueError: Unable to create BlobClient SDK type.",
+            "Unable to create BlobClient SDK type.",
         )
 
     def test_input_populated(self):
