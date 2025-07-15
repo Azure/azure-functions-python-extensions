@@ -6,21 +6,21 @@ from azure.identity import DefaultAzureCredential, ManagedIdentityCredential
 from azure.storage.blob import BlobServiceClient
 
 
-def validate_connection_setting(connection_string: str) -> str:
+def validate_connection_name(connection_name: str) -> str:
     """
-    Validates and returns the connection setting. The setting must
+    Validates and returns the connection name. The setting must
     not be None - if it is, a ValueError will be raised.
     """
-    if connection_string is None:
+    if connection_name is None:
         raise ValueError(
-            "Storage account connection string cannot be None. "
-            "Please provide a connection string."
+            "Storage account connection name cannot be None. "
+            "Please provide a connection setting."
         )
     else:
-        return connection_string
+        return connection_name
 
 
-def get_connection_string(connection_string: str) -> str:
+def get_connection_string(connection_name: str) -> str:
     """
     Returns the connection string.
 
@@ -37,15 +37,15 @@ def get_connection_string(connection_string: str) -> str:
     3. Using managed identity for blob trigger: __blobServiceUri must be appended
     4. None of these cases existed, so the connection variable is invalid.
     """
-    if connection_string in os.environ:
-        return os.getenv(connection_string)
-    elif connection_string + "__serviceUri" in os.environ:
-        return os.getenv(connection_string + "__serviceUri")
-    elif connection_string + "__blobServiceUri" in os.environ:
-        return os.getenv(connection_string + "__blobServiceUri")
+    if connection_name in os.environ:
+        return os.getenv(connection_name)
+    elif connection_name + "__serviceUri" in os.environ:
+        return os.getenv(connection_name + "__serviceUri")
+    elif connection_name + "__blobServiceUri" in os.environ:
+        return os.getenv(connection_name + "__blobServiceUri")
     else:
         raise ValueError(
-            f"Storage account connection string {connection_string} does not exist. "
+            f"Storage account connection name {connection_name} does not exist. "
             f"Please make sure that it is a defined App Setting."
         )
 
@@ -72,9 +72,7 @@ def using_user_managed_identity(connection_name: str) -> bool:
     )
 
 
-def get_blob_service_client(system_managed_identity: bool,
-                            user_managed_identity: bool,
-                            connection: str):
+def service_client_factory(connection: str):
     """
     Returns the BlobServiceClient.
 
@@ -90,11 +88,11 @@ def get_blob_service_client(system_managed_identity: bool,
     be created using a connection string.
     """
     connection_string = get_connection_string(connection)
-    if user_managed_identity:
+    if using_user_managed_identity(connection):
         return BlobServiceClient(account_url=connection_string,
                                  credential=ManagedIdentityCredential(
                                      client_id=os.getenv(connection + "__clientId")))
-    elif system_managed_identity:
+    elif using_system_managed_identity(connection):
         return BlobServiceClient(account_url=connection_string,
                                  credential=DefaultAzureCredential())
     else:

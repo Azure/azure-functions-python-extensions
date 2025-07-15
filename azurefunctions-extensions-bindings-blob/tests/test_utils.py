@@ -6,7 +6,7 @@ import unittest
 from unittest.mock import patch
 
 from azurefunctions.extensions.bindings.blob.utils import (
-    validate_connection_setting,
+    validate_connection_name,
     get_connection_string,
     using_system_managed_identity,
     using_user_managed_identity)
@@ -17,14 +17,14 @@ class TestUtils(unittest.TestCase):
     def test_valid_connection_string(self):
         # Test that a valid connection string is returned unchanged
         conn_setting = "MyStorageConnection"
-        result = validate_connection_setting(conn_setting)
+        result = validate_connection_name(conn_setting)
         self.assertEqual(result, conn_setting)
 
     def test_none_connection_string_raises_value_error(self):
         # Test that passing None raises a ValueError
         with self.assertRaises(ValueError) as context:
-            validate_connection_setting(None)
-        self.assertIn("Storage account connection string cannot be None",
+            validate_connection_name(None)
+        self.assertIn("Storage account connection name cannot be None",
                       str(context.exception))
 
     def test_connection_string_exists_directly(self):
@@ -48,7 +48,7 @@ class TestUtils(unittest.TestCase):
         with patch.dict(os.environ, {}, clear=True):
             with self.assertRaises(ValueError) as context:
                 get_connection_string("MISSING_CONNECTION")
-            self.assertIn("Storage account connection string "
+            self.assertIn("Storage account connection name "
                           "MISSING_CONNECTION does not exist",
                           str(context.exception))
 
