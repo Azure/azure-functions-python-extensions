@@ -98,17 +98,6 @@ class Agent:
 
         # LLM Configuration
         self.llm_config = llm_config
-        if not llm_config and enable_conversational_agent:
-            # Try to auto-detect LLM configuration
-            auto_config = self._auto_detect_llm_config()
-            if auto_config:
-                self.llm_config = auto_config
-            else:
-                self.logger.warning(
-                    f"Agent '{name}' has conversational capabilities enabled but no LLM configuration provided. "
-                    "The agent will not be able to process conversational requests."
-                )
-
         if enable_conversational_agent and not llm_config:
             raise ValueError(
                 f"Agent '{name}' requires LLM configuration when enable_conversational_agent=True. "
@@ -401,7 +390,7 @@ class Agent:
             # Prepare tools for LLM
             tools_schema = self.tool_registry.get_tools_for_llm()
 
-            # Get LLM response
+            # Get LLM response and handle multiple rounds of tool calls
             llm_response = await self.llm_client.chat_completion(
                 messages=chat_messages,
                 tools=tools_schema if tools_schema else None,
@@ -410,10 +399,17 @@ class Agent:
 
             response_message = llm_response["message"]
             tool_results = []
+            max_tool_rounds = 5  # Prevent infinite loops
+            current_round = 0
 
-            # If LLM wants to call tools, execute them and get final response
-            if hasattr(response_message, "tool_calls") and response_message.tool_calls:
-                # Add the assistant's message with tool calls (convert to ChatMessage format)
+            # Continue until LLM provides a final response without tool calls
+            while (hasattr(response_message, "tool_calls") and response_message.tool_calls and 
+                   current_round < max_tool_rounds):
+                
+                current_round += 1
+                self.logger.info(f"Processing tool call round {current_round}")
+                
+                # Add the assistant's message with tool calls
                 chat_messages.append(
                     ChatMessage(
                         role="assistant",
@@ -432,7 +428,7 @@ class Agent:
                     )
                 )
 
-                # Process tool calls
+                # Process tool calls for this round
                 for tool_call in response_message.tool_calls:
                     tool_result = await self.tool_registry.execute_tool(
                         tool_call.function.name,
@@ -455,14 +451,18 @@ class Agent:
                         )
                     )
 
-                # Get final response from LLM after tool execution
-                final_response = await self.llm_client.chat_completion(
+                # Get next response from LLM after tool execution
+                llm_response = await self.llm_client.chat_completion(
                     messages=chat_messages,
                     tools=tools_schema if tools_schema else None,
                     tool_choice="auto" if tools_schema else None,
                 )
 
-                response_message = final_response["message"]
+                response_message = llm_response["message"]
+
+            # Log if we hit the max rounds limit
+            if current_round >= max_tool_rounds:
+                self.logger.warning(f"Reached maximum tool call rounds ({max_tool_rounds}), stopping")
 
             # Safely serialize usage information
             usage = llm_response.get("usage")
@@ -555,51 +555,6 @@ class Agent:
         """Manually initialize the LLM client."""
         if self.llm_client:
             await self.llm_client.initialize()
-
-    def _auto_detect_llm_config(self) -> Optional[LLMConfig]:
-        """
-        Auto-detect LLM configuration based on available environment variables.
-
-        Priority order:
-        1. Azure OpenAI (if both endpoint and API key are available)
-        2. OpenAI (if API key is available)
-
-        Returns:
-            LLMConfig if a provider can be configured, None otherwise
-        """
-        # Check for Azure OpenAI first (more specific)
-        azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
-        azure_api_key = os.getenv("AZURE_OPENAI_API_KEY")
-
-        if azure_endpoint and azure_api_key:
-            self.logger.info("Auto-detected Azure OpenAI configuration")
-            return LLMConfig(
-                provider=LLMProvider.AZURE_OPENAI,
-                model_name="gpt-4o-mini",  # Default model
-                azure_endpoint=azure_endpoint,
-                api_key=azure_api_key,
-                api_version=os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-15-preview"),
-                azure_deployment=os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME"),
-                temperature=0.7,
-            )
-
-        # Check for standard OpenAI
-        openai_api_key = os.getenv("OPENAI_API_KEY")
-        if openai_api_key:
-            self.logger.info("Auto-detected OpenAI configuration")
-            return LLMConfig(
-                provider=LLMProvider.OPENAI,
-                model_name="gpt-4o-mini",  # Default model
-                api_key=openai_api_key,
-                organization=os.getenv("OPENAI_ORG_ID"),
-                temperature=0.7,
-            )
-
-        # No suitable provider found
-        self.logger.warning(
-            "No LLM provider configuration could be auto-detected. Set OPENAI_API_KEY or AZURE_OPENAI_ENDPOINT+AZURE_OPENAI_API_KEY environment variables."
-        )
-        return None
 
     # Privacy/Security configuration methods
     def configure_privacy(

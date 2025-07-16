@@ -50,15 +50,27 @@ Your capabilities include:
 - Converting between temperature units (Celsius/Fahrenheit)
 - Giving practical travel and outdoor activity recommendations
 
-Always be conversational, helpful, and provide practical advice along with weather data.
-When users ask about weather, use the appropriate tools to get accurate information.
-If a location is ambiguous, ask for clarification or suggest similar locations.
+IMPORTANT TOOL USAGE PATTERNS:
+When users ask for weather information for a location, ALWAYS follow this sequence:
+1. First, call get_current_weather to get the actual current conditions
+2. Then, use the weather data to call get_weather_advice with the actual conditions and temperature
+3. ALWAYS provide a comprehensive final response combining both weather data and practical advice
+
+Example workflow for "What's the weather advice for Austin?":
+1. Call get_current_weather(location="Austin", units="celsius")
+2. Call get_weather_advice(condition="clear", temperature=25) using the actual data from step 1
+3. Provide a complete response like: "Based on the current weather in Austin (25°C, Clear Sky), here's my advice: [clothing recommendations] [activity suggestions] [precautions]"
+
+CRITICAL: After calling tools, you MUST provide a helpful summary response to the user. Never leave the response empty.
 
 Key behaviors:
+- ALWAYS chain tools together when users ask for weather advice
+- ALWAYS provide a final response after tool execution
 - Use proper temperature units based on user preference or location
-- Provide practical advice (clothing, activities, travel considerations)
+- Provide practical advice (clothing, activities, travel considerations) based on ACTUAL current conditions
 - Be friendly and engaging in your responses
 - Handle errors gracefully and suggest alternatives
+- If a location is ambiguous, ask for clarification or suggest similar locations
 """
 
 async def retry_async_operation(operation, max_retries: int = 3, delay: float = 1.0):
@@ -225,34 +237,77 @@ def convert_temperature(temperature: float, from_unit: str, to_unit: str) -> Dic
 
 def get_weather_advice(condition: str, temperature: float = None, activity: str = None) -> Dict[str, Any]:
     """
-    Get weather-appropriate advice for clothing, activities, and precautions.
+    Get weather-appropriate advice for clothing, activities, and precautions based on specific weather conditions.
+    
+    This function should be called AFTER getting current weather data to provide practical advice.
+    Use the actual weather condition and temperature from get_current_weather results.
     
     Args:
-        condition: Weather condition (e.g., "sunny", "rainy", "cloudy")
-        temperature: Optional temperature to provide temperature-specific advice
+        condition: Weather condition from current weather data (e.g., "sunny", "rainy", "cloudy", "clear", "snow")
+        temperature: Current temperature to provide temperature-specific advice (required for best advice)
         activity: Optional planned activity to provide activity-specific advice
     
     Returns:
-        Dictionary containing weather advice
+        Dictionary containing weather-appropriate advice for clothing, activities, and precautions
     """
     condition = condition.lower().strip()
     
     # Base advice for different conditions
     advice_map = {
+        "clear": {
+            "clothing": "Light, breathable clothing. Don't forget sunscreen and sunglasses!",
+            "activities": "Perfect for outdoor activities like hiking, picnics, or sports",
+            "precautions": "Stay hydrated and seek shade during peak sun hours (10 AM - 4 PM)",
+        },
         "sunny": {
             "clothing": "Light, breathable clothing. Don't forget sunscreen and sunglasses!",
             "activities": "Perfect for outdoor activities like hiking, picnics, or sports",
             "precautions": "Stay hydrated and seek shade during peak sun hours (10 AM - 4 PM)",
+        },
+        "clouds": {
+            "clothing": "Comfortable layers - easy to adjust if it warms up",
+            "activities": "Great for walking, cycling, or any outdoor activities without glare",
+            "precautions": "Weather may change, so keep an eye on forecasts",
         },
         "cloudy": {
             "clothing": "Comfortable layers - easy to adjust if it warms up",
             "activities": "Great for walking, cycling, or any outdoor activities without glare",
             "precautions": "Weather may change, so keep an eye on forecasts",
         },
+        "rain": {
+            "clothing": "Waterproof jacket, umbrella, and non-slip shoes",
+            "activities": "Indoor activities recommended, or embrace the rain with proper gear",
+            "precautions": "Drive carefully, watch for puddles, and stay warm and dry",
+        },
         "rainy": {
             "clothing": "Waterproof jacket, umbrella, and non-slip shoes",
             "activities": "Indoor activities recommended, or embrace the rain with proper gear",
             "precautions": "Drive carefully, watch for puddles, and stay warm and dry",
+        },
+        "drizzle": {
+            "clothing": "Light rain jacket or umbrella, comfortable shoes",
+            "activities": "Light outdoor activities are still possible with proper gear",
+            "precautions": "Light rain can make surfaces slippery",
+        },
+        "snow": {
+            "clothing": "Warm winter clothing, waterproof boots, hat, and gloves",
+            "activities": "Winter sports or cozy indoor activities",
+            "precautions": "Drive carefully, watch for icy conditions, dress warmly",
+        },
+        "thunderstorm": {
+            "clothing": "Stay indoors if possible, waterproof gear if you must go out",
+            "activities": "Indoor activities strongly recommended",
+            "precautions": "Avoid outdoor activities, stay away from windows, unplug electronics",
+        },
+        "mist": {
+            "clothing": "Light layers, visibility may be reduced",
+            "activities": "Indoor activities or careful outdoor activities",
+            "precautions": "Reduced visibility - drive carefully, use headlights",
+        },
+        "fog": {
+            "clothing": "Light layers, visibility may be reduced",
+            "activities": "Indoor activities or careful outdoor activities", 
+            "precautions": "Severely reduced visibility - avoid driving if possible",
         },
     }
     
