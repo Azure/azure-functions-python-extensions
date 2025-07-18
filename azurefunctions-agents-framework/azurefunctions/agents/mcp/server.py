@@ -218,16 +218,19 @@ class MCPServer:
             encoding_error_handler=params.get("encoding_error_handler", "strict"),
         )
 
-        # Create stdio client and session
-        stdio_read_stream, stdio_write_stream = await stdio_client(stdio_params)
+        # Initialize cleanup context and create stdio client
         self._cleanup_context = AsyncExitStack()
-        self.session = await self._cleanup_context.aenter(
-            ClientSession(
-                stdio_read_stream,
-                stdio_write_stream,
-                timeout_seconds=self.client_session_timeout_seconds,
-            )
+        stdio_read_stream, stdio_write_stream = await self._cleanup_context.enter_async_context(
+            stdio_client(stdio_params)
         )
+        
+        # Create and enter the ClientSession context
+        client_session = ClientSession(
+            stdio_read_stream,
+            stdio_write_stream,
+            read_timeout_seconds=timedelta(seconds=self.client_session_timeout_seconds) if self.client_session_timeout_seconds else None,
+        )
+        self.session = await self._cleanup_context.enter_async_context(client_session)
         await self.session.initialize()
 
     async def _connect_sse(self):
@@ -236,21 +239,24 @@ class MCPServer:
         if not isinstance(params, dict) or "url" not in params:
             raise ValueError("SSE mode requires MCPServerSseParams with 'url'")
 
-        # Create SSE client and session
-        sse_read_stream, sse_write_stream = await sse_client(
-            url=params["url"],
-            headers=params.get("headers"),
-            timeout=params.get("timeout", 5.0),
-            sse_read_timeout=params.get("sse_read_timeout", 300.0),
-        )
+        # Initialize cleanup context and create SSE client
         self._cleanup_context = AsyncExitStack()
-        self.session = await self._cleanup_context.aenter(
-            ClientSession(
-                sse_read_stream,
-                sse_write_stream,
-                timeout_seconds=self.client_session_timeout_seconds,
+        sse_read_stream, sse_write_stream = await self._cleanup_context.enter_async_context(
+            sse_client(
+                url=params["url"],
+                headers=params.get("headers"),
+                timeout=params.get("timeout", 5.0),
+                sse_read_timeout=params.get("sse_read_timeout", 300.0),
             )
         )
+        
+        # Create and enter the ClientSession context
+        client_session = ClientSession(
+            sse_read_stream,
+            sse_write_stream,
+            read_timeout_seconds=timedelta(seconds=self.client_session_timeout_seconds) if self.client_session_timeout_seconds else None,
+        )
+        self.session = await self._cleanup_context.enter_async_context(client_session)
         await self.session.initialize()
 
     async def _connect_streamable_http(self):
@@ -261,21 +267,24 @@ class MCPServer:
                 "STREAMABLE_HTTP mode requires MCPServerStreamableHttpParams with 'session_url'"
             )
 
-        # Create streamable HTTP client and session
-        http_read_stream, http_write_stream = await streamablehttp_client(
-            session_url=params["session_url"],
-            get_session_id=params.get("get_session_id"),
-            headers=params.get("headers"),
-            timeout=params.get("timeout", 5.0),
-        )
+        # Initialize cleanup context and create streamable HTTP client
         self._cleanup_context = AsyncExitStack()
-        self.session = await self._cleanup_context.aenter(
-            ClientSession(
-                http_read_stream,
-                http_write_stream,
-                timeout_seconds=self.client_session_timeout_seconds,
+        http_read_stream, http_write_stream = await self._cleanup_context.enter_async_context(
+            streamablehttp_client(
+                session_url=params["session_url"],
+                get_session_id=params.get("get_session_id"),
+                headers=params.get("headers"),
+                timeout=params.get("timeout", 5.0),
             )
         )
+        
+        # Create and enter the ClientSession context
+        client_session = ClientSession(
+            http_read_stream,
+            http_write_stream,
+            read_timeout_seconds=timedelta(seconds=self.client_session_timeout_seconds) if self.client_session_timeout_seconds else None,
+        )
+        self.session = await self._cleanup_context.enter_async_context(client_session)
         await self.session.initialize()
 
     async def cleanup(self):
