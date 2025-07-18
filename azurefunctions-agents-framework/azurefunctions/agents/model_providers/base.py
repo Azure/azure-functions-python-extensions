@@ -40,7 +40,6 @@ class BaseLLMProvider(abc.ABC):
         Returns:
             Dictionary containing the response message and metadata
         """
-        pass
 
     async def stream_completion(
         self,
@@ -69,4 +68,3 @@ class BaseLLMProvider(abc.ABC):
 
     async def initialize(self):
         """Initialize the provider (optional)."""
-        pass

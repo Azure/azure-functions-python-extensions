@@ -53,7 +53,7 @@ This sample demonstrates the **CONDITIONAL handoff pattern** where agents use AI
 
 ### Technical Support Agent
 
-- **Role**: Technical issue resolution specialist  
+- **Role**: Technical issue resolution specialist
 - **Capabilities**: Troubleshooting, bug fixes, login help, performance issues
 - **Triggers**: Keywords like "error", "bug", "not working", "login", "slow"
 
@@ -97,7 +97,7 @@ def get_customer_context(customer_id: str) -> Dict[str, Any]:
 ### Multi-Factor Routing
 
 - **Content Analysis**: Keywords and natural language understanding
-- **Customer Profile**: Account type, history, satisfaction scores  
+- **Customer Profile**: Account type, history, satisfaction scores
 - **Business Rules**: Escalation triggers, priority handling
 - **AI Decision Making**: Best-match agent selection
 
@@ -118,7 +118,7 @@ POST /api/agents/customer_service/chat
 
 # Chat with specific specialists directly
 POST /api/agents/technical_support/chat
-POST /api/agents/billing_support/chat  
+POST /api/agents/billing_support/chat
 POST /api/agents/sales_support/chat
 POST /api/agents/escalation_support/chat
 
@@ -171,7 +171,7 @@ func start
 curl -X POST http://localhost:7071/api/customer-service-demo \
   -H "Content-Type: application/json" \
   -d '{
-    "message": "I am having login errors and the app keeps crashing", 
+    "message": "I am having login errors and the app keeps crashing",
     "customer_id": "customer_123"
   }'
 ```
@@ -185,7 +185,7 @@ curl -X POST http://localhost:7071/api/customer-service-demo \
   -H "Content-Type: application/json" \
   -d '{
     "message": "I need help with my invoice and want to cancel my subscription",
-    "customer_id": "customer_456"  
+    "customer_id": "customer_456"
   }'
 ```
 
@@ -225,7 +225,7 @@ curl -X POST http://localhost:7071/api/agents/technical_support/chat \
   -H "Content-Type: application/json" \
   -d '{"message": "Help me troubleshoot my login issue"}'
 
-# Direct billing support  
+# Direct billing support
 curl -X POST http://localhost:7071/api/agents/billing_support/chat \
   -H "Content-Type: application/json" \
   -d '{"message": "I need my latest invoice"}'
@@ -259,7 +259,7 @@ The system analyzes requests using multiple factors:
 
 1. **Keyword Scoring**: Counts category-specific keywords
 2. **Customer History**: Previous issues and patterns
-3. **Account Priority**: Premium vs. basic customers  
+3. **Account Priority**: Premium vs. basic customers
 4. **Satisfaction Tracking**: Low scores trigger escalation
 5. **Urgency Detection**: Critical/urgent language
 
@@ -320,7 +320,7 @@ The framework can be enhanced with more sophisticated AI routing:
 routing_prompt = """
 Analyze this customer request and determine the best agent:
 - Technical Support: for technical issues
-- Billing Support: for billing questions  
+- Billing Support: for billing questions
 - Sales Support: for product inquiries
 - Escalation Support: for complex issues
 
@@ -378,7 +378,7 @@ Test individual routing functions:
 request_type = analyze_request_type("My app is crashing")
 assert request_type == "technical"
 
-# Test escalation logic  
+# Test escalation logic
 should_escalate = needs_escalation({"message": "I want to speak to a manager"})
 assert should_escalate == True
 ```

@@ -22,14 +22,14 @@ import asyncio
 import json
 import logging
 import os
+from typing import Any, Dict
+
 import azure.functions as func
-from typing import Dict, Any
 
 from azurefunctions.agents import Agent, AgentFunctionApp
-from azurefunctions.agents.handoff import (
-    HandoffConfig, HandoffTarget, HandoffMode, ControlReturn
-)
+from azurefunctions.agents.handoff import HandoffConfig, HandoffMode, HandoffTarget
 from azurefunctions.agents.types import LLMConfig, LLMProvider
+
 
 # Mock weather API
 async def get_weather(location: str) -> Dict[str, Any]:
@@ -42,39 +42,43 @@ async def get_weather(location: str) -> Dict[str, Any]:
         "condition": "partly cloudy",
         "humidity": 65,
         "wind_speed": 10,
-        "description": f"It's currently 22°C (72°F) and partly cloudy in {location}"
+        "description": f"It's currently 22°C (72°F) and partly cloudy in {location}",
     }
     logging.info(f"Weather data for {location}: {weather_data}")
     return weather_data
 
-async def convert_temperature(temperature: float, from_unit: str, to_unit: str) -> Dict[str, Any]:
+
+async def convert_temperature(
+    temperature: float, from_unit: str, to_unit: str
+) -> Dict[str, Any]:
     """Convert temperature between Celsius and Fahrenheit."""
     if from_unit.lower() == "celsius" and to_unit.lower() == "fahrenheit":
-        converted = (temperature * 9/5) + 32
+        converted = (temperature * 9 / 5) + 32
     elif from_unit.lower() == "fahrenheit" and to_unit.lower() == "celsius":
-        converted = (temperature - 32) * 5/9
+        converted = (temperature - 32) * 5 / 9
     else:
         converted = temperature
-    
+
     result = {
         "original_temperature": temperature,
         "original_unit": from_unit,
         "converted_temperature": round(converted, 1),
         "converted_unit": to_unit,
-        "conversion": f"{temperature}°{from_unit[0].upper()} = {round(converted, 1)}°{to_unit[0].upper()}"
+        "conversion": f"{temperature}°{from_unit[0].upper()} = {round(converted, 1)}°{to_unit[0].upper()}",
     }
     logging.info(f"Temperature conversion: {result}")
     return result
+
 
 async def get_weather_advice(weather_data: Dict[str, Any]) -> Dict[str, Any]:
     """Provide weather-based advice and recommendations."""
     temp_c = weather_data.get("temperature_celsius", 20)
     condition = weather_data.get("condition", "").lower()
-    
+
     advice = []
     clothing = []
     activities = []
-    
+
     # Temperature-based advice
     if temp_c < 0:
         clothing.extend(["heavy winter coat", "gloves", "warm hat"])
@@ -96,7 +100,7 @@ async def get_weather_advice(weather_data: Dict[str, Any]) -> Dict[str, Any]:
         clothing.extend(["lightweight clothing", "sun hat", "sunglasses"])
         advice.append("Stay cool and hydrated!")
         activities.extend(["swimming", "water sports", "early morning walks"])
-    
+
     # Condition-based advice
     if "rain" in condition or "storm" in condition:
         clothing.append("umbrella or raincoat")
@@ -109,24 +113,20 @@ async def get_weather_advice(weather_data: Dict[str, Any]) -> Dict[str, Any]:
     elif "sunny" in condition:
         clothing.extend(["sunscreen", "sunglasses"])
         advice.append("Don't forget sunscreen!")
-    
+
     result = {
         "advice_summary": " ".join(advice),
         "recommended_clothing": clothing,
         "suggested_activities": activities,
-        "weather_context": {
-            "temperature": f"{temp_c}°C",
-            "condition": condition
-        }
+        "weather_context": {"temperature": f"{temp_c}°C", "condition": condition},
     }
     logging.info(f"Weather advice generated: {result}")
     return result
 
+
 # Configure LLM
 llm_config = LLMConfig(
-    provider=LLMProvider.OPENAI,
-    model_name="gpt-4",
-    api_key=os.getenv("OPENAI_API_KEY")
+    provider=LLMProvider.OPENAI, model_name="gpt-4", api_key=os.getenv("OPENAI_API_KEY")
 )
 
 # Weather Agent - Main coordinator in swarm
@@ -147,14 +147,14 @@ Use handoffs to provide comprehensive weather advice including temperature conve
         targets=[
             HandoffTarget(
                 agent_name="temperature_converter",
-                description="Convert temperatures between Celsius and Fahrenheit"
+                description="Convert temperatures between Celsius and Fahrenheit",
             ),
             HandoffTarget(
-                agent_name="weather_advisor", 
-                description="Get clothing and activity recommendations based on weather"
-            )
-        ]
-    )
+                agent_name="weather_advisor",
+                description="Get clothing and activity recommendations based on weather",
+            ),
+        ],
+    ),
 )
 
 # Temperature Converter Agent
@@ -171,14 +171,14 @@ You can hand back to the weather agent or advisor as needed in the swarm.
         targets=[
             HandoffTarget(
                 agent_name="weather",
-                description="Hand back to weather agent for coordination"
+                description="Hand back to weather agent for coordination",
             ),
             HandoffTarget(
                 agent_name="weather_advisor",
-                description="Hand off to advisor with converted temperature data"
-            )
-        ]
-    )
+                description="Hand off to advisor with converted temperature data",
+            ),
+        ],
+    ),
 )
 
 # Weather Advisor Agent
@@ -195,21 +195,22 @@ You can hand back to other agents in the swarm as needed.
         targets=[
             HandoffTarget(
                 agent_name="weather",
-                description="Hand back to weather agent for coordination" 
+                description="Hand back to weather agent for coordination",
             ),
             HandoffTarget(
                 agent_name="temperature_converter",
-                description="Hand off for temperature conversions"
-            )
-        ]
-    )
+                description="Hand off for temperature conversions",
+            ),
+        ],
+    ),
 )
 
 # Create the multi-agent function app with handoff system
 agent_app = AgentFunctionApp(
     agents=[weather_agent, temperature_converter, weather_advisor],
-    http_auth_level=func.AuthLevel.ANONYMOUS
+    http_auth_level=func.AuthLevel.ANONYMOUS,
 )
+
 
 # Manual function to demonstrate direct runner usage
 @agent_app.route(route="weather-swarm", methods=["POST"])
@@ -224,40 +225,39 @@ async def weather_swarm_demo(req: func.HttpRequest) -> func.HttpResponse:
             return func.HttpResponse(
                 json.dumps({"error": "Request body is required"}),
                 status_code=400,
-                mimetype="application/json"
+                mimetype="application/json",
             )
-        
+
         user_message = req_body.get("message", "")
         location = req_body.get("location", "Seattle")
-        
+
         logging.info(f"Swarm demo request: {user_message} for {location}")
-        
+
         # Get runners
         weather_runner = agent_app.runners["weather"]
-        temp_runner = agent_app.runners["temperature_converter"] 
-        advisor_runner = agent_app.runners["weather_advisor"]
-        
+        agent_app.runners["temperature_converter"]
+        agent_app.runners["weather_advisor"]
+
         # Start with weather agent
-        weather_response = await weather_runner.run({
-            "message": f"Get weather for {location}",
-            "location": location
-        })
-        
+        weather_response = await weather_runner.run(
+            {"message": f"Get weather for {location}", "location": location}
+        )
+
         # Demonstrate swarm handoffs
         conversation_id = f"swarm-demo-{asyncio.current_task().get_name()}"
-        
+
         # Weather agent hands off to temperature converter
         temp_response = await weather_runner.handoff_to(
             target_agent="temperature_converter",
             input_data={
                 "temperature": 22,
-                "from_unit": "celsius", 
-                "to_unit": "fahrenheit"
+                "from_unit": "celsius",
+                "to_unit": "fahrenheit",
             },
             conversation_id=conversation_id,
-            reason="User wants temperature in Fahrenheit"
+            reason="User wants temperature in Fahrenheit",
         )
-        
+
         # Weather agent hands off to advisor
         advice_response = await weather_runner.handoff_to(
             target_agent="weather_advisor",
@@ -266,35 +266,43 @@ async def weather_swarm_demo(req: func.HttpRequest) -> func.HttpResponse:
                     "location": location,
                     "temperature_celsius": 22,
                     "condition": "partly cloudy",
-                    "humidity": 65
+                    "humidity": 65,
                 }
             },
             conversation_id=conversation_id,
-            reason="User needs weather advice and recommendations"
+            reason="User needs weather advice and recommendations",
         )
-        
+
         # Combine results (in swarm pattern, results bubble up)
         result = {
             "pattern": "swarm",
             "location": location,
-            "weather_data": weather_response.response if weather_response and weather_response.response else {},
-            "temperature_conversion": temp_response.response if temp_response and temp_response.response else {},
-            "weather_advice": advice_response.response if advice_response and advice_response.response else {},
+            "weather_data": (
+                weather_response.response
+                if weather_response and weather_response.response
+                else {}
+            ),
+            "temperature_conversion": (
+                temp_response.response
+                if temp_response and temp_response.response
+                else {}
+            ),
+            "weather_advice": (
+                advice_response.response
+                if advice_response and advice_response.response
+                else {}
+            ),
             "handoff_path": ["weather", "temperature_converter", "weather_advisor"],
             "conversation_id": conversation_id,
-            "summary": f"Complete weather analysis for {location} using swarm collaboration"
+            "summary": f"Complete weather analysis for {location} using swarm collaboration",
         }
-        
+
         return func.HttpResponse(
-            json.dumps(result, indent=2),
-            status_code=200,
-            mimetype="application/json"
+            json.dumps(result, indent=2), status_code=200, mimetype="application/json"
         )
-        
+
     except Exception as e:
         logging.error(f"Error in weather swarm demo: {str(e)}")
         return func.HttpResponse(
-            json.dumps({"error": str(e)}),
-            status_code=500,
-            mimetype="application/json"
+            json.dumps({"error": str(e)}), status_code=500, mimetype="application/json"
         )

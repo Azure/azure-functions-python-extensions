@@ -9,22 +9,18 @@ Provides a unified MCPServer class with configurable communication modes.
 
 from __future__ import annotations
 
-import abc
-import asyncio
 import logging
 from contextlib import AbstractAsyncContextManager, AsyncExitStack
 from datetime import timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional, Union
 
-from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
 from mcp import ClientSession, StdioServerParameters
 from mcp import Tool as MCPTool
 from mcp import stdio_client
 from mcp.client.sse import sse_client
 from mcp.client.streamable_http import GetSessionIdCallback, streamablehttp_client
-from mcp.shared.message import SessionMessage
-from mcp.types import CallToolResult, InitializeResult
+from mcp.types import CallToolResult
 from typing_extensions import NotRequired, TypedDict
 
 from ..types import MCPServerMode
@@ -36,13 +32,9 @@ logger = logging.getLogger(__name__)
 class AgentError(Exception):
     """Base exception for agent-related errors."""
 
-    pass
-
 
 class UserError(AgentError):
     """Error raised due to user configuration or input issues."""
-
-    pass
 
 
 # Parameter types for different MCP server modes
@@ -220,15 +212,20 @@ class MCPServer:
 
         # Initialize cleanup context and create stdio client
         self._cleanup_context = AsyncExitStack()
-        stdio_read_stream, stdio_write_stream = await self._cleanup_context.enter_async_context(
-            stdio_client(stdio_params)
-        )
-        
+        (
+            stdio_read_stream,
+            stdio_write_stream,
+        ) = await self._cleanup_context.enter_async_context(stdio_client(stdio_params))
+
         # Create and enter the ClientSession context
         client_session = ClientSession(
             stdio_read_stream,
             stdio_write_stream,
-            read_timeout_seconds=timedelta(seconds=self.client_session_timeout_seconds) if self.client_session_timeout_seconds else None,
+            read_timeout_seconds=(
+                timedelta(seconds=self.client_session_timeout_seconds)
+                if self.client_session_timeout_seconds
+                else None
+            ),
         )
         self.session = await self._cleanup_context.enter_async_context(client_session)
         await self.session.initialize()
@@ -241,7 +238,10 @@ class MCPServer:
 
         # Initialize cleanup context and create SSE client
         self._cleanup_context = AsyncExitStack()
-        sse_read_stream, sse_write_stream = await self._cleanup_context.enter_async_context(
+        (
+            sse_read_stream,
+            sse_write_stream,
+        ) = await self._cleanup_context.enter_async_context(
             sse_client(
                 url=params["url"],
                 headers=params.get("headers"),
@@ -249,12 +249,16 @@ class MCPServer:
                 sse_read_timeout=params.get("sse_read_timeout", 300.0),
             )
         )
-        
+
         # Create and enter the ClientSession context
         client_session = ClientSession(
             sse_read_stream,
             sse_write_stream,
-            read_timeout_seconds=timedelta(seconds=self.client_session_timeout_seconds) if self.client_session_timeout_seconds else None,
+            read_timeout_seconds=(
+                timedelta(seconds=self.client_session_timeout_seconds)
+                if self.client_session_timeout_seconds
+                else None
+            ),
         )
         self.session = await self._cleanup_context.enter_async_context(client_session)
         await self.session.initialize()
@@ -269,7 +273,10 @@ class MCPServer:
 
         # Initialize cleanup context and create streamable HTTP client
         self._cleanup_context = AsyncExitStack()
-        http_read_stream, http_write_stream = await self._cleanup_context.enter_async_context(
+        (
+            http_read_stream,
+            http_write_stream,
+        ) = await self._cleanup_context.enter_async_context(
             streamablehttp_client(
                 session_url=params["session_url"],
                 get_session_id=params.get("get_session_id"),
@@ -277,12 +284,16 @@ class MCPServer:
                 timeout=params.get("timeout", 5.0),
             )
         )
-        
+
         # Create and enter the ClientSession context
         client_session = ClientSession(
             http_read_stream,
             http_write_stream,
-            read_timeout_seconds=timedelta(seconds=self.client_session_timeout_seconds) if self.client_session_timeout_seconds else None,
+            read_timeout_seconds=(
+                timedelta(seconds=self.client_session_timeout_seconds)
+                if self.client_session_timeout_seconds
+                else None
+            ),
         )
         self.session = await self._cleanup_context.enter_async_context(client_session)
         await self.session.initialize()

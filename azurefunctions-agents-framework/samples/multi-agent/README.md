@@ -5,7 +5,7 @@ A comprehensive Azure Functions application demonstrating multi-agent collaborat
 ## Features
 
 - **Specialized Agents**: Flight search, hotel booking, and budget planning agents
-- **Agent Collaboration**: Coordinated workflows between multiple agents  
+- **Agent Collaboration**: Coordinated workflows between multiple agents
 - **Real-time Data**: Mock travel data with realistic pricing and availability
 - **Budget Analysis**: Comprehensive cost breakdowns and money-saving tips
 - **RESTful API**: Clean endpoints for each agent and coordination
@@ -49,13 +49,13 @@ A comprehensive Azure Functions application demonstrating multi-agent collaborat
    ```
 
 2. **Configure Environment**:
-   
+
 ```bash
    cp local.settings.json.template local.settings.json
    ```
-  
+
    Edit `local.settings.json` and add your OpenAI API key:
-   
+
 ```json
    {
      "Values": {
@@ -65,7 +65,7 @@ A comprehensive Azure Functions application demonstrating multi-agent collaborat
    ```
 
 3. **Run Locally**:
-   
+
    ```bash
 func start
    ```
@@ -113,7 +113,7 @@ curl -X POST http://localhost:7071/api/plan-trip \
   -H "Content-Type: application/json" \
   -d '{
     "origin": "Seattle",
-    "destination": "Tokyo", 
+    "destination": "Tokyo",
     "travel_date": "2024-03-15",
     "return_date": "2024-03-18",
     "budget": 2000
@@ -170,7 +170,7 @@ Agent: *Calculates comprehensive budget breakdown with tips for saving money*
 Here's how the agents work together for trip planning:
 
 1. **Flight Search**: Use FlightAgent to find and compare flights
-2. **Hotel Search**: Use HotelAgent to find accommodation options  
+2. **Hotel Search**: Use HotelAgent to find accommodation options
 3. **Budget Planning**: Use BudgetAgent to calculate total costs
 4. **Coordination**: Use the plan-trip endpoint for guided workflow
 
@@ -178,7 +178,7 @@ Here's how the agents work together for trip planning:
 
 ### Agent Endpoints
 - `POST /api/FlightAgent/chat` - Chat with flight search agent
-- `POST /api/HotelAgent/chat` - Chat with hotel search agent  
+- `POST /api/HotelAgent/chat` - Chat with hotel search agent
 - `POST /api/BudgetAgent/chat` - Chat with budget planning agent
 - `GET /api/agents` - List all available agents
 
@@ -194,7 +194,7 @@ Environment variables you can customize:
 {
   "LLM_MODEL_NAME": "gpt-4o-mini",
   "LLM_TEMPERATURE": "0.7",
-  "LLM_MAX_TOKENS": "1500", 
+  "LLM_MAX_TOKENS": "1500",
   "OPENAI_API_KEY": "your-key"
 }
 ```
@@ -246,7 +246,7 @@ app = AgentFunctionApp(agents=[flight_agent, hotel_agent, budget_agent, restaura
    ```
 
 2. **Configure App Settings**:
-   
+
 ```bash
    az functionapp config appsettings set \
      --name myTravelPlannerApp \
@@ -255,7 +255,7 @@ app = AgentFunctionApp(agents=[flight_agent, hotel_agent, budget_agent, restaura
    ```
 
 3. **Deploy**:
-   
+
    ```bash
 func azure functionapp publish myTravelPlannerApp
    ```

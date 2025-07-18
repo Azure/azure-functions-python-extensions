@@ -123,7 +123,7 @@ All standard agent deployments (single and multi-agent) use the same consistent 
 
 ```bash
 POST /api/agents/{agent_name}/chat    # Chat with any agent
-GET  /api/agents/{agent_name}/info    # Get agent information  
+GET  /api/agents/{agent_name}/info    # Get agent information
 GET  /api/agents                      # List all available agents
 GET  /api/health                      # Health check
 ```
@@ -269,7 +269,7 @@ The Azure Functions Agent Framework follows a clean, modular architecture that s
 #### **Layered Separation of Concerns**
 
 - **Application Layer**: HTTP handling, routing, and deployment patterns
-- **Execution Layer**: Framework-agnostic agent execution and handoff management  
+- **Execution Layer**: Framework-agnostic agent execution and handoff management
 - **Agent Layer**: AI agent logic and specialized behaviors
 - **Core Framework**: Reusable components for tool management and workflow control
 - **Integration Layer**: External service connections and protocol implementations
@@ -303,7 +303,7 @@ app = AgentFunctionApp(
     mode=AgentMode.AZURE_FUNCTION_AGENT
 )
 
-# Multi-agent deployment  
+# Multi-agent deployment
 app = AgentFunctionApp(
     agents={
         "FlightAgent": flight_agent,
@@ -533,7 +533,7 @@ weather_agent = Agent(
 )
 
 temp_agent = Agent(
-    name="temperature_converter", 
+    name="temperature_converter",
     instructions="You convert temperatures between units",
     tools=[convert_temperature],
     handoff_config=HandoffConfig(
@@ -586,7 +586,7 @@ temp_runner = app.runners["temperature_converter"]
 async def handle_request():
     # Weather agent processes initial request
     weather_response = await weather_runner.run("What's the weather in Seattle?")
-    
+
     # Hand off to temperature converter
     temp_response = await weather_runner.handoff_to(
         target_agent="temperature_converter",
@@ -594,7 +594,7 @@ async def handle_request():
         conversation_id="user-session-123",
         reason="User requested temperature conversion"
     )
-    
+
     return temp_response
 ```
 
@@ -607,7 +607,7 @@ from azurefunctions.agents.handoff import HandoffConfig, HandoffTarget, HandoffM
 
 def needs_translation(request_data):
     """Check if the request needs translation."""
-    return any(keyword in request_data.get('message', '').lower() 
+    return any(keyword in request_data.get('message', '').lower()
               for keyword in ['translate', 'español', 'français'])
 
 agent = Agent(
@@ -695,7 +695,7 @@ POST /api/agents/travel_coordinator/chat
 Our samples include complete handoff implementations:
 
 - **[Weather Advisory System](./samples/handoff-swarm/)** - Swarm pattern with peer-to-peer collaboration
-- **[Travel Coordinator](./samples/handoff-coordinator/)** - Coordinator pattern with centralized orchestration  
+- **[Travel Coordinator](./samples/handoff-coordinator/)** - Coordinator pattern with centralized orchestration
 - **[Customer Service Hub](./samples/handoff-conditional/)** - Conditional routing with AI-powered agent selection
 
 These samples demonstrate production-ready handoff patterns with complete Azure Functions deployment configurations.
@@ -843,7 +843,7 @@ mcp_server = MCPServer(
 
 # Add to agent
 code_agent = Agent(
-    name="CodeExecutionAgent", 
+    name="CodeExecutionAgent",
     instructions="You are a code execution agent that can run Python code to perform tasks.",
     mcp_servers=[mcp_server],
     llm_config=llm_config,
@@ -879,7 +879,7 @@ from azurefunctions.agents import MCPServer, MCPServerMode
 from azurefunctions.agents import MCPServerSseParams
 
 mcp_server = MCPServer(
-    name="MySSEServer", 
+    name="MySSEServer",
     mode=MCPServerMode.SSE,
     params=MCPServerSseParams(
         url="http://localhost:8080/sse",
@@ -1032,7 +1032,7 @@ cd samples/single-agent && func start
 A collaborative multi-agent system featuring:
 
 - **FlightAgent**: Flight search and booking assistance
-- **HotelAgent**: Hotel recommendations and reservations  
+- **HotelAgent**: Hotel recommendations and reservations
 - **BudgetAgent**: Cost analysis and budget optimization
 - **Inter-Agent Communication**: Agents can collaborate on complex requests
 - **Scalable Architecture**: Each agent handles specialized tasks
@@ -1133,7 +1133,7 @@ cp local.settings.json.template local.settings.json
 # Add your API keys, then:
 func start
 
-# Test multi-agent system  
+# Test multi-agent system
 cd samples/multi-agent
 cp local.settings.json.template local.settings.json
 # Add your API keys, then:

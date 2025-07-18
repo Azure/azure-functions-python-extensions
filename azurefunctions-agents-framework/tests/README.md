@@ -185,7 +185,7 @@ class TestAgent:
             model_name="gpt-4",
             api_key="test-key"
         )
-    
+
     @pytest.fixture
     def sample_agent(self, mock_llm_config):
         return Agent(
@@ -193,24 +193,24 @@ class TestAgent:
             instructions="Test agent instructions",
             llm_config=mock_llm_config
         )
-    
+
     @pytest.mark.asyncio
     async def test_agent_initialization(self, sample_agent):
         # Arrange - Done in fixture
-        
+
         # Act & Assert
         assert sample_agent.name == "TestAgent"
         assert sample_agent.instructions == "Test agent instructions"
         assert sample_agent.llm_config.provider == LLMProvider.OPENAI
-    
+
     @pytest.mark.asyncio
     async def test_agent_chat_with_mocked_response(self, sample_agent, mock_llm_response):
         # Arrange
         message = "Hello, agent!"
-        
+
         # Act
         response = await sample_agent.chat(message)
-        
+
         # Assert
         assert response.success
         assert "Hello" in response.content

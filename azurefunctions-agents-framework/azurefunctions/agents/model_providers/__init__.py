@@ -10,28 +10,28 @@ __all__ = ["LLMClient"]
 
 # Optional providers - only import if dependencies are available
 try:
-    from .openai_provider import OpenAIProvider
+    pass
 
     __all__.append("OpenAIProvider")
 except ImportError:
     pass
 
 try:
-    from .azure_openai_provider import AzureOpenAIProvider
+    pass
 
     __all__.append("AzureOpenAIProvider")
 except ImportError:
     pass
 
 try:
-    from .anthropic_provider import AnthropicProvider
+    pass
 
     __all__.append("AnthropicProvider")
 except ImportError:
     pass
 
 try:
-    from .google_provider import GoogleProvider
+    pass
 
     __all__.append("GoogleProvider")
 except ImportError:

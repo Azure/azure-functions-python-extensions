@@ -71,7 +71,7 @@ Create a `.env` file in any sample directory:
 ```bash
 # Required: Choose your LLM provider
 OPENAI_API_KEY=your-openai-api-key
-ANTHROPIC_API_KEY=your-anthropic-api-key  
+ANTHROPIC_API_KEY=your-anthropic-api-key
 GOOGLE_API_KEY=your-google-api-key
 
 # Optional: Azure services
@@ -111,7 +111,7 @@ OPENWEATHER_API_KEY=your-openweather-api-key
      -H "Content-Type: application/json" \
      -d '{"message": "What is the weather in Seattle?"}'
 
-   # Multi-agent  
+   # Multi-agent
    curl -X POST http://localhost:7071/api/agents/WeatherAgent/chat \
      -H "Content-Type: application/json" \
      -d '{"message": "Plan a trip to Tokyo next week"}'
@@ -206,11 +206,11 @@ OPENWEATHER_API_KEY=your-openweather-api-key
 def my_custom_tool(param1: str, param2: int = 10) -> str:
     """
     Description of what your tool does.
-    
+
     Args:
         param1: Description of parameter
         param2: Optional parameter with default
-        
+
     Returns:
         Description of return value
     """
@@ -239,7 +239,7 @@ llm_config = LLMConfig(
 # Anthropic Claude
 llm_config = LLMConfig(
     provider=LLMProvider.ANTHROPIC,
-    model_name="claude-3-sonnet-20240229", 
+    model_name="claude-3-sonnet-20240229",
     api_key=os.getenv("ANTHROPIC_API_KEY")
 )
 

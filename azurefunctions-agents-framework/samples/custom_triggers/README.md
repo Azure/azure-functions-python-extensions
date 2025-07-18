@@ -48,7 +48,7 @@ The `Runner` class is your interface for agent execution:
 response = await runner.run("Hello, agent!")
 response = await runner.run({"message": "Hello", "context": {...}})
 
-# Sync execution  
+# Sync execution
 response = runner.run_sync("Hello, agent!")
 
 # Utilities
@@ -67,10 +67,10 @@ async def custom_chat(req: HttpRequest) -> HttpResponse:
         # Custom preprocessing
         request_data = req.get_json()
         request_data["context"] = {"ip": req.headers.get("X-Forwarded-For")}
-        
+
         # Execute agent
         response = await runner.run(request_data)
-        
+
         # Custom response formatting
         return runner.to_http_response({
             "agent": runner.agent_name,
@@ -79,7 +79,7 @@ async def custom_chat(req: HttpRequest) -> HttpResponse:
         })
     except Exception as e:
         return runner.to_http_response(
-            {"error": str(e)}, 
+            {"error": str(e)},
             status_code=500
         )
 ```
@@ -88,7 +88,7 @@ async def custom_chat(req: HttpRequest) -> HttpResponse:
 
 ```python
 @app.service_bus_queue_trigger(
-    arg_name="msg", 
+    arg_name="msg",
     queue_name="agent-requests",
     connection="ServiceBusConnection"
 )
@@ -96,7 +96,7 @@ async def process_queue_message(msg: func.ServiceBusMessage):
     try:
         message_data = json.loads(msg.get_body().decode('utf-8'))
         response = await runner.run(message_data)
-        
+
         # Process response (send to another queue, database, etc.)
         logger.info(f"Processed: {response['response']}")
     except Exception as e:
@@ -107,13 +107,13 @@ async def process_queue_message(msg: func.ServiceBusMessage):
 
 ```python
 @app.timer_trigger(
-    arg_name="timer", 
+    arg_name="timer",
     schedule="0 0 8 * * *"  # Daily at 8 AM
 )
 async def daily_summary(timer: func.TimerRequest):
     request = "Generate a daily summary report"
     response = await runner.run(request)
-    
+
     # Send summary via email, save to storage, etc.
     await send_summary_email(response["response"])
 ```
@@ -128,10 +128,10 @@ async def daily_summary(timer: func.TimerRequest):
 )
 async def process_document(blob: func.InputStream):
     content = blob.read().decode('utf-8')
-    
+
     request = f"Analyze this document: {content}"
     response = await runner.run(request)
-    
+
     # Save analysis results
     await save_analysis(blob.name, response["response"])
 ```
@@ -217,7 +217,7 @@ async def weather_endpoint(req: HttpRequest):
     response = await runner.run(req.get_json())
     return runner.to_http_response(response)
 
-@app.route(route="travel/chat", methods=["POST"])  
+@app.route(route="travel/chat", methods=["POST"])
 async def travel_endpoint(req: HttpRequest):
     runner = app.get_runner("travel-agent")
     response = await runner.run(req.get_json())
@@ -233,22 +233,22 @@ async def travel_endpoint(req: HttpRequest):
 async def safe_chat(req: HttpRequest) -> HttpResponse:
     try:
         request_data = req.get_json() or {}
-        
+
         # Validate request
         if not request_data.get("message"):
             return runner.to_http_response(
-                {"error": "Message is required"}, 
+                {"error": "Message is required"},
                 status_code=400
             )
-        
+
         # Process request
         response = await runner.run(request_data)
-        
+
         return runner.to_http_response({
             "success": True,
             "response": response["response"]
         })
-        
+
     except ValueError as e:
         return runner.to_http_response(
             {"error": "Invalid request", "message": str(e)},
@@ -288,7 +288,7 @@ async def test_custom_chat_endpoint():
     # Mock the runner
     mock_runner = AsyncMock()
     mock_runner.run.return_value = {"response": "Test response"}
-    
+
     # Test your endpoint logic
     # ...
 ```

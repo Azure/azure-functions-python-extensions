@@ -112,9 +112,7 @@ MCPServer = Any  # Will be properly typed when importing from mcp module
 
 # A2A Protocol types (using SDK types as aliases)
 try:
-    from a2a.types import AgentCapabilities
     from a2a.types import AgentCard as SDKAgentCard
-    from a2a.types import AgentProvider, AgentSkill
     from a2a.types import Task as SDKTask
     from a2a.types import TaskState as SDKTaskState
 
@@ -159,7 +157,6 @@ class Request(abc.ABC):
     @abc.abstractmethod
     def to_dict(self) -> Dict[str, Any]:
         """Convert request to dictionary format for agent processing."""
-        pass
 
 
 class Response(abc.ABC):
@@ -168,7 +165,6 @@ class Response(abc.ABC):
     @abc.abstractmethod
     def to_dict(self) -> Dict[str, Any]:
         """Convert response to dictionary format."""
-        pass
 
 
 @dataclass
@@ -273,13 +269,3 @@ class MessageRequest:
 
 
 # Import handoff types for convenience
-from .handoff import (
-    HandoffMode,
-    HandoffStrategy,
-    ControlReturn,
-    HandoffTarget,
-    HandoffConfig,
-    HandoffRequest,
-    HandoffResult,
-    AgentResponse as HandoffAgentResponse
-)

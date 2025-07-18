@@ -3,12 +3,10 @@
 
 """OpenAI provider implementation."""
 
-import asyncio
 import logging
 import os
 from typing import Any, Dict, List, Optional
 
-import openai
 from openai import AsyncOpenAI
 
 from ..types import ChatMessage, LLMConfig

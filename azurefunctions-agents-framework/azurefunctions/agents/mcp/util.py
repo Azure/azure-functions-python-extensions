@@ -6,7 +6,6 @@
 Based on the OpenAI agents SDK MCP utilities but adapted for our framework.
 """
 
-import functools
 import json
 import logging
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
@@ -14,7 +13,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 from .result_formatter import MCPResultFormatter
 
 if TYPE_CHECKING:
-    from mcp.types import Tool as MCPTool
+    from mcp.types import Tool as MCP_Tool
 
     from .server import MCPServer
 
@@ -25,19 +24,13 @@ logger = logging.getLogger(__name__)
 class AgentError(Exception):
     """Base exception for agent-related errors."""
 
-    pass
-
 
 class ModelBehaviorError(AgentError):
     """Error raised due to unexpected model behavior."""
 
-    pass
-
 
 class UserError(AgentError):
     """Error raised due to user configuration or input issues."""
-
-    pass
 
 
 class MCPTool:
@@ -48,7 +41,7 @@ class MCPTool:
         name: str,
         description: str,
         server: "MCPServer",
-        mcp_tool: "MCPTool",
+        mcp_tool: "MCP_Tool",
         parameters_schema: Optional[Dict[str, Any]] = None,
     ):
         self.name = name

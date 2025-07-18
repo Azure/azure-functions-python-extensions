@@ -3,13 +3,11 @@
 
 """MCP (Model Context Protocol) tools manager."""
 
-import asyncio
 import logging
 import re
 from typing import Any, Dict, List, Optional
 
 from mcp import Tool as MCPTool
-from mcp.types import CallToolResult
 
 from ..mcp.result_formatter import MCPResultFormatter
 from ..types import MCPConfig

@@ -14,3 +14,6 @@ isort
 black
 pytest
 pytest-asyncio
+autoflake
+flake8
+pre-commit

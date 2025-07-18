@@ -4,14 +4,11 @@
 """A2A Client - for calling other A2A compliant agents."""
 
 import asyncio
-import json
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional
 
 import httpx
-
-from ..types import TaskState
 
 
 class A2AClient:

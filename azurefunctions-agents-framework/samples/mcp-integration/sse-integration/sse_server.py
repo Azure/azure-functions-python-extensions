@@ -36,11 +36,11 @@ mcp = FastMCP("Demo SSE Server")
 @mcp.tool()
 def add(a: int, b: int) -> int:
     """Add two numbers together.
-    
+
     Args:
         a: First number
         b: Second number
-        
+
     Returns:
         The sum of a and b
     """
@@ -51,11 +51,11 @@ def add(a: int, b: int) -> int:
 @mcp.tool()
 def multiply(a: int, b: int) -> int:
     """Multiply two numbers together.
-    
+
     Args:
         a: First number
         b: Second number
-        
+
     Returns:
         The product of a and b
     """
@@ -67,7 +67,7 @@ def multiply(a: int, b: int) -> int:
 @mcp.tool()
 def get_secret_word() -> str:
     """Get a random secret word from a predefined list.
-    
+
     Returns:
         A random secret word
     """
@@ -80,25 +80,25 @@ def get_secret_word() -> str:
 @mcp.tool()
 def get_current_weather(city: str) -> str:
     """Get current weather information for a city.
-    
+
     Args:
         city: Name of the city to get weather for
-        
+
     Returns:
         Weather information as text
     """
     print(f"[server] get_current_weather({city})")
-    
+
     try:
         # Use wttr.in for weather data (free service, no API key required)
         endpoint = "https://wttr.in"
         response = requests.get(f"{endpoint}/{city}?format=3", timeout=10)
         response.raise_for_status()
-        
+
         weather_info = response.text.strip()
         print(f"[server] Weather for {city}: {weather_info}")
         return weather_info
-        
+
     except requests.RequestException as e:
         error_msg = f"Failed to get weather for {city}: {str(e)}"
         print(f"[server] Error: {error_msg}")
@@ -108,23 +108,23 @@ def get_current_weather(city: str) -> str:
 @mcp.tool()
 def calculate_factorial(n: int) -> int:
     """Calculate the factorial of a number.
-    
+
     Args:
         n: The number to calculate factorial for (must be non-negative)
-        
+
     Returns:
         The factorial of n
     """
     if n < 0:
         raise ValueError("Factorial is not defined for negative numbers")
-    
+
     if n == 0 or n == 1:
         result = 1
     else:
         result = 1
         for i in range(2, n + 1):
             result *= i
-    
+
     print(f"[server] calculate_factorial({n}) = {result}")
     return result
 
@@ -132,11 +132,12 @@ def calculate_factorial(n: int) -> int:
 @mcp.tool()
 def generate_uuid() -> str:
     """Generate a random UUID.
-    
+
     Returns:
         A random UUID string
     """
     import uuid
+
     new_uuid = str(uuid.uuid4())
     print(f"[server] generate_uuid() = {new_uuid}")
     return new_uuid
@@ -145,13 +146,13 @@ def generate_uuid() -> str:
 @mcp.tool()
 def get_system_info() -> Dict[str, Any]:
     """Get basic system information.
-    
+
     Returns:
         Dictionary containing system information
     """
-    import platform
     import datetime
-    
+    import platform
+
     info = {
         "platform": platform.system(),
         "platform_release": platform.release(),
@@ -161,7 +162,7 @@ def get_system_info() -> Dict[str, Any]:
         "python_version": platform.python_version(),
         "server_time": datetime.datetime.now().isoformat(),
     }
-    
+
     print(f"[server] get_system_info() = {info}")
     return info
 
@@ -170,7 +171,7 @@ if __name__ == "__main__":
     print("Starting SSE MCP Server...")
     print("Available tools:")
     print("  - add(a, b): Add two numbers")
-    print("  - multiply(a, b): Multiply two numbers") 
+    print("  - multiply(a, b): Multiply two numbers")
     print("  - get_secret_word(): Get a random secret word")
     print("  - get_current_weather(city): Get weather for a city")
     print("  - calculate_factorial(n): Calculate factorial of a number")
@@ -179,11 +180,13 @@ if __name__ == "__main__":
     print()
     print("Server will be available at: http://localhost:8000/sse")
     print("Press Ctrl+C to stop the server")
-    
+
     try:
         mcp.run(transport="sse", port=8000)
     except KeyboardInterrupt:
         print("\nServer stopped.")
     except Exception as e:
         print(f"Error starting server: {e}")
-        print("Make sure port 8000 is available and mcp package is installed correctly.")
+        print(
+            "Make sure port 8000 is available and mcp package is installed correctly."
+        )

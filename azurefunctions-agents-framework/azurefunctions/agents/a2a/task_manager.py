@@ -9,7 +9,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional
 
-from ..types import Task, TaskState
+from ..types import TaskState
 
 
 class A2ATask:

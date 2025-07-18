@@ -1,0 +1,83 @@
+# Pre-commit hooks configuration for Azure Functions Agent Framework
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+
+repos:
+  # Built-in pre-commit hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+        files: ^azurefunctions-agents-framework/
+      - id: end-of-file-fixer
+        files: ^azurefunctions-agents-framework/
+      - id: check-yaml
+        files: ^azurefunctions-agents-framework/
+      - id: check-added-large-files
+        files: ^azurefunctions-agents-framework/
+      - id: check-merge-conflict
+        files: ^azurefunctions-agents-framework/
+      - id: check-json
+        files: ^azurefunctions-agents-framework/
+      - id: check-toml
+        files: ^azurefunctions-agents-framework/
+
+  # autoflake - removes unused imports and variables
+  - repo: https://github.com/PyCQA/autoflake
+    rev: v2.2.1
+    hooks:
+      - id: autoflake
+        args:
+          - --remove-all-unused-imports
+          - --remove-unused-variables
+          - --remove-duplicate-keys
+          - --in-place
+          - --recursive
+        files: ^azurefunctions-agents-framework/
+        exclude: ^azurefunctions-agents-framework/(docs/|\.git/|\.venv/|venv/|__pycache__/|\.pytest_cache/|test_files_llm_created/|tests/|samples/)
+
+  # isort - sorts imports
+  - repo: https://github.com/PyCQA/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        args: ["--profile", "black", "--line-length", "88"]
+        files: ^azurefunctions-agents-framework/
+        exclude: ^azurefunctions-agents-framework/(docs/|\.git/|\.venv/|venv/|__pycache__/|\.pytest_cache/|test_files_llm_created/|tests/|samples/)
+
+  # black - code formatter
+  - repo: https://github.com/psf/black
+    rev: 23.12.1
+    hooks:
+      - id: black
+        language_version: python3
+        args: ["--line-length", "88"]
+        files: ^azurefunctions-agents-framework/
+        exclude: ^azurefunctions-agents-framework/(docs/|\.git/|\.venv/|venv/|__pycache__/|\.pytest_cache/|test_files_llm_created/|tests/|samples/)
+
+  # flake8 - linting (optional but recommended)
+  - repo: https://github.com/PyCQA/flake8
+    rev: 7.0.0
+    hooks:
+      - id: flake8
+        args:
+          - --max-line-length=88
+          - --extend-ignore=E203,W503,E501
+        files: ^azurefunctions-agents-framework/
+        exclude: ^azurefunctions-agents-framework/(docs/|\.git/|\.venv/|venv/|__pycache__/|\.pytest_cache/|test_files_llm_created/|tests/|samples/)
+
+  # # mypy - static type checking (optional but recommended)
+  # - repo: https://github.com/pre-commit/mirrors-mypy
+  #   rev: v1.8.0
+  #   hooks:
+  #     - id: mypy
+  #       args: [--ignore-missing-imports, --no-strict-optional]
+  #       files: ^azurefunctions-agents-framework/
+  #       exclude: ^azurefunctions-agents-framework/(docs/|\.git/|\.venv/|venv/|__pycache__/|\.pytest_cache/|test_files_llm_created/|tests/|samples/)
+  #       additional_dependencies:
+  #         - types-requests
+  #         - types-PyYAML
+
+# Configure pre-commit to run on all files when first installed
+default_stages: [pre-commit]
+fail_fast: false

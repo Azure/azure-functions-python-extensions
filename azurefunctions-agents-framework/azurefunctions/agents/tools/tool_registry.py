@@ -6,7 +6,7 @@
 import logging
 from typing import Any, Dict, List, Optional
 
-from ..types import MCPConfig, ToolDefinition, ToolFunction
+from ..types import MCPConfig, ToolFunction
 from .function_tools import FunctionToolManager
 from .mcp_tools import MCPToolManager
 
@@ -36,10 +36,10 @@ class ToolRegistry:
         self.mcp_manager = (
             MCPToolManager(mcp_config or MCPConfig()) if mcp_config else None
         )
-        
+
         # Storage for MCP tools registered directly by agents
         self._mcp_tools_registry: Dict[str, Dict[str, Any]] = {}
-        
+
         # Callback for executing MCP tools registered by agents
         self._mcp_tool_executor = mcp_tool_executor
 
@@ -89,9 +89,11 @@ class ToolRegistry:
             "parameters": getattr(tool, "inputSchema", {}).get("properties", {}),
             "required_params": getattr(tool, "inputSchema", {}).get("required", []),
         }
-        
+
         self._mcp_tools_registry[tool.name] = tool_info
-        self.logger.debug(f"Registered MCP tool '{tool.name}' from server '{server.name}'")
+        self.logger.debug(
+            f"Registered MCP tool '{tool.name}' from server '{server.name}'"
+        )
         return True
 
     # Unified tool interface
@@ -113,9 +115,12 @@ class ToolRegistry:
             if self._mcp_tool_executor:
                 return await self._mcp_tool_executor(tool_name, arguments)
             else:
-                return {"error": f"No executor available for MCP tool '{tool_name}'", "status": "error"}
-        
-        # Check MCP tools from manager 
+                return {
+                    "error": f"No executor available for MCP tool '{tool_name}'",
+                    "status": "error",
+                }
+
+        # Check MCP tools from manager
         if self.mcp_manager and tool_name in self.mcp_manager.available_tools:
             return await self.mcp_manager.execute_tool(tool_name, arguments)
 
@@ -137,7 +142,7 @@ class ToolRegistry:
         # Add MCP tools from manager (if available)
         if self.mcp_manager:
             tools.extend(self.mcp_manager.list_tools())
-        
+
         # Add MCP tools registered directly by agents
         tools.extend(list(self._mcp_tools_registry.values()))
 
@@ -168,8 +173,8 @@ class ToolRegistry:
                     },
                 },
             }
-        
-        # Check MCP tools from manager 
+
+        # Check MCP tools from manager
         if self.mcp_manager and tool_name in self.mcp_manager.available_tools:
             return self.mcp_manager.get_tool_schema(tool_name)
 
@@ -209,8 +214,8 @@ class ToolRegistry:
         """
         # Check MCP tools from manager or registered directly by agents
         if self.mcp_manager and (
-            tool_name in self.mcp_manager.available_tools or 
-            tool_name in self._mcp_tools_registry
+            tool_name in self.mcp_manager.available_tools
+            or tool_name in self._mcp_tools_registry
         ):
             return True
 

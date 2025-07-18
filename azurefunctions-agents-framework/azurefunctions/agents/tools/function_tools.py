@@ -189,7 +189,11 @@ class FunctionToolManager:
         # Add parameters if available
         if tool.parameters:
             # Check if parameters is already a complete JSON Schema object
-            if isinstance(tool.parameters, dict) and "type" in tool.parameters and "properties" in tool.parameters:
+            if (
+                isinstance(tool.parameters, dict)
+                and "type" in tool.parameters
+                and "properties" in tool.parameters
+            ):
                 # Parameters is already a complete JSON Schema - use it directly
                 schema["function"]["parameters"] = tool.parameters
             else:

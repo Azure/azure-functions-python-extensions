@@ -102,7 +102,7 @@ POST /api/agents/travel_coordinator/chat
 
 # Chat with individual specialists
 POST /api/agents/flight_agent/chat
-POST /api/agents/hotel_agent/chat  
+POST /api/agents/hotel_agent/chat
 POST /api/agents/weather_agent/chat
 POST /api/agents/restaurant_agent/chat
 
@@ -183,7 +183,7 @@ curl -X POST http://localhost:7071/api/travel-coordinator \
   -H "Content-Type: application/json" \
   -d '{
     "origin": "Seattle",
-    "destination": "Tokyo", 
+    "destination": "Tokyo",
     "departure_date": "2024-06-15",
     "return_date": "2024-06-22",
     "guests": 2
@@ -227,7 +227,7 @@ curl -X POST http://localhost:7071/api/travel-coordinator \
   "travel_summary": {
     "origin": "Seattle",
     "destination": "Tokyo",
-    "departure_date": "2024-06-15", 
+    "departure_date": "2024-06-15",
     "return_date": "2024-06-22",
     "guests": 2,
     "duration": "7 days"
@@ -330,18 +330,18 @@ coordinator.handoff_config.targets.append(
 # Coordinator with conditional handoffs
 async def custom_travel_workflow(coordinator_runner, travel_request):
     """Custom travel planning workflow with conditional logic."""
-    
+
     # Always get flights first
     flights = await coordinator_runner.handoff_to("flight_agent", flight_data)
-    
+
     # Only search hotels if flights are available
     if flights.success and flights.content.get("flights_found", 0) > 0:
         hotels = await coordinator_runner.handoff_to("hotel_agent", hotel_data)
-    
+
     # Weather is optional for domestic trips
     if travel_request.get("international", True):
         weather = await coordinator_runner.handoff_to("weather_agent", weather_data)
-    
+
     return consolidate_results(flights, hotels, weather)
 ```
 
@@ -355,10 +355,10 @@ def calculate_travel_budget(flights, hotels, duration, guests):
     hotel_cost = hotels.get("recommended_price", 0) * duration
     meal_budget = 75 * duration * guests  # Per person per day
     activities = 50 * duration * guests
-    
+
     return {
         "flights": flight_cost,
-        "accommodation": hotel_cost, 
+        "accommodation": hotel_cost,
         "meals": meal_budget,
         "activities": activities,
         "total": flight_cost + hotel_cost + meal_budget + activities,
@@ -409,7 +409,7 @@ async def robust_coordination():
     except Exception as e:
         flights = get_fallback_flight_data()
         logging.warning(f"Flight search failed, using fallback: {e}")
-    
+
     # Continue with other specialists even if one fails
     return create_partial_plan(flights, hotels, weather)
 ```
@@ -421,16 +421,16 @@ async def robust_coordination():
 def select_specialists(travel_request):
     """Dynamically select which specialists to use."""
     specialists = ["flight_agent"]  # Always need flights
-    
+
     if travel_request.get("need_accommodation"):
         specialists.append("hotel_agent")
-    
+
     if travel_request.get("international") or travel_request.get("check_weather"):
         specialists.append("weather_agent")
-        
+
     if travel_request.get("food_preferences"):
         specialists.append("restaurant_agent")
-        
+
     return specialists
 ```
 

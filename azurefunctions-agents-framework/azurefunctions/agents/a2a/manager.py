@@ -6,7 +6,6 @@
 import json
 import logging
 import os
-from typing import Any, Dict, Optional
 
 from azure.functions import AuthLevel, HttpRequest, HttpResponse
 

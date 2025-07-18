@@ -72,7 +72,7 @@ This sample demonstrates the **SWARM handoff pattern** where agents collaborate 
 # Chat with weather agent (main entry point)
 POST /api/agents/weather/chat
 
-# Chat with temperature converter directly  
+# Chat with temperature converter directly
 POST /api/agents/temperature_converter/chat
 
 # Chat with weather advisor directly
@@ -172,7 +172,7 @@ curl -X POST http://localhost:7071/api/weather-swarm \
 **Response Flow:**
 
 1. Weather agent gets London weather data
-2. Hands off to temperature converter for unit conversion  
+2. Hands off to temperature converter for unit conversion
 3. Hands off to weather advisor for clothing recommendations
 4. Results bubble up with comprehensive advice
 
@@ -196,7 +196,7 @@ curl -X POST http://localhost:7071/api/weather-swarm \
 ```json
 {
   "pattern": "swarm",
-  "location": "Seattle", 
+  "location": "Seattle",
   "weather_data": {
     "temperature_celsius": 22,
     "condition": "partly cloudy",
@@ -289,7 +289,7 @@ The swarm pattern is ideal for:
 ### Common Issues
 
 1. **Handoff loops**: Framework automatically detects and prevents infinite loops
-2. **Missing agents**: Handoffs are validated before execution  
+2. **Missing agents**: Handoffs are validated before execution
 3. **Context loss**: Use conversation IDs to maintain state across handoffs
 4. **API rate limits**: Configure appropriate delays and retries
 

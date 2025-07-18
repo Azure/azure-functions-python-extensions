@@ -91,7 +91,7 @@ Bot: *Uses get_current_weather tool, then provides weather conditions and clothi
 **Temperature Conversion:**
 
 ```text
-User: "Convert 25°C to Fahrenheit"  
+User: "Convert 25°C to Fahrenheit"
 Bot: *Uses convert_temperature tool and explains the conversion*
 ```
 
@@ -117,7 +117,7 @@ Environment variables you can customize:
 ```json
 {
   "LLM_MODEL_NAME": "gpt-4o-mini",
-  "LLM_TEMPERATURE": "0.7", 
+  "LLM_TEMPERATURE": "0.7",
   "LLM_MAX_TOKENS": "1500",
   "OPENAI_API_KEY": "your-key",
   "OPENWEATHER_API_KEY": "your-key"

@@ -4,18 +4,18 @@
     "AzureWebJobsStorage": "UseDevelopmentStorage=true",
     "FUNCTIONS_WORKER_RUNTIME": "python",
     "FUNCTIONS_WORKER_RUNTIME_VERSION": "3.11",
-    
+
     "_comment_llm": "LLM Configuration - Choose your provider",
     "LLM_MODEL_NAME": "gpt-4o-mini",
     "LLM_TEMPERATURE": "0.7",
     "LLM_MAX_TOKENS": "1500",
-    
+
     "_comment_openai": "OpenAI Configuration",
     "OPENAI_API_KEY": "your-openai-api-key-here",
-    
+
     "_comment_weather": "Weather API Configuration",
     "OPENWEATHER_API_KEY": "your-openweather-api-key-here",
-    
+
     "_comment_optional": "Optional: Other LLM providers",
     "ANTHROPIC_API_KEY": "",
     "GOOGLE_API_KEY": "",

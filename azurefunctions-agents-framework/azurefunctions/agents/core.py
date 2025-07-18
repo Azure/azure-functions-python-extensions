@@ -3,16 +3,14 @@
 
 """Core Azure Functions integration for the Agent Framework."""
 
-import asyncio
 import json
 import logging
-import os
 import traceback
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 
 if TYPE_CHECKING:
-    from .a2a.manager import A2AManager
+    pass
 
 from azure.functions import (
     AuthLevel,
@@ -24,24 +22,10 @@ from azure.functions import (
     TriggerApi,
 )
 
-from .agents import Agent, ReflectionAgent
+from .agents import Agent
 from .handoff import ControlFlowManager, HandoffEngine
-from .model_providers.client import LLMClient
 from .runner import Runner
-from .tools.tool_registry import ToolRegistry
-from .types import (
-    AgentMode,
-    ChatMessage,
-    ChatResponse,
-    LLMConfig,
-    LLMProvider,
-    MaybeAwaitable,
-    MCPConfig,
-    MCPServer,
-    Response,
-    ToolDefinition,
-    ToolFunction,
-)
+from .types import AgentMode, ChatResponse, Response
 
 
 class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
@@ -69,7 +53,7 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
 
     A2A Mode (A2A):
     - POST {agent_url} - JSON-RPC 2.0 endpoint (A2A spec compliance)
-    - GET /.well-known/agent.json - Agent Card discovery (A2A spec compliance) 
+    - GET /.well-known/agent.json - Agent Card discovery (A2A spec compliance)
     - GET /api/agents - List all available agents
     - GET /api/health - System health check
     """
@@ -133,16 +117,17 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
         self.control_flow_manager = ControlFlowManager()
         self.handoff_engine = HandoffEngine(self.control_flow_manager)
         self.handoff_engine.register_agents(self.agents)
-        
+
         # Set agent registry on all agents for handoff tools
         for agent in self.agents.values():
             agent.set_agent_registry(self.agents)
-        
+
         # Create runners for each agent with handoff engine
         self.runners: Dict[str, Runner] = {
-            agent.name: Runner(agent, self.handoff_engine) for agent in self.agents.values()
+            agent.name: Runner(agent, self.handoff_engine)
+            for agent in self.agents.values()
         }
-        
+
         # Register all runners with each other for handoff operations
         for runner_name, runner in self.runners.items():
             for other_name, other_runner in self.runners.items():
@@ -155,7 +140,7 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
             from .a2a.manager import A2AManager
 
             self.a2a_manager = A2AManager(self)
-        
+
         # Start control flow cleanup task
         self.control_flow_manager.start_cleanup_task()
 
@@ -181,9 +166,9 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
 
     def _register_a2a_endpoints(self):
         """Register A2A protocol endpoints for single-agent A2A mode.
-        
+
         Note: Current implementation provides HTTP endpoints for compatibility.
-        True A2A compliance requires JSON-RPC 2.0 methods like message/send, 
+        True A2A compliance requires JSON-RPC 2.0 methods like message/send,
         tasks/get, etc. posted to a single endpoint. This is handled by A2AManager.
         """
         # A2A endpoints are registered by the A2AManager
@@ -364,20 +349,23 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
             self.logger.error(f"Error processing chat request: {e}")
             self.logger.error(f"Error type: {type(e).__name__}")
             self.logger.error(f"Full traceback: {traceback.format_exc()}")
-            
+
             # Additional debugging info
             import sys
+
             tb = sys.exc_info()[2]
             if tb:
                 while tb.tb_next:
                     tb = tb.tb_next
                 frame = tb.tb_frame
-                self.logger.error(f"Error occurred at line {tb.tb_lineno} in function {frame.f_code.co_name}")
+                self.logger.error(
+                    f"Error occurred at line {tb.tb_lineno} in function {frame.f_code.co_name}"
+                )
                 self.logger.error(f"File: {frame.f_code.co_filename}")
-            
+
             error_response = ChatResponse(
-                status="error", 
-                error=f"Failed to process chat request: {str(e)} (Type: {type(e).__name__})"
+                status="error",
+                error=f"Failed to process chat request: {str(e)} (Type: {type(e).__name__})",
             )
             return self._response_to_http(error_response, status_code=500)
 
