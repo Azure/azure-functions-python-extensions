@@ -7,6 +7,7 @@ import asyncio
 import json
 import logging
 import os
+import traceback
 from typing import Any, Callable, Dict, List, Optional, Union
 
 from .handoff import (
@@ -196,6 +197,8 @@ class Agent:
             self.logger.error(
                 f"Failed to register MCP tools for agent '{self.name}': {e}"
             )
+            self.logger.error(f"MCP registration error type: {type(e).__name__}")
+            self.logger.error(f"MCP registration traceback: {traceback.format_exc()}")
             # Don't raise here - agent should still function without MCP tools
 
     async def _ensure_mcp_tools_registered(self):
@@ -380,6 +383,10 @@ class Agent:
     ) -> Dict[str, Any]:
         """Process a conversational request using LLM."""
         try:
+            # Track tool calls to prevent infinite loops
+            tool_call_history = []
+            repeated_tool_threshold = 2  # Stop if same tool called more than this many times
+            
             # Convert messages to ChatMessage format
             chat_messages = []
 
@@ -413,62 +420,122 @@ class Agent:
                 self.logger.error(f"Initial LLM response is not a dictionary: {type(llm_response)}")
                 llm_response = {"message": {"content": str(llm_response)}, "usage": None}
 
-            response_message = llm_response.get("message", {"content": "No response"})
+            # Normalize response message to always be a dictionary
+            response_message = self._normalize_response_message(llm_response.get("message", {"content": "No response"}))
             
-            # Ensure response_message is properly structured (initial response)
-            if isinstance(response_message, str):
-                self.logger.debug(f"Initial response message is a string, converting to dict: {response_message}")
-                response_message = {"content": response_message}
-            elif isinstance(response_message, dict):
-                # Already a dictionary, ensure it has content
-                if "content" not in response_message:
-                    response_message["content"] = str(response_message.get("content", ""))
-            else:
-                # Handle OpenAI message objects or other types
-                self.logger.debug(f"Converting message object to dict: {type(response_message)}")
-                content = getattr(response_message, 'content', str(response_message))
-                tool_calls = getattr(response_message, 'tool_calls', None)
-                response_message = {"content": content}
-                if tool_calls:
-                    response_message["tool_calls"] = tool_calls
+            # Double-check that response_message is a dictionary
+            if not isinstance(response_message, dict):
+                self.logger.error(f"Response message normalization failed! Got type: {type(response_message)}, value: {response_message}")
+                response_message = {"content": str(response_message)}
+            
             tool_results = []
             current_round = 0
 
             # Continue until LLM provides a final response without tool calls
-            while (response_message.get("tool_calls") and 
-                   current_round < self.max_tool_rounds):
+            while True:
+                try:
+                    # Check if response has tool calls using safe method
+                    self.logger.debug("=== CHECKING FOR TOOL CALLS ===")
+                    tool_calls_check = self._safe_get(response_message, "tool_calls")
+                    self.logger.debug(f"Tool calls check result: {tool_calls_check}")
+                    
+                    if not tool_calls_check or current_round >= self.max_tool_rounds:
+                        self.logger.debug("Breaking out of tool call loop")
+                        break
+                        
+                except Exception as e:
+                    self.logger.error(f"Error checking for tool calls: {e}")
+                    self.logger.error(f"response_message type: {type(response_message)}")
+                    self.logger.error(f"response_message value: {response_message}")
+                    self.logger.error(f"Traceback: {traceback.format_exc()}")
+                    break
                 
                 current_round += 1
                 self.logger.info(f"Processing tool call round {current_round}")
                 
                 # Add the assistant's message with tool calls
+                # Ensure tool_calls are in the right format for ChatMessage
+                if isinstance(response_message, dict) and "tool_calls" in response_message:
+                    tool_calls_data = self._safe_get(response_message, "tool_calls", [])
+                else:
+                    tool_calls_data = self._safe_get(response_message, "tool_calls", [])
+                
+                # Convert tool calls to the format expected by ChatMessage
+                formatted_tool_calls = []
+                for tc in tool_calls_data:
+                    if isinstance(tc, dict):
+                        # Already a dict - use as is
+                        formatted_tool_calls.append(tc)
+                    else:
+                        # Object with attributes - convert to dict
+                        formatted_tool_calls.append({
+                            "id": tc.id,
+                            "type": tc.type,
+                            "function": {
+                                "name": tc.function.name,
+                                "arguments": tc.function.arguments,
+                            },
+                        })
+                
                 chat_messages.append(
                     ChatMessage(
                         role="assistant",
-                        content=response_message.get("content", ""),
-                        tool_calls=[
-                            {
-                                "id": tc.id,
-                                "type": tc.type,
-                                "function": {
-                                    "name": tc.function.name,
-                                    "arguments": tc.function.arguments,
-                                },
-                            }
-                            for tc in response_message.get("tool_calls", [])
-                        ],
+                        content=self._safe_get(response_message, "content", "") or "",
+                        tool_calls=formatted_tool_calls,
                     )
                 )
 
                 # Process tool calls for this round (parallel or sequential)
-                tool_calls_list = response_message.get("tool_calls", [])
+                tool_calls_list = self._safe_get(response_message, "tool_calls", [])
+                
+                # Check for repeated tool calls to prevent infinite loops
+                current_tool_names = []
+                for tc in tool_calls_list:
+                    if isinstance(tc, dict):
+                        tool_name = tc.get("function", {}).get("name", "unknown")
+                    else:
+                        tool_name = getattr(tc.function, 'name', 'unknown')
+                    current_tool_names.append(tool_name)
+                
+                # Add current tool calls to history
+                tool_call_history.extend(current_tool_names)
+                
+                # Check if any tool is being called too frequently
+                for tool_name in set(current_tool_names):
+                    tool_count = tool_call_history.count(tool_name)
+                    if tool_count > repeated_tool_threshold:
+                        self.logger.warning(f"Tool '{tool_name}' has been called {tool_count} times. Breaking to prevent infinite loop.")
+                        self.logger.warning(f"Tool call history: {tool_call_history}")
+                        # Force break by clearing tool calls
+                        tool_calls_list = []
+                        break
+                
+                if not tool_calls_list:
+                    self.logger.info("No tool calls to process, breaking out of loop")
+                    break
+                
                 if self.enable_parallel_tool_calls and len(tool_calls_list) > 1:
                     # Execute tools in parallel
                     self.logger.info(f"Executing {len(tool_calls_list)} tools in parallel")
                     tool_tasks = []
                     
                     for tool_call in tool_calls_list:
-                        task = self._execute_single_tool_call(tool_call, tool_results, chat_messages)
+                        # Create a standardized tool call object for execution
+                        if isinstance(tool_call, dict):
+                            # Convert dict back to object-like structure for compatibility
+                            class ToolCallObj:
+                                def __init__(self, data):
+                                    self.id = data["id"]
+                                    self.type = data["type"]
+                                    self.function = type('Function', (), {
+                                        'name': data["function"]["name"],
+                                        'arguments': data["function"]["arguments"]
+                                    })()
+                            tool_call_obj = ToolCallObj(tool_call)
+                        else:
+                            tool_call_obj = tool_call
+                            
+                        task = self._execute_single_tool_call(tool_call_obj, tool_results, chat_messages)
                         tool_tasks.append(task)
                     
                     # Wait for all tools to complete
@@ -476,38 +543,101 @@ class Agent:
                 else:
                     # Execute tools sequentially
                     for tool_call in tool_calls_list:
-                        await self._execute_single_tool_call(tool_call, tool_results, chat_messages)
+                        # Create a standardized tool call object for execution
+                        if isinstance(tool_call, dict):
+                            # Convert dict back to object-like structure for compatibility
+                            class ToolCallObj:
+                                def __init__(self, data):
+                                    self.id = data["id"]
+                                    self.type = data["type"]
+                                    self.function = type('Function', (), {
+                                        'name': data["function"]["name"],
+                                        'arguments': data["function"]["arguments"]
+                                    })()
+                            tool_call_obj = ToolCallObj(tool_call)
+                        else:
+                            tool_call_obj = tool_call
+                            
+                        await self._execute_single_tool_call(tool_call_obj, tool_results, chat_messages)
 
                 # Get next response from LLM after tool execution
-                llm_response = await self.llm_client.chat_completion(
-                    messages=chat_messages,
-                    tools=tools_schema if tools_schema else None,
-                    tool_choice="auto" if tools_schema else None,
-                )
+                try:
+                    self.logger.debug("=== CALLING LLM AFTER TOOL EXECUTION ===")
+                    self.logger.debug(f"Number of messages in conversation: {len(chat_messages)}")
+                    self.logger.debug("=== CONVERSATION CONTEXT ===")
+                    for i, msg in enumerate(chat_messages[-5:]):  # Show last 5 messages
+                        self.logger.debug(f"Message {i}: role={msg.role}, content_length={len(str(msg.content))}, tool_call_id={getattr(msg, 'tool_call_id', None)}")
+                        if msg.role == "tool":
+                            self.logger.debug(f"Tool message content preview: {str(msg.content)[:200]}...")
+                    
+                    # Determine tool_choice strategy to prevent infinite loops
+                    # After the first round of tool execution, we should be more conservative
+                    # about allowing more tool calls to prevent infinite loops
+                    if current_round >= 3:
+                        # After 3 rounds, force the LLM to provide a final response
+                        tool_choice_setting = "none"
+                        self.logger.info(f"Round {current_round}: Using tool_choice='none' to force final response")
+                    elif current_round >= 2:
+                        # After 2 rounds, be more selective about tool choice
+                        tool_choice_setting = "auto"
+                        self.logger.info(f"Round {current_round}: Using tool_choice='auto' with caution")
+                    else:
+                        # First round, allow normal tool selection
+                        tool_choice_setting = "auto" if tools_schema else None
+                        self.logger.info(f"Round {current_round}: Using tool_choice='{tool_choice_setting}'")
+                    
+                    llm_response = await self.llm_client.chat_completion(
+                        messages=chat_messages,
+                        tools=tools_schema if tools_schema and tool_choice_setting != "none" else None,
+                        tool_choice=tool_choice_setting if tools_schema and tool_choice_setting != "none" else None,
+                    )
+                    self.logger.debug(f"LLM response type: {type(llm_response)}")
+                    self.logger.debug(f"LLM response keys: {llm_response.keys() if isinstance(llm_response, dict) else 'Not a dict'}")
+                    
+                    # Check if LLM response contains tool calls again
+                    if isinstance(llm_response, dict) and llm_response.get("message"):
+                        msg = llm_response["message"]
+                        if hasattr(msg, 'tool_calls') and msg.tool_calls:
+                            self.logger.warning(f"LLM is requesting {len(msg.tool_calls)} tool calls AGAIN in round {current_round}")
+                            for tc in msg.tool_calls:
+                                self.logger.warning(f"  - Tool: {tc.function.name} with args: {tc.function.arguments}")
+                        elif isinstance(msg, dict) and msg.get('tool_calls'):
+                            self.logger.warning(f"LLM is requesting {len(msg['tool_calls'])} tool calls AGAIN in round {current_round}")
+                            for tc in msg['tool_calls']:
+                                tool_name = tc.get('function', {}).get('name', 'unknown')
+                                self.logger.warning(f"  - Tool: {tool_name}")
+                    
+                except Exception as llm_error:
+                    self.logger.error(f"LLM chat completion failed: {llm_error}")
+                    # Break out of the loop on LLM failure
+                    break
 
                 # Ensure llm_response is a dictionary
+                self.logger.debug("=== ENSURING LLM RESPONSE IS DICT ===")
                 if not isinstance(llm_response, dict):
                     self.logger.error(f"LLM response is not a dictionary: {type(llm_response)}")
                     llm_response = {"message": {"content": str(llm_response)}, "usage": None}
 
-                response_message = llm_response.get("message", {"content": "No response"})
-                
-                # Ensure response_message is properly structured
-                if isinstance(response_message, str):
-                    self.logger.debug(f"Response message is a string, converting to dict: {response_message}")
-                    response_message = {"content": response_message}
-                elif isinstance(response_message, dict):
-                    # Already a dictionary, ensure it has content
-                    if "content" not in response_message:
-                        response_message["content"] = str(response_message.get("content", ""))
-                else:
-                    # Handle OpenAI message objects or other types
-                    self.logger.debug(f"Converting message object to dict: {type(response_message)}")
-                    content = getattr(response_message, 'content', str(response_message))
-                    tool_calls = getattr(response_message, 'tool_calls', None)
-                    response_message = {"content": content}
-                    if tool_calls:
-                        response_message["tool_calls"] = tool_calls
+                self.logger.debug("=== NORMALIZING RESPONSE MESSAGE ===")
+                try:
+                    raw_message = llm_response.get("message", {"content": "No response"})
+                    self.logger.debug(f"Raw message type before normalization: {type(raw_message)}")
+                    self.logger.debug(f"Raw message value before normalization: {raw_message}")
+                    
+                    # Normalize response message to always be a dictionary
+                    response_message = self._normalize_response_message(raw_message)
+                    self.logger.debug(f"Response message type after normalization: {type(response_message)}")
+                    self.logger.debug(f"Response message value after normalization: {response_message}")
+                    
+                    # Double-check that response_message is a dictionary
+                    if not isinstance(response_message, dict):
+                        self.logger.error(f"Response message normalization failed in loop! Got type: {type(response_message)}, value: {response_message}")
+                        response_message = {"content": str(response_message)}
+                        
+                except Exception as normalize_error:
+                    self.logger.error(f"Error during response message normalization: {normalize_error}")
+                    self.logger.error(f"Traceback: {traceback.format_exc()}")
+                    response_message = {"content": "Error during response processing"}
 
             # Log if we hit the max rounds limit
             if current_round >= self.max_tool_rounds:
@@ -529,7 +659,7 @@ class Agent:
             return {
                 "agent": self.name,
                 "response": (
-                    response_message.get("content", "")
+                    self._safe_get(response_message, "content", "")
                     if isinstance(response_message, dict)
                     else (
                         response_message.content
@@ -545,9 +675,24 @@ class Agent:
 
         except Exception as e:
             self.logger.error(f"Conversational processing failed: {e}")
+            self.logger.error(f"Error type: {type(e).__name__}")
+            self.logger.error(f"Error args: {e.args}")
+            self.logger.error(f"Full traceback: {traceback.format_exc()}")
+            
+            # Try to identify the specific line and context where the error occurred
+            import sys
+            tb = sys.exc_info()[2]
+            while tb.tb_next:
+                tb = tb.tb_next
+            frame = tb.tb_frame
+            self.logger.error(f"Error occurred at line {tb.tb_lineno} in function {frame.f_code.co_name}")
+            self.logger.error(f"Local variables at error: {frame.f_locals}")
+            
             return {
                 "agent": self.name,
                 "error": f"Failed to process conversational request: {str(e)}",
+                "error_type": type(e).__name__,
+                "error_line": tb.tb_lineno,
                 "context": context,
                 "status": "error",
             }
@@ -566,6 +711,8 @@ class Agent:
             return {"error": f"Tool '{tool_name}' not found", "status": "error"}
         except Exception as e:
             self.logger.error(f"Tool execution failed for {tool_name}: {str(e)}")
+            self.logger.error(f"Tool execution error type: {type(e).__name__}")
+            self.logger.error(f"Tool execution traceback: {traceback.format_exc()}")
             return {"error": str(e), "status": "error"}
 
     async def _execute_mcp_tool(self, tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
@@ -634,13 +781,43 @@ class Agent:
             
             # Convert MCP result to our format with better error handling
             try:
+                self.logger.debug(f"MCP tool '{tool_name}' raw result type: {type(result)}")
+                self.logger.debug(f"MCP tool '{tool_name}' raw result: {result}")
+                
                 if hasattr(result, 'content'):
+                    self.logger.debug(f"MCP result has content attribute, type: {type(result.content)}")
                     if hasattr(result.content, '__iter__') and not isinstance(result.content, str):
                         # Handle list of content
                         content_parts = []
                         for item in result.content:
                             if hasattr(item, 'text'):
-                                content_parts.append(item.text)
+                                text_content = item.text
+                                self.logger.debug(f"Processing text content: {text_content[:200]}...")
+                                
+                                # Check if the text content is JSON
+                                try:
+                                    # Try to parse as JSON first
+                                    parsed_json = json.loads(text_content)
+                                    self.logger.debug(f"Text content is JSON: {type(parsed_json)}")
+                                    
+                                    # If it's a dict with results, extract them
+                                    if isinstance(parsed_json, dict):
+                                        if "results" in parsed_json and isinstance(parsed_json["results"], list):
+                                            # Join the results array
+                                            content_parts.extend(parsed_json["results"])
+                                        elif "message" in parsed_json and parsed_json["message"]:
+                                            content_parts.append(parsed_json["message"])
+                                        else:
+                                            # Use the entire JSON content
+                                            content_parts.append(json.dumps(parsed_json, indent=2))
+                                    else:
+                                        content_parts.append(str(parsed_json))
+                                        
+                                except json.JSONDecodeError:
+                                    # Not JSON, treat as plain text
+                                    self.logger.debug("Text content is not JSON, using as-is")
+                                    content_parts.append(text_content)
+                                    
                             elif hasattr(item, 'data'):
                                 content_parts.append(str(item.data))
                             else:
@@ -651,18 +828,19 @@ class Agent:
                 else:
                     content = str(result)
                 
-                self.logger.debug(f"MCP tool '{tool_name}' executed successfully")
-                return {"result": content, "status": "success"}
+                result_dict = {"result": content, "status": "success"}
+                self.logger.debug(f"MCP tool '{tool_name}' converted result: {result_dict}")
+                return result_dict
                 
             except Exception as conversion_error:
                 error_msg = f"Failed to convert MCP result for tool '{tool_name}': {str(conversion_error)}"
                 self.logger.error(error_msg)
+                self.logger.error(f"Conversion traceback: {traceback.format_exc()}")
                 return {"error": error_msg, "status": "error"}
             
         except Exception as e:
             error_msg = f"Failed to execute MCP tool '{tool_name}': {str(e)}"
             self.logger.error(error_msg)
-            import traceback
             self.logger.error(f"MCP tool execution traceback: {traceback.format_exc()}")
             return {"error": error_msg, "status": "error"}
 
@@ -692,28 +870,40 @@ class Agent:
                 arguments,
             )
             
+            self.logger.debug(f"Raw tool result type for '{tool_call.function.name}': {type(tool_result)}")
+            self.logger.debug(f"Raw tool result for '{tool_call.function.name}': {tool_result}")
+            
             # Ensure tool_result is a dictionary
             if not isinstance(tool_result, dict):
-                self.logger.error(f"Tool result is not a dictionary: {type(tool_result)}")
+                self.logger.warning(f"Tool result is not a dictionary: {type(tool_result)}, converting...")
                 tool_result = {"result": str(tool_result), "status": "success"}
             
-            self.logger.info(f"Tool '{tool_call.function.name}' executed with status: {tool_result.get('status', 'unknown')}")
+            self.logger.info(f"Tool '{tool_call.function.name}' executed with status: {self._safe_get(tool_result, 'status', 'unknown')}")
             
             tool_results.append(
                 {"tool": tool_call.function.name, "result": tool_result}
             )
 
-            # Add tool result message
+            # Add tool result message - ensure content is JSON serializable
+            try:
+                tool_content = json.dumps(tool_result)
+                self.logger.debug(f"Serialized tool result content: {tool_content}")
+            except (TypeError, ValueError) as json_error:
+                self.logger.error(f"Failed to serialize tool result: {json_error}")
+                tool_content = json.dumps({"error": f"Failed to serialize tool result: {str(json_error)}", "status": "error"})
+            
             chat_messages.append(
                 ChatMessage(
                     role="tool",
-                    content=json.dumps(tool_result),
+                    content=tool_content,
                     tool_call_id=tool_call.id,
                 )
             )
             
         except Exception as tool_error:
             self.logger.error(f"Tool execution failed for '{tool_call.function.name}': {tool_error}")
+            self.logger.error(f"Tool execution error type: {type(tool_error).__name__}")
+            self.logger.error(f"Tool execution traceback: {traceback.format_exc()}")
             error_result = {"error": f"Tool execution failed: {str(tool_error)}", "status": "error"}
             
             tool_results.append(
@@ -1052,6 +1242,82 @@ class Agent:
     def set_agent_registry(self, agent_registry: Dict[str, 'Agent']):
         """Set the agent registry for handoff operations."""
         self._agent_registry = agent_registry
+
+    def _normalize_response_message(self, response_message):
+        """
+        Safely normalize a response message to always be a dictionary.
+        
+        This handles all the different types of response messages we might get:
+        - Strings
+        - Dictionaries  
+        - OpenAI message objects
+        - Pydantic models
+        """
+        self.logger.debug(f"Normalizing response_message type: {type(response_message)}")
+        
+        if isinstance(response_message, dict):
+            # Already a dictionary, ensure it has content
+            if "content" not in response_message:
+                response_message["content"] = ""
+            return response_message
+            
+        elif isinstance(response_message, str):
+            # String response - convert to dict
+            return {"content": response_message}
+            
+        elif response_message is None:
+            # None response
+            return {"content": ""}
+            
+        else:
+            # Handle objects (OpenAI message objects, Pydantic models, etc.)
+            try:
+                if hasattr(response_message, 'model_dump'):
+                    # Pydantic model - convert to dict
+                    return response_message.model_dump()
+                elif hasattr(response_message, '__dict__'):
+                    # Regular object - extract key attributes
+                    result = {
+                        "content": getattr(response_message, 'content', ""),
+                    }
+                    if hasattr(response_message, 'tool_calls') and response_message.tool_calls:
+                        result["tool_calls"] = response_message.tool_calls
+                    return result
+                else:
+                    # Fallback - convert to string content
+                    return {"content": str(response_message)}
+                    
+            except Exception as e:
+                self.logger.error(f"Failed to normalize response_message: {e}")
+                self.logger.error(f"Normalization error type: {type(e).__name__}")
+                self.logger.error(f"Normalization traceback: {traceback.format_exc()}")
+                return {"content": str(response_message)}
+
+    def _safe_get(self, obj, key, default=None):
+        """
+        Safely get a value from an object, handling strings and other non-dict types.
+        
+        This prevents the "'str' object has no attribute 'get'" error.
+        """
+        self.logger.debug(f"_safe_get called with obj type: {type(obj)}, key: {key}")
+        
+        try:
+            if isinstance(obj, dict):
+                result = obj.get(key, default)
+                self.logger.debug(f"_safe_get dict result: {result}")
+                return result
+            elif hasattr(obj, key):
+                result = getattr(obj, key, default)
+                self.logger.debug(f"_safe_get hasattr result: {result}")
+                return result
+            else:
+                self.logger.warning(f"Attempted to get '{key}' from non-dict object of type {type(obj)}: {obj}")
+                return default
+        except Exception as e:
+            self.logger.error(f"Error in _safe_get for key '{key}' on object type {type(obj)}: {e}")
+            self.logger.error(f"Object value: {obj}")
+            self.logger.error(f"Traceback: {traceback.format_exc()}")
+            return default
 
 class ReflectionAgent(Agent):
     """

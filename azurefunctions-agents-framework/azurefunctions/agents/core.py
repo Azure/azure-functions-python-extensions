@@ -7,6 +7,7 @@ import asyncio
 import json
 import logging
 import os
+import traceback
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
 
@@ -361,8 +362,22 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
 
         except Exception as e:
             self.logger.error(f"Error processing chat request: {e}")
+            self.logger.error(f"Error type: {type(e).__name__}")
+            self.logger.error(f"Full traceback: {traceback.format_exc()}")
+            
+            # Additional debugging info
+            import sys
+            tb = sys.exc_info()[2]
+            if tb:
+                while tb.tb_next:
+                    tb = tb.tb_next
+                frame = tb.tb_frame
+                self.logger.error(f"Error occurred at line {tb.tb_lineno} in function {frame.f_code.co_name}")
+                self.logger.error(f"File: {frame.f_code.co_filename}")
+            
             error_response = ChatResponse(
-                status="error", error=f"Failed to process chat request: {str(e)}"
+                status="error", 
+                error=f"Failed to process chat request: {str(e)} (Type: {type(e).__name__})"
             )
             return self._response_to_http(error_response, status_code=500)
 
@@ -373,6 +388,7 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
             return self._dict_to_http(agent_info)
         except Exception as e:
             self.logger.error(f"Error getting agent info: {str(e)}")
+            self.logger.error(f"Full traceback: {traceback.format_exc()}")
             return self._dict_to_http(
                 {"error": "Failed to get agent info", "message": str(e)},
                 status_code=500,
@@ -399,6 +415,7 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
             return self._dict_to_http(health_info)
         except Exception as e:
             self.logger.error(f"Error in health check: {str(e)}")
+            self.logger.error(f"Full traceback: {traceback.format_exc()}")
             return self._dict_to_http(
                 {
                     "status": "unhealthy",
@@ -443,6 +460,7 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
             )
         except Exception as e:
             self.logger.error(f"Error listing agents: {str(e)}")
+            self.logger.error(f"Full traceback: {traceback.format_exc()}")
             return HttpResponse(
                 json.dumps({"error": "Failed to list agents", "message": str(e)}),
                 status_code=500,

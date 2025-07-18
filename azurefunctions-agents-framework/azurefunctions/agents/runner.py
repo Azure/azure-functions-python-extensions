@@ -1,5 +1,6 @@
 import asyncio
 import json
+import traceback
 from typing import Any, Dict, List, Optional, Union
 
 from .handoff import HandoffEngine, ControlFlowManager, HandoffRequest, HandoffResult
@@ -361,25 +362,52 @@ class Runner:
         # Check if any tools returned handoff requests
         handoff_requests = []
         for i, tool_result in enumerate(tool_results):
-            result = tool_result.get('result', {})
-            
-            # Check if this is a handoff request (could be nested in status wrapper)
-            handoff_data = None
-            if isinstance(result, dict):
-                if result.get('handoff_requested'):
-                    handoff_data = result
-                elif result.get('result', {}).get('handoff_requested'):
-                    handoff_data = result.get('result', {})
-            
-            if handoff_data and handoff_data.get('handoff_requested'):
-                handoff_requests.append({
-                    'index': i,
-                    'tool_name': tool_result.get('tool'),
-                    'target_agent': handoff_data.get('target_agent'),
-                    'message': handoff_data.get('message'),
-                    'reason': handoff_data.get('reason'),
-                    'context': handoff_data.get('context', {})
-                })
+            try:
+                result = tool_result.get('result', {})
+                
+                # Add comprehensive logging to debug the type issue
+                self.agent.logger.debug(f"Processing tool_result {i}: type={type(tool_result)}, value={tool_result}")
+                self.agent.logger.debug(f"Extracted result: type={type(result)}, value={result}")
+                
+                # Check if this is a handoff request (could be nested in status wrapper)
+                handoff_data = None
+                if isinstance(result, dict):
+                    if result.get('handoff_requested'):
+                        handoff_data = result
+                    elif isinstance(result.get('result'), dict) and result.get('result', {}).get('handoff_requested'):
+                        handoff_data = result.get('result', {})
+                elif isinstance(result, str):
+                    # Handle case where result is a string (possibly JSON)
+                    self.agent.logger.warning(f"Tool result is a string instead of dict: {result}")
+                    try:
+                        # Try to parse as JSON
+                        parsed_result = json.loads(result)
+                        if isinstance(parsed_result, dict):
+                            if parsed_result.get('handoff_requested'):
+                                handoff_data = parsed_result
+                            elif isinstance(parsed_result.get('result'), dict) and parsed_result.get('result', {}).get('handoff_requested'):
+                                handoff_data = parsed_result.get('result', {})
+                    except (json.JSONDecodeError, TypeError) as json_error:
+                        self.agent.logger.warning(f"Could not parse string result as JSON: {json_error}")
+                else:
+                    self.agent.logger.warning(f"Unexpected result type: {type(result)}, value: {result}")
+                
+                if handoff_data and handoff_data.get('handoff_requested'):
+                    handoff_requests.append({
+                        'index': i,
+                        'tool_name': tool_result.get('tool'),
+                        'target_agent': handoff_data.get('target_agent'),
+                        'message': handoff_data.get('message'),
+                        'reason': handoff_data.get('reason'),
+                        'context': handoff_data.get('context', {})
+                    })
+                    
+            except Exception as e:
+                self.agent.logger.error(f"Error processing handoff request for tool_result {i}: {e}")
+                self.agent.logger.error(f"Tool result type: {type(tool_result)}")
+                self.agent.logger.error(f"Tool result value: {tool_result}")
+                self.agent.logger.error(f"Handoff processing traceback: {traceback.format_exc()}")
+                continue
         
         # Process handoff requests
         if handoff_requests:

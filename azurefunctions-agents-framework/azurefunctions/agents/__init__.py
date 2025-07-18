@@ -74,6 +74,6 @@ __all__ = [
     "MCPUtil",
 ]
 
-__version__ = "0.0.1a14"
+__version__ = "0.0.1a19"
 __author__ = "Microsoft Azure Functions Team"
 __license__ = "MIT"
