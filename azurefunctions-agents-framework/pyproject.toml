@@ -139,6 +139,11 @@ markers = [
     "unit: marks tests as unit tests"
 ]
 asyncio_mode = "auto"
+filterwarnings = [
+    "ignore::RuntimeWarning:unittest.mock",
+    "ignore:coroutine.*was never awaited:RuntimeWarning",
+    "ignore:coroutine.*AsyncClient.aclose.*was never awaited:RuntimeWarning"
+]
 
 [tool.coverage.run]
 source = ["azurefunctions"]

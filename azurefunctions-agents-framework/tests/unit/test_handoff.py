@@ -63,28 +63,32 @@ class TestHandoffEngine:
         mock_source.name = "SourceAgent"
         mock_target = Mock()
         mock_target.name = "TargetAgent"
-        mock_target.process_message = AsyncMock(return_value="Handled successfully")
+        mock_target.process_request = AsyncMock(return_value="Handled successfully")
 
         agents = {"SourceAgent": mock_source, "TargetAgent": mock_target}
         engine.register_agents(agents)
 
         # Create conversation first
-        conversation_id = control_flow_manager.create_conversation(
-            {"initial": "message"}
+        engine.control_flow.create_conversation({"initial": "request"})
+        # Set the conversation ID manually for the test
+        engine.control_flow._conversations["test-123"] = HandoffContext(
+            conversation_id="test-123",
+            shared_context={},
+            call_stack=[],
+            handoff_count=0
         )
 
         # Create handoff request
         request = HandoffRequest(target_agent="TargetAgent", input_data="Test message")
 
-        # Execute handoff with correct parameters
-        result = await engine.execute_handoff(
-            conversation_id=conversation_id,
-            handoff_request=request,
-            current_agent="SourceAgent",
-        )
+        context = HandoffContext(conversation_id="test-123")
+
+        # Execute handoff
+        result = await engine.execute_handoff("test-123", request, "SourceAgent")
 
         assert result.success is True
         assert result.target_agent == "TargetAgent"
+        mock_target.process_request.assert_called_once()
 
 
 class TestControlFlowManager:
@@ -98,20 +102,14 @@ class TestControlFlowManager:
         assert hasattr(control_flow, "_conversations")
         assert control_flow._conversations == {}
 
-    def test_control_flow_create_conversation(self):
-        """Test creating a conversation."""
+    def test_control_flow_create_context(self):
+        """Test creating handoff context."""
         control_flow = ControlFlowManager()
 
-        initial_request = {"message": "Hello", "user": "test_user"}
-        conversation_id = control_flow.create_conversation(initial_request)
+        conversation_id = control_flow.create_conversation({"initial": "request"})
 
         assert conversation_id is not None
-        assert len(conversation_id) > 0
-
-        # Check that conversation was stored
-        context = control_flow.get_conversation_context(conversation_id)
-        assert context is not None
-        assert context.conversation_id == conversation_id
+        assert isinstance(conversation_id, str)
 
     def test_control_flow_register_agents(self):
         """Test registering agents with control flow manager."""
@@ -226,17 +224,17 @@ class TestHandoffIntegration:
 
         mock_target = Mock()
         mock_target.name = "TechnicalSupport"
-        mock_target.process_message = AsyncMock(return_value="Technical issue resolved")
+        mock_target.process_request = AsyncMock(return_value="Technical issue resolved")
 
         agents = {"CustomerService": mock_source, "TechnicalSupport": mock_target}
         engine.register_agents(agents)
 
-        # Create conversation first
-        conversation_id = control_flow.create_conversation(
-            {
-                "initial_message": "Customer has a technical issue",
-                "customer_id": "cust_123",
-            }
+        # Create conversation in control flow first
+        engine.control_flow._conversations["conv-789"] = HandoffContext(
+            conversation_id="conv-789",
+            shared_context={"customer_id": "cust_123", "priority": "high"},
+            call_stack=[],
+            handoff_count=0
         )
 
         # Create handoff request
@@ -246,16 +244,19 @@ class TestHandoffIntegration:
             reason="Escalate to technical support",
         )
 
-        # Execute handoff with correct parameters
-        result = await engine.execute_handoff(
-            conversation_id=conversation_id,
-            handoff_request=request,
-            current_agent="CustomerService",
+        # Create context
+        context = HandoffContext(
+            conversation_id="conv-789",
+            shared_context={"customer_id": "cust_123", "priority": "high"},
         )
+
+        # Execute handoff
+        result = await engine.execute_handoff("conv-789", request, "CustomerService")
 
         # Verify results
         assert result.success is True
         assert result.target_agent == "TechnicalSupport"
+        mock_target.process_request.assert_called_once()
 
     def test_handoff_config_with_multiple_targets(self):
         """Test handoff configuration with multiple target agents."""

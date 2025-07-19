@@ -7,7 +7,7 @@ import json
 import logging
 import os
 
-from azure.functions import AuthLevel, HttpRequest, HttpResponse
+from azure.functions import HttpRequest, HttpResponse
 
 from ..types import AgentCapabilities, AgentCard, AgentProvider, AgentSkill
 from .task_manager import A2ATaskManager
@@ -17,10 +17,13 @@ class A2AManager:
     """
     Manages A2A protocol compliance for an agent.
 
-    Handles:
-    - Agent metadata exposure (/.well-known/agent.json)
+    Provides business logic handlers for A2A protocol endpoints:
+    - Agent metadata (/.well-known/agent.json)
     - Task management endpoints
     - A2A protocol compliance
+
+    Note: HTTP endpoint registration is handled by Core (AgentFunctionApp).
+    This manager only provides the business logic handlers.
     """
 
     def __init__(self, agent_app):
@@ -37,8 +40,7 @@ class A2AManager:
         self.task_manager = A2ATaskManager()
         self.agent_card = self._create_agent_card()
 
-        # Register A2A endpoints
-        self._register_a2a_endpoints()
+        # Note: Core will register HTTP endpoints and delegate to our handlers
 
     def _create_agent_card(self):
         """Create an AgentCard for A2A protocol using SDK types."""
@@ -59,13 +61,16 @@ class A2AManager:
                     inputModes=["text"],
                     outputModes=["text"],
                     tags=["function", "tool"],
-                    examples=[],
+                    examples=None,
                 )
                 skills.append(skill)
 
         # Create capabilities using SDK AgentCapabilities model
         capabilities = AgentCapabilities(
-            pushNotifications=False, stateTransitionHistory=True, streaming=False
+            extensions=None,
+            pushNotifications=None,
+            stateTransitionHistory=None,
+            streaming=False,
         )
 
         # Create provider using SDK AgentProvider model
@@ -79,77 +84,64 @@ class A2AManager:
             name=self.agent.name,
             description=self.agent.description,
             version=self.agent.version,
-            url=f"{base_url}/.well-known/agent.json",
-            documentationUrl=None,
-            provider=provider,
+            url=f"{base_url}/.well-known/agent.json",  # Required URL field
+            defaultInputModes=["text"],  # Required field
+            defaultOutputModes=["text"],  # Required field
+            skills=skills,  # Required field
             capabilities=capabilities,
-            defaultInputModes=["text"],
-            defaultOutputModes=["text"],
-            skills=skills,
-            security=[],
-            securitySchemes={},
+            provider=provider,
+            documentationUrl=None,
+            iconUrl=None,
+            security=None,
+            securitySchemes=None,
             supportsAuthenticatedExtendedCard=False,
         )
 
-    def _register_a2a_endpoints(self):
-        """Register A2A protocol endpoints."""
+    # A2A Protocol Handler Methods
+    # These are called by Core's registered HTTP endpoints
 
-        # Agent metadata endpoint (/.well-known/agent.json)
-        @self.agent_app.route(
-            route=".well-known/agent.json",
-            auth_level=AuthLevel.ANONYMOUS,
-            methods=["GET"],
-        )
-        async def agent_metadata(req: HttpRequest) -> HttpResponse:
-            """Return agent metadata in A2A format."""
-            try:
-                return HttpResponse(
-                    self.agent_card.model_dump_json(indent=2),
-                    status_code=200,
-                    headers={"Content-Type": "application/json"},
-                )
-            except Exception as e:
-                self.logger.error(f"Error serving agent metadata: {e}")
-                return HttpResponse(
-                    json.dumps({"error": "Failed to retrieve agent metadata"}),
-                    status_code=500,
-                    headers={"Content-Type": "application/json"},
-                )
+    async def handle_agent_metadata(self, req: HttpRequest) -> HttpResponse:
+        """Handle agent metadata requests (/.well-known/agent.json)."""
+        try:
+            # Handle both SDK and fallback AgentCard serialization
+            if hasattr(self.agent_card, "model_dump_json"):
+                # SDK AgentCard with Pydantic serialization
+                agent_json = self.agent_card.model_dump_json(indent=2)
+            else:
+                # Fallback AgentCard - use dataclass serialization
+                import dataclasses
 
-        # Task endpoints
-        @self.agent_app.route(
-            route="tasks", auth_level=self.agent_app._auth_level, methods=["POST"]
-        )
-        async def send_task(req: HttpRequest) -> HttpResponse:
-            """Send a task to this agent (A2A protocol)."""
-            return await self._handle_a2a_task_send(req, subscribe=False)
+                agent_dict = dataclasses.asdict(self.agent_card)
+                agent_json = json.dumps(agent_dict, indent=2, default=str)
 
-        @self.agent_app.route(
-            route="tasks/subscribe",
-            auth_level=self.agent_app._auth_level,
-            methods=["POST"],
-        )
-        async def subscribe_task(req: HttpRequest) -> HttpResponse:
-            """Subscribe to a task on this agent (A2A protocol)."""
-            return await self._handle_a2a_task_send(req, subscribe=True)
+            return HttpResponse(
+                agent_json,
+                status_code=200,
+                headers={"Content-Type": "application/json"},
+            )
+        except Exception as e:
+            self.logger.error(f"Error serving agent metadata: {e}")
+            return HttpResponse(
+                json.dumps({"error": "Failed to retrieve agent metadata"}),
+                status_code=500,
+                headers={"Content-Type": "application/json"},
+            )
 
-        @self.agent_app.route(
-            route="tasks/{task_id}",
-            auth_level=self.agent_app._auth_level,
-            methods=["GET"],
-        )
-        async def get_task(req: HttpRequest) -> HttpResponse:
-            """Get task status (A2A protocol)."""
-            return await self._handle_a2a_task_get(req)
+    async def handle_task_send(self, req: HttpRequest) -> HttpResponse:
+        """Handle A2A task send requests."""
+        return await self._handle_a2a_task_send(req, subscribe=False)
 
-        @self.agent_app.route(
-            route="tasks/{task_id}/cancel",
-            auth_level=self.agent_app._auth_level,
-            methods=["POST"],
-        )
-        async def cancel_task(req: HttpRequest) -> HttpResponse:
-            """Cancel a task (A2A protocol)."""
-            return await self._handle_a2a_task_cancel(req)
+    async def handle_task_subscribe(self, req: HttpRequest) -> HttpResponse:
+        """Handle A2A task subscribe requests."""
+        return await self._handle_a2a_task_send(req, subscribe=True)
+
+    async def handle_task_get(self, req: HttpRequest) -> HttpResponse:
+        """Handle A2A task status requests."""
+        return await self._handle_a2a_task_get(req)
+
+    async def handle_task_cancel(self, req: HttpRequest) -> HttpResponse:
+        """Handle A2A task cancellation requests."""
+        return await self._handle_a2a_task_cancel(req)
 
     async def _handle_a2a_task_send(
         self, req: HttpRequest, subscribe: bool = False

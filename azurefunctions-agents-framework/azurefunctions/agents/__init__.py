@@ -30,7 +30,11 @@ from .mcp import (
 )
 from .runner import Runner
 from .types import (
+    AgentCapabilities,
+    AgentCard,
     AgentMode,
+    AgentProvider,
+    AgentSkill,
     ChatMessage,
     LLMConfig,
     LLMProvider,
@@ -49,25 +53,30 @@ __all__ = [
     "TriggerType",
     "LLMConfig",
     "LLMProvider",
+    "MCPConfig",
     "ToolDefinition",
     "ChatMessage",
-    # Multi-Agent Handoff System
+    # A2A Types
+    "AgentCapabilities",
+    "AgentCard",
+    "AgentProvider",
+    "AgentSkill",
+    # Handoff System
+    "HandoffConfig",
     "HandoffMode",
     "HandoffStrategy",
-    "ControlReturn",
     "HandoffTarget",
-    "HandoffConfig",
     "HandoffRequest",
     "HandoffResult",
     "AgentResponse",
+    "ControlReturn",
     "ControlFlowManager",
     "HandoffEngine",
     # MCP Integration
-    "MCPConfig",
     "MCPServer",
     "MCPServerMode",
-    "MCPServerStdioParams",
     "MCPServerSseParams",
+    "MCPServerStdioParams",
     "MCPServerStreamableHttpParams",
     "MCPUtil",
 ]

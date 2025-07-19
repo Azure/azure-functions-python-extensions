@@ -51,11 +51,16 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
     - GET /api/agents - List all available agents
     - GET /api/health - System health check
 
-    A2A Mode (A2A):
-    - POST {agent_url} - JSON-RPC 2.0 endpoint (A2A spec compliance)
-    - GET /.well-known/agent.json - Agent Card discovery (A2A spec compliance)
-    - GET /api/agents - List all available agents
-    - GET /api/health - System health check
+    A2A Mode (A2A) - Specification Compliant:
+    - GET /.well-known/agent.json - Agent Card discovery (A2A spec)
+    - POST /tasks - Send task to agent (A2A spec)
+    - POST /tasks/subscribe - Subscribe to task notifications (A2A spec)
+    - GET /tasks/{task_id} - Get task status (A2A spec)
+    - POST /tasks/{task_id}/cancel - Cancel task (A2A spec)
+    - GET /api/agents - List agents (compatibility)
+    - GET /api/health - System health check (compatibility)
+    - POST /{agent_name}/chat - Chat endpoint (compatibility)
+    - GET /{agent_name}/info - Agent info (compatibility)
     """
 
     def __init__(
@@ -167,12 +172,56 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
     def _register_a2a_endpoints(self):
         """Register A2A protocol endpoints for single-agent A2A mode.
 
-        Note: Current implementation provides HTTP endpoints for compatibility.
-        True A2A compliance requires JSON-RPC 2.0 methods like message/send,
-        tasks/get, etc. posted to a single endpoint. This is handled by A2AManager.
+        Core is responsible for all Azure Functions HTTP trigger registration.
+        A2A Manager provides the business logic handlers.
         """
-        # A2A endpoints are registered by the A2AManager
-        # Standard agent endpoints are still available for compatibility
+        if not self.a2a_manager:
+            self.logger.error("A2A manager not initialized but A2A mode is active")
+            return
+
+        # Register core A2A specification endpoints
+        @self.route(
+            route=".well-known/agent.json",
+            auth_level=AuthLevel.ANONYMOUS,
+            methods=["GET"],
+        )
+        async def agent_metadata(req: HttpRequest) -> HttpResponse:
+            """Agent Card discovery endpoint (A2A spec)."""
+            return await self.a2a_manager.handle_agent_metadata(req)
+
+        @self.route(route="tasks", auth_level=self._auth_level, methods=["POST"])
+        async def send_task(req: HttpRequest) -> HttpResponse:
+            """Send task to agent (A2A spec)."""
+            return await self.a2a_manager.handle_task_send(req)
+
+        @self.route(
+            route="tasks/subscribe",
+            auth_level=self._auth_level,
+            methods=["POST"],
+        )
+        async def subscribe_task(req: HttpRequest) -> HttpResponse:
+            """Subscribe to task notifications (A2A spec)."""
+            return await self.a2a_manager.handle_task_subscribe(req)
+
+        @self.route(
+            route="tasks/{task_id}",
+            auth_level=self._auth_level,
+            methods=["GET"],
+        )
+        async def get_task(req: HttpRequest) -> HttpResponse:
+            """Get task status (A2A spec)."""
+            return await self.a2a_manager.handle_task_get(req)
+
+        @self.route(
+            route="tasks/{task_id}/cancel",
+            auth_level=self._auth_level,
+            methods=["POST"],
+        )
+        async def cancel_task(req: HttpRequest) -> HttpResponse:
+            """Cancel task (A2A spec)."""
+            return await self.a2a_manager.handle_task_cancel(req)
+
+        # Register compatibility endpoints for standard HTTP access
         agent_name = next(iter(self.agents.keys()))
 
         @self.route(
@@ -181,7 +230,7 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
             methods=["POST"],
         )
         async def agent_chat(req: HttpRequest) -> HttpResponse:
-            """Chat with the agent."""
+            """Chat with the agent (compatibility endpoint)."""
             agent = next(iter(self.agents.values()))
             return await self._handle_chat_request(agent, req)
 
@@ -191,7 +240,7 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
             methods=["GET"],
         )
         async def agent_info(req: HttpRequest) -> HttpResponse:
-            """Get agent information."""
+            """Get agent information (compatibility endpoint)."""
             agent = next(iter(self.agents.values()))
             return await self._handle_info_request(agent)
 
@@ -201,7 +250,7 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
             methods=["GET"],
         )
         async def list_agents_endpoint(req: HttpRequest) -> HttpResponse:
-            """List all available agents."""
+            """List all available agents (compatibility endpoint)."""
             return await self._handle_list_agents()
 
         @self.route(
@@ -214,7 +263,10 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
             return await self._handle_health_check()
 
         self.logger.info(
-            f"Registered A2A endpoints with unified routing for agent: {agent_name}"
+            f"Registered A2A protocol endpoints in Core with A2AManager handlers for agent: {agent_name}"
+        )
+        self.logger.info(
+            "A2A Protocol endpoints: /.well-known/agent.json, /tasks, /tasks/subscribe, /tasks/{task_id}, /tasks/{task_id}/cancel"
         )
 
     def _register_unified_endpoints(self):

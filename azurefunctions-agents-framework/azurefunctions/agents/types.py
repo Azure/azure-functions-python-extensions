@@ -112,7 +112,10 @@ MCPServer = Any  # Will be properly typed when importing from mcp module
 
 # A2A Protocol types (using SDK types as aliases)
 try:
+    from a2a.types import AgentCapabilities as SDKAgentCapabilities
     from a2a.types import AgentCard as SDKAgentCard
+    from a2a.types import AgentProvider as SDKAgentProvider
+    from a2a.types import AgentSkill as SDKAgentSkill
     from a2a.types import Task as SDKTask
     from a2a.types import TaskState as SDKTaskState
 
@@ -120,6 +123,9 @@ try:
     TaskState = SDKTaskState
     AgentCard = SDKAgentCard
     Task = SDKTask
+    AgentCapabilities = SDKAgentCapabilities
+    AgentProvider = SDKAgentProvider
+    AgentSkill = SDKAgentSkill
 
 except ImportError:
     # Fallback definitions if a2a-sdk is not available
@@ -131,11 +137,76 @@ except ImportError:
         CANCELLED = "cancelled"
 
     @dataclass
+    class AgentSkill:
+        """Represents a skill/capability that an agent can perform."""
+
+        name: str
+        description: str
+        parameters: Optional[Dict[str, Any]] = None
+        input_schema: Optional[Dict[str, Any]] = None
+        output_schema: Optional[Dict[str, Any]] = None
+
+    @dataclass
+    class AgentCapabilities:
+        """Represents the capabilities of an agent."""
+
+        skills: List["AgentSkill"] = field(default_factory=list)
+        supported_formats: List[str] = field(default_factory=lambda: ["text", "json"])
+        max_message_length: Optional[int] = None
+        supports_streaming: bool = False
+        supports_tools: bool = True
+
+    @dataclass
+    class AgentProvider:
+        """Information about the agent provider."""
+
+        name: str = "Azure Functions Agent Framework"
+        version: str = "1.0.0"
+        url: Optional[str] = None
+        contact: Optional[str] = None
+
+    @dataclass
     class AgentCard:
         name: str
         description: str
         version: str
-        url: str
+        provider: "AgentProvider"
+        capabilities: "AgentCapabilities"
+        endpoints: Dict[str, str] = field(default_factory=dict)
+        metadata: Optional[Dict[str, Any]] = None
+        url: Optional[str] = None  # Keep for backward compatibility
+
+        def to_dict(self) -> Dict[str, Any]:
+            """Convert agent card to dictionary format for JSON serialization."""
+            return {
+                "name": self.name,
+                "description": self.description,
+                "version": self.version,
+                "provider": {
+                    "name": self.provider.name,
+                    "version": self.provider.version,
+                    "url": self.provider.url,
+                    "contact": self.provider.contact,
+                },
+                "capabilities": {
+                    "skills": [
+                        {
+                            "name": skill.name,
+                            "description": skill.description,
+                            "parameters": skill.parameters,
+                            "input_schema": skill.input_schema,
+                            "output_schema": skill.output_schema,
+                        }
+                        for skill in self.capabilities.skills
+                    ],
+                    "supported_formats": self.capabilities.supported_formats,
+                    "max_message_length": self.capabilities.max_message_length,
+                    "supports_streaming": self.capabilities.supports_streaming,
+                    "supports_tools": self.capabilities.supports_tools,
+                },
+                "endpoints": self.endpoints,
+                "metadata": self.metadata,
+            }
 
     @dataclass
     class Task:
@@ -269,3 +340,7 @@ class MessageRequest:
 
 
 # Import handoff types for convenience
+
+
+# A2A Protocol Types (Agent-to-Agent)
+# These are imported from a2a SDK when available, or use fallback definitions above

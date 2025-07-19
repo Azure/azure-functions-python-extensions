@@ -18,7 +18,7 @@ class A2ATask:
     def __init__(self, task_id: str, input_data: Dict[str, Any]):
         """Initialize an A2A task."""
         self.id = task_id
-        self.state = TaskState.PENDING
+        self.state = TaskState.submitted
         self.input = input_data
         self.output: Optional[Dict[str, Any]] = None
         self.created_at = datetime.now(timezone.utc)
@@ -88,12 +88,12 @@ class A2ATaskManager:
             self.logger.error(f"Task {task_id} not found")
             return False
 
-        if task.state != TaskState.PENDING:
+        if task.state != TaskState.submitted:
             self.logger.warning(f"Task {task_id} is not in pending state")
             return False
 
         # Update task state to running
-        task.update_state(TaskState.RUNNING)
+        task.update_state(TaskState.working)
 
         try:
             # Execute the task in the background
@@ -102,7 +102,7 @@ class A2ATaskManager:
 
         except Exception as e:
             self.logger.error(f"Failed to start task execution for {task_id}: {e}")
-            task.update_state(TaskState.FAILED, error=str(e))
+            task.update_state(TaskState.failed, error=str(e))
             return False
 
     async def _execute_task_async(self, task: A2ATask, agent_app):
@@ -114,12 +114,12 @@ class A2ATaskManager:
             result = await agent_app._process_agent_request(task.input)
 
             # Update task with successful result
-            task.update_state(TaskState.COMPLETED, output=result)
+            task.update_state(TaskState.completed, output=result)
             self.logger.info(f"Task {task.id} completed successfully")
 
         except Exception as e:
             self.logger.error(f"Task {task.id} execution failed: {e}")
-            task.update_state(TaskState.FAILED, error=str(e))
+            task.update_state(TaskState.failed, error=str(e))
 
     def get_task(self, task_id: str) -> Optional[A2ATask]:
         """
@@ -148,14 +148,14 @@ class A2ATaskManager:
             self.logger.error(f"Task {task_id} not found")
             return False
 
-        if task.state in [TaskState.COMPLETED, TaskState.FAILED, TaskState.CANCELLED]:
+        if task.state in [TaskState.completed, TaskState.failed, TaskState.canceled]:
             self.logger.warning(
                 f"Task {task_id} is already in final state: {task.state}"
             )
             return False
 
         # Update task state to cancelled
-        task.update_state(TaskState.CANCELLED)
+        task.update_state(TaskState.canceled)
         self.logger.info(f"Task {task_id} cancelled")
         return True
 
@@ -196,15 +196,15 @@ class A2ATaskManager:
         }
 
         for task in self.tasks.values():
-            if task.state == TaskState.PENDING:
+            if task.state == TaskState.submitted:
                 stats["pending"] += 1
-            elif task.state == TaskState.RUNNING:
+            elif task.state == TaskState.working:
                 stats["running"] += 1
-            elif task.state == TaskState.COMPLETED:
+            elif task.state == TaskState.completed:
                 stats["completed"] += 1
-            elif task.state == TaskState.FAILED:
+            elif task.state == TaskState.failed:
                 stats["failed"] += 1
-            elif task.state == TaskState.CANCELLED:
+            elif task.state == TaskState.canceled:
                 stats["cancelled"] += 1
 
         return stats
@@ -222,7 +222,7 @@ class A2ATaskManager:
         for task_id, task in self.tasks.items():
             if (
                 task.state
-                in [TaskState.COMPLETED, TaskState.FAILED, TaskState.CANCELLED]
+                in [TaskState.completed, TaskState.failed, TaskState.canceled]
                 and task.updated_at < cutoff_time
             ):
                 tasks_to_remove.append(task_id)

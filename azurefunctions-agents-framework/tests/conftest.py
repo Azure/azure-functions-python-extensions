@@ -1,7 +1,7 @@
-"""Pytest configuration and shared fixtures for Azure Functions Agent Framework tests.
+"""Updated pytest configuration and shared fixtures for Azure Functions Agent Framework tests.
 
 This module provides shared pytest fixtures, configuration, and utilities
-used across all test modules.
+used across all test modules. Updated to match the current codebase structure.
 """
 
 import asyncio
@@ -17,11 +17,22 @@ from azurefunctions.agents import (
     AgentFunctionApp,
     LLMConfig,
     LLMProvider,
-    MCPServer,
-    MCPServerMode,
     Runner,
 )
-from azurefunctions.agents.types import ChatRequest, ChatResponse
+from azurefunctions.agents.types import (
+    AgentMode,
+    ChatMessage,
+    ChatRequest,
+    ChatResponse,
+    ToolDefinition,
+)
+from azurefunctions.agents.handoff import (
+    HandoffMode,
+    HandoffStrategy,
+    ControlReturn,
+    HandoffTarget,
+    HandoffConfig,
+)
 
 # ================================
 # Pytest Configuration
@@ -51,224 +62,45 @@ def pytest_collection_modifyitems(config, items):
 
 
 # ================================
-# Environment and Setup Fixtures
-# ================================
-
-
-@pytest.fixture(scope="session")
-def test_environment():
-    """Set up test environment variables."""
-    test_env = {
-        "PYTEST_CURRENT_TEST": "true",
-        "TEST_MODE": "unit",
-        "OPENAI_API_KEY": "test-openai-key",
-        "ANTHROPIC_API_KEY": "test-anthropic-key",
-        "GOOGLE_API_KEY": "test-google-key",
-    }
-
-    # Set environment variables for testing
-    for key, value in test_env.items():
-        os.environ[key] = value
-
-    yield test_env
-
-    # Cleanup - restore original environment
-    for key in test_env.keys():
-        if key in os.environ:
-            del os.environ[key]
-
-
-@pytest.fixture
-def event_loop():
-    """Create an instance of the default event loop for the test session."""
-    loop = asyncio.new_event_loop()
-    yield loop
-    loop.close()
-
-
-# ================================
-# Mock Fixtures
-# ================================
-
-
-@pytest.fixture
-def mock_llm_response():
-    """Mock LLM response for testing."""
-    return {
-        "content": "Hello! I'm a test response from the AI agent.",
-        "role": "assistant",
-        "finish_reason": "stop",
-        "usage": {"prompt_tokens": 10, "completion_tokens": 12, "total_tokens": 22},
-    }
-
-
-@pytest.fixture
-def mock_openai_client():
-    """Mock OpenAI client for testing."""
-    mock_client = Mock()
-    mock_response = Mock()
-    mock_response.choices = [Mock()]
-    mock_response.choices[0].message.content = "Test response from OpenAI"
-    mock_response.choices[0].finish_reason = "stop"
-    mock_response.usage.prompt_tokens = 10
-    mock_response.usage.completion_tokens = 12
-    mock_response.usage.total_tokens = 22
-
-    mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
-    return mock_client
-
-
-@pytest.fixture
-def mock_anthropic_client():
-    """Mock Anthropic client for testing."""
-    mock_client = Mock()
-    mock_response = Mock()
-    mock_response.content = [Mock()]
-    mock_response.content[0].text = "Test response from Claude"
-    mock_response.stop_reason = "end_turn"
-    mock_response.usage.input_tokens = 10
-    mock_response.usage.output_tokens = 12
-
-    mock_client.messages.create = AsyncMock(return_value=mock_response)
-    return mock_client
-
-
-@pytest.fixture
-def mock_google_client():
-    """Mock Google Gemini client for testing."""
-    mock_client = Mock()
-    mock_response = Mock()
-    mock_response.text = "Test response from Gemini"
-    mock_response.candidates = [Mock()]
-    mock_response.candidates[0].finish_reason = "STOP"
-
-    mock_client.generate_content = AsyncMock(return_value=mock_response)
-    return mock_client
-
-
-@pytest.fixture
-def mock_azure_functions_context():
-    """Mock Azure Functions context for testing."""
-    mock_context = Mock()
-    mock_context.invocation_id = "test-invocation-id"
-    mock_context.function_name = "test-function"
-    mock_context.function_directory = "/test/function/dir"
-    mock_context.trace_context = Mock()
-    mock_context.retry_context = Mock()
-    return mock_context
-
-
-@pytest.fixture
-def mock_http_request():
-    """Mock Azure Functions HTTP request for testing."""
-    mock_request = Mock()
-    mock_request.method = "POST"
-    mock_request.url = "http://localhost:7071/api/test"
-    mock_request.headers = {"Content-Type": "application/json"}
-    mock_request.get_json.return_value = {"message": "Test message"}
-    mock_request.get_body.return_value = b'{"message": "Test message"}'
-    return mock_request
-
-
-# ================================
-# Configuration Fixtures
+# Core Fixtures
 # ================================
 
 
 @pytest.fixture
 def mock_llm_config():
-    """Mock LLM configuration for testing."""
+    """Provide a mock LLM configuration for testing."""
     return LLMConfig(
         provider=LLMProvider.OPENAI,
-        model_name="gpt-4",
+        model_name="gpt-3.5-turbo",
         api_key="test-api-key",
-        api_base="http://localhost:8000",  # For testing
         temperature=0.7,
-        max_tokens=1000,
+        max_tokens=150,
     )
 
 
 @pytest.fixture
-def anthropic_llm_config():
-    """Anthropic LLM configuration for testing."""
+def mock_azure_openai_config():
+    """Provide a mock Azure OpenAI configuration for testing."""
+    return LLMConfig(
+        provider=LLMProvider.AZURE_OPENAI,
+        model_name="gpt-35-turbo",
+        api_key="test-api-key",
+        azure_endpoint="https://test.openai.azure.com/",
+        azure_deployment="gpt-35-turbo",
+        api_version="2023-05-15",
+    )
+
+
+@pytest.fixture
+def mock_anthropic_config():
+    """Provide a mock Anthropic configuration for testing."""
     return LLMConfig(
         provider=LLMProvider.ANTHROPIC,
         model_name="claude-3-sonnet-20240229",
         api_key="test-anthropic-key",
         temperature=0.7,
-        max_tokens=1000,
+        max_tokens=150,
     )
-
-
-@pytest.fixture
-def google_llm_config():
-    """Google Gemini LLM configuration for testing."""
-    return LLMConfig(
-        provider=LLMProvider.GOOGLE,
-        model_name="gemini-pro",
-        api_key="test-google-key",
-        temperature=0.7,
-        max_tokens=1000,
-    )
-
-
-# ================================
-# Tool Fixtures
-# ================================
-
-
-@pytest.fixture
-def sample_tool():
-    """Sample tool function for testing."""
-
-    def get_weather(location: str) -> str:
-        """Get weather for a location."""
-        return f"The weather in {location} is sunny and 72°F."
-
-    return get_weather
-
-
-@pytest.fixture
-def async_sample_tool():
-    """Sample async tool function for testing."""
-
-    async def get_weather_async(location: str) -> str:
-        """Get weather for a location asynchronously."""
-        await asyncio.sleep(0.1)  # Simulate async operation
-        return f"The weather in {location} is sunny and 72°F."
-
-    return get_weather_async
-
-
-@pytest.fixture
-def sample_tool_with_complex_params():
-    """Sample tool with complex parameters for testing."""
-
-    def search_flights(
-        origin: str,
-        destination: str,
-        departure_date: str,
-        return_date: Optional[str] = None,
-        passengers: int = 1,
-        class_type: str = "economy",
-    ) -> Dict[str, Any]:
-        """Search for flights with complex parameters."""
-        return {
-            "flights": [
-                {
-                    "origin": origin,
-                    "destination": destination,
-                    "departure_date": departure_date,
-                    "return_date": return_date,
-                    "passengers": passengers,
-                    "class": class_type,
-                    "price": 450.00,
-                    "flight_number": "AA123",
-                }
-            ]
-        }
-
-    return search_flights
 
 
 # ================================
@@ -278,82 +110,159 @@ def sample_tool_with_complex_params():
 
 @pytest.fixture
 def basic_agent(mock_llm_config):
-    """Basic agent for testing."""
-    return Agent(
-        name="TestAgent",
-        instructions="You are a helpful test agent.",
+    """Create a basic agent for testing."""
+    agent = Agent(
+        name="basic_agent",
+        instructions="You are a helpful assistant for testing.",
         llm_config=mock_llm_config,
+        version="1.0.0",
     )
+    # Replace the llm_client with a mock to avoid HTTP client issues
+    # Configure the mock to not cause async warnings
+    mock_client = AsyncMock()
+    mock_client.aclose = AsyncMock()
+    mock_client.chat_completion = AsyncMock(return_value={"response": "Mock response"})
+    agent.llm_client = mock_client
+    return agent
 
 
 @pytest.fixture
-def agent_with_tools(mock_llm_config, sample_tool, async_sample_tool):
-    """Agent with tools for testing."""
-    return Agent(
-        name="AgentWithTools",
-        instructions="You are a test agent with tools.",
-        tools=[sample_tool, async_sample_tool],
-        llm_config=mock_llm_config,
-    )
+def weather_agent(mock_llm_config):
+    """Create a weather agent with tools for testing."""
 
+    def get_weather(city: str) -> str:
+        """Get weather for a city."""
+        return f"The weather in {city} is sunny, 72°F"
 
-@pytest.fixture
-def weather_agent(mock_llm_config, sample_tool):
-    """Weather agent for testing."""
-
-    def get_weather(location: str) -> str:
-        """Get current weather for a location."""
-        return f"Weather in {location}: Sunny, 72°F"
-
-    def get_forecast(location: str, days: int = 3) -> str:
-        """Get weather forecast for a location."""
-        return f"{days}-day forecast for {location}: Mostly sunny"
-
-    return Agent(
-        name="WeatherAgent",
-        instructions="You provide weather information and forecasts.",
-        tools=[get_weather, get_forecast],
-        llm_config=mock_llm_config,
-    )
-
-
-@pytest.fixture
-def travel_agent(mock_llm_config, sample_tool_with_complex_params):
-    """Travel agent for testing."""
-
-    def book_hotel(location: str, checkin: str, nights: int = 1) -> Dict[str, Any]:
-        """Book a hotel reservation."""
-        return {
-            "reservation_id": "HTL123",
-            "hotel": f"Test Hotel in {location}",
-            "checkin": checkin,
-            "nights": nights,
-            "total_cost": 150.00 * nights,
+    weather_tool = ToolDefinition(
+        name="get_weather",
+        description="Get current weather for a city",
+        function=get_weather,
+        parameters={
+            "type": "object",
+            "properties": {
+                "city": {"type": "string", "description": "The city to get weather for"}
+            },
+            "required": ["city"]
         }
+    )
 
-    return Agent(
-        name="TravelAgent",
-        instructions="You help with travel planning and bookings.",
-        tools=[sample_tool_with_complex_params, book_hotel],
+    agent = Agent(
+        name="weather_agent",
+        instructions="You are a weather assistant. Use the get_weather tool to provide weather information.",
+        tools=[weather_tool],
         llm_config=mock_llm_config,
+        version="1.0.0",
+    )
+    # Replace the llm_client with a mock to avoid HTTP client issues
+    mock_client = AsyncMock()
+    mock_client.aclose = AsyncMock()
+    mock_client.chat_completion = AsyncMock(return_value={"response": "Mock weather response"})
+    agent.llm_client = mock_client
+    return agent
+
+
+@pytest.fixture
+def calculator_agent(mock_llm_config):
+    """Create a calculator agent with math tools for testing."""
+
+    def add_numbers(a: float, b: float) -> float:
+        """Add two numbers."""
+        return a + b
+
+    def multiply_numbers(a: float, b: float) -> float:
+        """Multiply two numbers."""
+        return a * b
+
+    add_tool = ToolDefinition(
+        name="add_numbers",
+        description="Add two numbers together",
+        function=add_numbers,
+        parameters={
+            "type": "object",
+            "properties": {
+                "a": {"type": "number", "description": "First number"},
+                "b": {"type": "number", "description": "Second number"},
+            },
+            "required": ["a", "b"]
+        }
+    )
+
+    multiply_tool = ToolDefinition(
+        name="multiply_numbers",
+        description="Multiply two numbers",
+        function=multiply_numbers,
+        parameters={
+            "type": "object",
+            "properties": {
+                "a": {"type": "number", "description": "First number"},
+                "b": {"type": "number", "description": "Second number"},
+            },
+            "required": ["a", "b"]
+        }
+    )
+
+    agent = Agent(
+        name="calculator_agent",
+        instructions="You are a calculator assistant. Use the available math tools to perform calculations.",
+        tools=[add_tool, multiply_tool],
+        llm_config=mock_llm_config,
+        version="1.0.0",
+    )
+    # Replace the llm_client with a mock to avoid HTTP client issues
+    mock_client = AsyncMock()
+    mock_client.aclose = AsyncMock()
+    mock_client.chat_completion = AsyncMock(return_value={"response": "Mock calculation response"})
+    agent.llm_client = mock_client
+    return agent
+
+
+# ================================
+# Tool Fixtures
+# ================================
+
+
+@pytest.fixture
+def sample_tool():
+    """Create a sample tool for testing."""
+    def sample_function(input_text: str) -> str:
+        """A sample function that returns processed text."""
+        return f"Processed: {input_text}"
+
+    return ToolDefinition(
+        name="sample_tool",
+        description="A sample tool for testing",
+        function=sample_function,
+        parameters={
+            "type": "object",
+            "properties": {
+                "input_text": {"type": "string", "description": "Text to process"}
+            },
+            "required": ["input_text"]
+        }
     )
 
 
-# ================================
-# Runner Fixtures
-# ================================
-
-
 @pytest.fixture
-def basic_runner(basic_agent):
-    """Basic runner for testing."""
-    return Runner(basic_agent)
+def async_tool():
+    """Create an async tool for testing."""
+    async def async_function(data: str) -> str:
+        """An async function for testing."""
+        await asyncio.sleep(0.01)  # Simulate async work
+        return f"Async result: {data}"
 
-
-@pytest.fixture
-def weather_runner(weather_agent):
-    """Weather agent runner for testing."""
-    return Runner(weather_agent)
+    return ToolDefinition(
+        name="async_tool",
+        description="An async tool for testing",
+        function=async_function,
+        parameters={
+            "type": "object",
+            "properties": {
+                "data": {"type": "string", "description": "Data to process"}
+            },
+            "required": ["data"]
+        }
+    )
 
 
 # ================================
@@ -363,16 +272,52 @@ def weather_runner(weather_agent):
 
 @pytest.fixture
 def single_agent_app(basic_agent):
-    """Single agent function app for testing."""
-    return AgentFunctionApp(agents={"TestAgent": basic_agent})
+    """Create a single-agent function app for testing."""
+    return AgentFunctionApp(
+        agents=[basic_agent],
+        mode=AgentMode.AZURE_FUNCTION_AGENT,
+        create_triggers=False  # Don't create HTTP triggers in tests
+    )
 
 
 @pytest.fixture
-def multi_agent_app(weather_agent, travel_agent):
-    """Multi-agent function app for testing."""
+def multi_agent_app(basic_agent, weather_agent, calculator_agent):
+    """Create a multi-agent function app for testing."""
     return AgentFunctionApp(
-        agents={"WeatherAgent": weather_agent, "TravelAgent": travel_agent}
+        agents=[basic_agent, weather_agent, calculator_agent],
+        mode=AgentMode.AZURE_FUNCTION_AGENT,
+        create_triggers=False  # Don't create HTTP triggers in tests
     )
+
+
+# ================================
+# Runner Fixtures
+# ================================
+
+
+@pytest.fixture
+async def basic_runner_async(basic_agent):
+    """Create a basic runner for testing with proper async cleanup."""
+    runner = Runner(basic_agent)
+    yield runner
+    # Cleanup: ensure any pending async operations are properly handled
+    if hasattr(runner.agent, 'llm_client') and hasattr(runner.agent.llm_client, 'aclose'):
+        try:
+            await runner.agent.llm_client.aclose()
+        except:
+            pass
+
+
+@pytest.fixture
+def basic_runner(basic_agent):
+    """Create a basic runner for testing."""
+    return Runner(basic_agent)
+
+
+@pytest.fixture
+def weather_runner(weather_agent):
+    """Create a weather runner for testing."""
+    return Runner(weather_agent)
 
 
 # ================================
@@ -382,161 +327,277 @@ def multi_agent_app(weather_agent, travel_agent):
 
 @pytest.fixture
 def sample_chat_request():
-    """Sample chat request for testing."""
+    """Create a sample chat request for testing."""
     return ChatRequest(
         message="Hello, how are you?",
-        user_id="test-user-123",
-        session_id="test-session-456",
-        context={"timezone": "UTC", "language": "en"},
+        session_id="test_session_123"
+    )
+
+
+@pytest.fixture
+def sample_messages_request():
+    """Create a sample messages-based chat request for testing."""
+    return ChatRequest(
+        messages=[
+            ChatMessage(role="user", content="What's the weather like?"),
+        ],
+        session_id="test_session_456"
     )
 
 
 @pytest.fixture
 def sample_chat_response():
-    """Sample chat response for testing."""
+    """Create a sample chat response for testing."""
     return ChatResponse(
         response="Hello! I'm doing well, thank you for asking.",
-        agent_name="TestAgent",
-        success=True,
-        context={"processed_at": "2024-01-01T00:00:00Z"},
+        status="success"
     )
 
 
 # ================================
-# MCP Fixtures
+# Mock Fixtures
 # ================================
 
 
 @pytest.fixture
-def mock_mcp_server():
-    """Mock MCP server for testing."""
-    from azurefunctions.agents.mcp.types import MCPServerSseParams
-
-    return MCPServer(
-        name="TestMCPServer",
-        mode=MCPServerMode.SSE,
-        params=MCPServerSseParams(
-            url="http://localhost:8080/test-mcp", timeout=5.0, sse_read_timeout=30.0
-        ),
-    )
+def mock_llm_client():
+    """Create a mock LLM client for testing."""
+    mock_client = Mock()
+    mock_client.generate_response = AsyncMock(return_value="Mock LLM response")
+    return mock_client
 
 
 @pytest.fixture
-def mock_mcp_tools():
-    """Mock MCP tools for testing."""
-    return [
-        {
-            "name": "mcp_weather",
-            "description": "Get weather from MCP server",
-            "inputSchema": {
-                "type": "object",
-                "properties": {"location": {"type": "string"}},
-                "required": ["location"],
-            },
-        },
-        {
-            "name": "mcp_calculator",
-            "description": "Perform calculations via MCP server",
-            "inputSchema": {
-                "type": "object",
-                "properties": {"expression": {"type": "string"}},
-                "required": ["expression"],
-            },
-        },
-    ]
+def mock_http_request():
+    """Create a mock Azure Functions HttpRequest for testing."""
+    mock_request = Mock()
+    mock_request.get_json.return_value = {"message": "Test message"}
+    mock_request.route_params = {"agent_name": "test_agent"}
+    return mock_request
 
 
 # ================================
-# Handoff Fixtures
+# Environment Setup
 # ================================
 
 
-@pytest.fixture
-def handoff_weather_agent(mock_llm_config):
-    """Weather agent configured for handoff testing."""
-    from azurefunctions.agents.handoff import HandoffConfig, HandoffMode, HandoffTarget
+@pytest.fixture(autouse=True)
+def setup_test_environment():
+    """Set up test environment variables."""
+    # Set test environment variables
+    os.environ["AZURE_FUNCTIONS_ENVIRONMENT"] = "test"
 
-    return Agent(
-        name="weather",
-        instructions="You provide weather information",
-        llm_config=mock_llm_config,
-        handoff_config=HandoffConfig(
-            mode=HandoffMode.SWARM,
-            targets=[HandoffTarget(agent_name="temperature_converter")],
-        ),
-    )
+    # Clear any API keys to prevent accidental real API calls
+    test_env_vars = {
+        "OPENAI_API_KEY": "",
+        "ANTHROPIC_API_KEY": "",
+        "GOOGLE_API_KEY": "",
+        "AZURE_OPENAI_API_KEY": "",
+        "AZURE_OPENAI_ENDPOINT": "",
+    }
 
+    # Store original values
+    original_values = {}
+    for key, value in test_env_vars.items():
+        original_values[key] = os.environ.get(key)
+        os.environ[key] = value
 
-@pytest.fixture
-def handoff_temp_agent(mock_llm_config):
-    """Temperature converter agent for handoff testing."""
-    from azurefunctions.agents.handoff import HandoffConfig, HandoffMode, HandoffTarget
+    yield
 
-    def convert_temperature(celsius: float, target_unit: str = "fahrenheit") -> str:
-        """Convert temperature between units."""
-        if target_unit.lower() == "fahrenheit":
-            fahrenheit = (celsius * 9 / 5) + 32
-            return f"{celsius}°C = {fahrenheit}°F"
-        elif target_unit.lower() == "celsius":
-            return f"{celsius}°C"
-        else:
-            return f"Unknown unit: {target_unit}"
-
-    return Agent(
-        name="temperature_converter",
-        instructions="You convert temperatures between units",
-        tools=[convert_temperature],
-        llm_config=mock_llm_config,
-        handoff_config=HandoffConfig(
-            mode=HandoffMode.SWARM, targets=[HandoffTarget(agent_name="weather")]
-        ),
-    )
+    # Restore original values
+    for key, original_value in original_values.items():
+        if original_value is not None:
+            os.environ[key] = original_value
+        elif key in os.environ:
+            del os.environ[key]
 
 
 # ================================
-# Utility Fixtures
+# Skip Conditions
 # ================================
 
 
 @pytest.fixture
-def temp_file(tmp_path):
-    """Create a temporary file for testing."""
-    test_file = tmp_path / "test_file.txt"
-    test_file.write_text("Test content")
-    return test_file
+def skip_if_no_openai_key():
+    """Skip test if OpenAI API key is not available."""
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key or api_key.strip() == "":
+        pytest.skip("OpenAI API key not available")
 
 
 @pytest.fixture
-def mock_logger():
-    """Mock logger for testing."""
-    return Mock()
+def skip_if_no_anthropic_key():
+    """Skip test if Anthropic API key is not available."""
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key or api_key.strip() == "":
+        pytest.skip("Anthropic API key not available")
+
+
+# ================================
+# Async Helper Fixtures
+# ================================
 
 
 @pytest.fixture
-def sample_json_data():
-    """Sample JSON data for testing."""
+def event_loop():
+    """Create an event loop for async tests."""
+    loop = asyncio.new_event_loop()
+    yield loop
+    loop.close()
+
+
+# ================================
+# Test Data Fixtures
+# ================================
+
+
+@pytest.fixture
+def sample_tool_call():
+    """Sample tool call data for testing."""
     return {
-        "test_key": "test_value",
-        "nested": {"key": "value", "list": [1, 2, 3]},
-        "boolean": True,
-        "number": 42,
+        "id": "call_123",
+        "type": "function",
+        "function": {
+            "name": "get_weather",
+            "arguments": '{"city": "San Francisco"}'
+        }
+    }
+
+
+@pytest.fixture
+def sample_agent_info():
+    """Sample agent info for testing."""
+    return {
+        "name": "test_agent",
+        "description": "A test agent",
+        "version": "1.0.0",
+        "tools": [
+            {
+                "name": "sample_tool",
+                "description": "A sample tool",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "input": {"type": "string"}
+                    }
+                }
+            }
+        ]
     }
 
 
 # ================================
-# Async Testing Utilities
+# Additional Fixtures for Tests
 # ================================
+
+@pytest.fixture
+def async_sample_tool():
+    """Create an async sample tool for testing."""
+    async def async_sample_function(input_text: str) -> str:
+        """An async sample function that returns processed text."""
+        await asyncio.sleep(0.01)  # Simulate async work
+        return f"Async processed: {input_text}"
+
+    return ToolDefinition(
+        name="async_sample_tool",
+        description="An async sample tool for testing",
+        function=async_sample_function,
+        parameters={
+            "type": "object",
+            "properties": {
+                "input_text": {"type": "string", "description": "Text to process"}
+            },
+            "required": ["input_text"]
+        }
+    )
 
 
 @pytest.fixture
-def run_async():
-    """Utility to run async functions in tests."""
+def sample_tool_with_complex_params():
+    """Create a tool with complex parameters for testing."""
+    def complex_function(text: str, options: Dict[str, Any], count: int = 1) -> str:
+        """A function with complex parameters."""
+        return f"Complex result: {text} with {options} repeated {count} times"
 
-    def _run_async(coro):
-        loop = asyncio.new_event_loop()
-        try:
-            return loop.run_until_complete(coro)
-        finally:
-            loop.close()
+    return ToolDefinition(
+        name="complex_tool",
+        description="A tool with complex parameters",
+        function=complex_function,
+        parameters={
+            "type": "object",
+            "properties": {
+                "text": {"type": "string", "description": "Input text"},
+                "options": {
+                    "type": "object",
+                    "description": "Configuration options",
+                    "properties": {
+                        "format": {"type": "string", "enum": ["json", "xml", "plain"]},
+                        "include_metadata": {"type": "boolean", "default": False}
+                    }
+                },
+                "count": {"type": "integer", "minimum": 1, "default": 1}
+            },
+            "required": ["text", "options"]
+        }
+    )
 
-    return _run_async
+
+@pytest.fixture
+def anthropic_llm_config():
+    """Provide an Anthropic LLM configuration for testing."""
+    return LLMConfig(
+        provider=LLMProvider.ANTHROPIC,
+        model_name="claude-3-sonnet-20240229",
+        api_key="test-anthropic-key",
+        temperature=0.7,
+        max_tokens=150,
+    )
+
+
+@pytest.fixture
+def mock_mcp_server():
+    """Create a mock MCP server for testing."""
+    mock_server = Mock()
+    mock_server.name = "test_mcp_server"
+    mock_server.connect = AsyncMock()
+    mock_server.list_tools = AsyncMock(return_value=[
+        {"name": "mcp_tool", "description": "A test MCP tool"}
+    ])
+    mock_server.call_tool = AsyncMock(return_value="MCP tool result")
+    return mock_server
+
+
+@pytest.fixture
+def travel_agent(mock_llm_config):
+    """Create a travel agent for testing."""
+    def book_flight(destination: str, departure_date: str) -> str:
+        """Book a flight to a destination."""
+        return f"Flight booked to {destination} on {departure_date}"
+
+    flight_tool = ToolDefinition(
+        name="book_flight",
+        description="Book a flight to a destination",
+        function=book_flight,
+        parameters={
+            "type": "object",
+            "properties": {
+                "destination": {"type": "string", "description": "The destination city"},
+                "departure_date": {"type": "string", "description": "Departure date"}
+            },
+            "required": ["destination", "departure_date"]
+        }
+    )
+
+    agent = Agent(
+        name="travel_agent",
+        instructions="You are a travel booking assistant.",
+        tools=[flight_tool],
+        llm_config=mock_llm_config,
+        version="1.0.0",
+    )
+    # Replace the llm_client with a mock to avoid HTTP client issues
+    mock_client = AsyncMock()
+    mock_client.aclose = AsyncMock()
+    mock_client.chat_completion = AsyncMock(return_value={"response": "Mock travel response"})
+    agent.llm_client = mock_client
+    return agent

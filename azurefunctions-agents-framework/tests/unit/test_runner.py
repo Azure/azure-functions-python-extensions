@@ -157,7 +157,7 @@ class TestRunnerResponseCreation:
         }
 
         # Act
-        response = basic_runner._create_response(response_data)
+        response = basic_runner._create_response({"response": response_data})
 
         # Assert
         # Note: This test depends on the _create_response implementation
@@ -169,7 +169,7 @@ class TestRunnerResponseCreation:
         response_data = "Simple string response"
 
         # Act
-        response = basic_runner._create_response(response_data)
+        response = basic_runner._create_response({"response": response_data})
 
         # Assert
         assert hasattr(response, "response") or hasattr(response, "content")
@@ -184,7 +184,7 @@ class TestRunnerResponseCreation:
         }
 
         # Act
-        response = basic_runner._create_response(response_data)
+        response = basic_runner._create_response({"response": response_data})
 
         # Assert
         # Response should contain error information
@@ -430,8 +430,12 @@ class TestRunnerHandoffIntegration:
             "context": {"user_id": "test_user"},
         }
 
-        # Mock handoff engine
-        mock_result = {"response": "Weather data", "success": True}
+        # Mock handoff engine with proper HandoffResult
+        mock_result = Mock()
+        mock_result.success = True
+        mock_result.response = {"response": "Weather data"}
+        mock_result.error = None
+
         basic_runner.handoff_engine.execute_handoff = AsyncMock(
             return_value=mock_result
         )
@@ -446,7 +450,8 @@ class TestRunnerHandoffIntegration:
             )
 
             # Assert
-            assert result == mock_result
+            assert result.response == "Weather data"
+            assert result.status == "success"
 
 
 class TestRunnerErrorHandling:
@@ -502,7 +507,12 @@ class TestRunnerErrorHandling:
         """Test run with empty response from agent."""
         # Arrange
         request = "Empty response test"
-        basic_runner.agent.process_request = AsyncMock(return_value={})
+
+        # Create a proper async mock that returns an empty dict
+        async def mock_process_request(req_data):
+            return {}
+
+        basic_runner.agent.process_request = mock_process_request
 
         # Act
         response = await basic_runner.run(request)
@@ -555,7 +565,7 @@ class TestRunnerConcurrency:
         # Assert
         assert len(responses) == 5
         for i, response in enumerate(responses):
-            assert response["response"] == f"Response {i}"
+            assert hasattr(response, "response") and response.response == f"Response {i}"
 
     @pytest.mark.asyncio
     async def test_runner_state_isolation(self, basic_runner):

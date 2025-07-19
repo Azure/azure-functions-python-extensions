@@ -14,7 +14,7 @@ from azurefunctions.agents.model_providers.azure_openai_provider import (
 from azurefunctions.agents.model_providers.base import BaseLLMProvider
 from azurefunctions.agents.model_providers.client import LLMClient
 from azurefunctions.agents.model_providers.openai_provider import OpenAIProvider
-from azurefunctions.agents.types import LLMConfig, LLMProvider
+from azurefunctions.agents.types import ChatMessage, LLMConfig, LLMProvider
 
 
 class TestBaseLLMProvider:
@@ -28,8 +28,8 @@ class TestBaseLLMProvider:
     def test_base_provider_abstract_methods(self):
         """Test that BaseLLMProvider defines abstract methods."""
         # Check that the abstract methods exist
-        assert hasattr(BaseLLMProvider, "generate_response")
-        assert hasattr(BaseLLMProvider, "generate_response_async")
+        assert hasattr(BaseLLMProvider, "chat_completion")
+        assert hasattr(BaseLLMProvider, "stream_completion")
 
 
 class TestLLMClient:
@@ -42,10 +42,13 @@ class TestLLMClient:
         )
 
         with patch(
-            "azurefunctions.agents.model_providers.client.OpenAIProvider"
-        ) as mock_provider:
+            "azurefunctions.agents.model_providers.client._import_openai_provider"
+        ) as mock_import:
+            mock_provider_class = Mock()
+            mock_import.return_value = mock_provider_class
+
             LLMClient(config)
-            mock_provider.assert_called_once_with(config)
+            mock_provider_class.assert_called_once_with(config)
 
     def test_llm_client_azure_openai_provider_creation(self):
         """Test LLMClient creates Azure OpenAI provider correctly."""
@@ -58,10 +61,13 @@ class TestLLMClient:
         )
 
         with patch(
-            "azurefunctions.agents.model_providers.client.AzureOpenAIProvider"
-        ) as mock_provider:
+            "azurefunctions.agents.model_providers.client._import_azure_openai_provider"
+        ) as mock_import:
+            mock_provider_class = Mock()
+            mock_import.return_value = mock_provider_class
+
             LLMClient(config)
-            mock_provider.assert_called_once_with(config)
+            mock_provider_class.assert_called_once_with(config)
 
     def test_llm_client_anthropic_provider_creation(self):
         """Test LLMClient creates Anthropic provider correctly."""
@@ -72,10 +78,13 @@ class TestLLMClient:
         )
 
         with patch(
-            "azurefunctions.agents.model_providers.client.AnthropicProvider"
-        ) as mock_provider:
+            "azurefunctions.agents.model_providers.client._import_anthropic_provider"
+        ) as mock_import:
+            mock_provider_class = Mock()
+            mock_import.return_value = mock_provider_class
+
             LLMClient(config)
-            mock_provider.assert_called_once_with(config)
+            mock_provider_class.assert_called_once_with(config)
 
     def test_llm_client_google_provider_creation(self):
         """Test LLMClient creates Google provider correctly."""
@@ -84,10 +93,13 @@ class TestLLMClient:
         )
 
         with patch(
-            "azurefunctions.agents.model_providers.client.GoogleProvider"
-        ) as mock_provider:
+            "azurefunctions.agents.model_providers.client._import_google_provider"
+        ) as mock_import:
+            mock_provider_class = Mock()
+            mock_import.return_value = mock_provider_class
+
             LLMClient(config)
-            mock_provider.assert_called_once_with(config)
+            mock_provider_class.assert_called_once_with(config)
 
     def test_llm_client_unsupported_provider(self):
         """Test LLMClient handles unsupported provider."""
@@ -98,46 +110,53 @@ class TestLLMClient:
         with pytest.raises((ValueError, AttributeError)):
             LLMClient(config)
 
-    def test_llm_client_generate_response_delegation(self):
-        """Test that LLMClient delegates generate_response to provider."""
+    @pytest.mark.asyncio
+    async def test_llm_client_chat_completion_delegation(self):
+        """Test that LLMClient delegates chat_completion to provider."""
         config = LLMConfig(
             provider=LLMProvider.OPENAI, model_name="gpt-4", api_key="test-key"
         )
 
         mock_provider = Mock()
-        mock_provider.generate_response.return_value = "Test response"
+        mock_provider.chat_completion = AsyncMock(return_value={"message": {"content": "Test response"}})
 
         with patch(
-            "azurefunctions.agents.model_providers.client.OpenAIProvider",
-            return_value=mock_provider,
+            "azurefunctions.agents.model_providers.client._import_openai_provider",
+            return_value=Mock(return_value=mock_provider)
         ):
             client = LLMClient(config)
-            response = client.generate_response("Test prompt")
+            messages = [ChatMessage(role="user", content="Test prompt")]
+            response = await client.chat_completion(messages)
 
-            mock_provider.generate_response.assert_called_once_with("Test prompt")
-            assert response == "Test response"
+            mock_provider.chat_completion.assert_called_once_with(messages=messages, tools=None, tool_choice=None)
+            assert response["message"]["content"] == "Test response"
 
     @pytest.mark.asyncio
-    async def test_llm_client_generate_response_async_delegation(self):
-        """Test that LLMClient delegates generate_response_async to provider."""
+    async def test_llm_client_stream_completion_delegation(self):
+        """Test that LLMClient delegates stream_completion to provider."""
         config = LLMConfig(
             provider=LLMProvider.OPENAI, model_name="gpt-4", api_key="test-key"
         )
 
+        async def mock_stream(*args, **kwargs):
+            yield {"delta": {"content": "Test"}}
+            yield {"delta": {"content": " response"}}
+
         mock_provider = Mock()
-        mock_provider.generate_response_async = AsyncMock(
-            return_value="Async test response"
-        )
+        mock_provider.stream_completion = mock_stream
 
         with patch(
-            "azurefunctions.agents.model_providers.client.OpenAIProvider",
-            return_value=mock_provider,
+            "azurefunctions.agents.model_providers.client._import_openai_provider",
+            return_value=Mock(return_value=mock_provider)
         ):
             client = LLMClient(config)
-            response = await client.generate_response_async("Test prompt")
+            messages = [ChatMessage(role="user", content="Test prompt")]
 
-            mock_provider.generate_response_async.assert_called_once_with("Test prompt")
-            assert response == "Async test response"
+            # Consume the stream to verify it works
+            chunks = []
+            async for chunk in client.stream_completion(messages):
+                chunks.append(chunk)
+            assert len(chunks) == 2
 
 
 class TestOpenAIProvider:
@@ -155,7 +174,7 @@ class TestOpenAIProvider:
         )
 
         with patch(
-            "azurefunctions.agents.model_providers.openai_provider.OpenAI"
+            "azurefunctions.agents.model_providers.openai_provider.AsyncOpenAI"
         ) as mock_openai:
             OpenAIProvider(config)
 
@@ -172,7 +191,7 @@ class TestOpenAIProvider:
             # No api_key provided
         )
 
-        with patch("azurefunctions.agents.model_providers.openai_provider.OpenAI"):
+        with patch("azurefunctions.agents.model_providers.openai_provider.AsyncOpenAI"):
             with pytest.raises((ValueError, ImportError)):
                 OpenAIProvider(config)
 
@@ -182,13 +201,14 @@ class TestOpenAIProvider:
             provider=LLMProvider.OPENAI, model_name="gpt-4", api_key="test-key"
         )
 
-        with patch("azurefunctions.agents.model_providers.openai_provider.OpenAI"):
+        with patch("azurefunctions.agents.model_providers.openai_provider.AsyncOpenAI"):
             provider = OpenAIProvider(config)
             assert provider.config == config
 
-    @patch("azurefunctions.agents.model_providers.openai_provider.OpenAI")
-    def test_openai_provider_generate_response(self, mock_openai_class):
-        """Test OpenAI provider generate_response method."""
+    @patch("azurefunctions.agents.model_providers.openai_provider.AsyncOpenAI")
+    @pytest.mark.asyncio
+    async def test_openai_provider_chat_completion(self, mock_openai_class):
+        """Test OpenAI provider chat_completion method."""
         config = LLMConfig(
             provider=LLMProvider.OPENAI, model_name="gpt-4", api_key="test-key"
         )
@@ -197,13 +217,25 @@ class TestOpenAIProvider:
         mock_client = Mock()
         mock_openai_class.return_value = mock_client
 
+        # Create a proper mock message object
+        mock_message = Mock()
+        mock_message.content = "Test response from OpenAI"
+        mock_message.tool_calls = None
+
         mock_response = Mock()
         mock_response.choices = [Mock()]
-        mock_response.choices[0].message.content = "Test response from OpenAI"
-        mock_client.chat.completions.create.return_value = mock_response
+        mock_response.choices[0].message = mock_message
+        mock_response.choices[0].finish_reason = "stop"
+        mock_response.usage = None
+        mock_response.id = "test-id"
+        mock_response.created = 123456789
+        mock_response.model = "gpt-4"
+
+        mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
 
         provider = OpenAIProvider(config)
-        response = provider.generate_response("Test prompt")
+        messages = [ChatMessage(role="user", content="Test prompt")]
+        response = await provider.chat_completion(messages)
 
         # Verify the client was called correctly
         mock_client.chat.completions.create.assert_called_once()
@@ -212,35 +244,8 @@ class TestOpenAIProvider:
         assert call_kwargs["temperature"] == 0.7  # Default from config
         assert len(call_kwargs["messages"]) > 0
 
-        assert response == "Test response from OpenAI"
-
-    @patch("azurefunctions.agents.model_providers.openai_provider.OpenAI")
-    @pytest.mark.asyncio
-    async def test_openai_provider_generate_response_async(self, mock_openai_class):
-        """Test OpenAI provider generate_response_async method."""
-        config = LLMConfig(
-            provider=LLMProvider.OPENAI, model_name="gpt-4", api_key="test-key"
-        )
-
-        # Mock the OpenAI async client and response
-        mock_client = Mock()
-        mock_openai_class.return_value = mock_client
-
-        mock_response = Mock()
-        mock_response.choices = [Mock()]
-        mock_response.choices[0].message.content = "Async test response from OpenAI"
-
-        mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
-
-        provider = OpenAIProvider(config)
-        response = await provider.generate_response_async("Test prompt")
-
-        # Verify the client was called correctly
-        mock_client.chat.completions.create.assert_called_once()
-        call_kwargs = mock_client.chat.completions.create.call_args[1]
-        assert call_kwargs["model"] == "gpt-4"
-
-        assert response == "Async test response from OpenAI"
+        assert response["message"].content == "Test response from OpenAI"
+        assert response["finish_reason"] == "stop"
 
 
 class TestAzureOpenAIProvider:
@@ -258,7 +263,7 @@ class TestAzureOpenAIProvider:
         )
 
         with patch(
-            "azurefunctions.agents.model_providers.azure_openai_provider.AzureOpenAI"
+            "azurefunctions.agents.model_providers.azure_openai_provider.AsyncAzureOpenAI"
         ) as mock_azure_openai:
             AzureOpenAIProvider(config)
 
@@ -278,30 +283,31 @@ class TestAzureOpenAIProvider:
         )
 
         with patch(
-            "azurefunctions.agents.model_providers.azure_openai_provider.AzureOpenAI"
+            "azurefunctions.agents.model_providers.azure_openai_provider.AsyncAzureOpenAI"
         ):
             with pytest.raises((ValueError, ImportError)):
                 AzureOpenAIProvider(config)
 
     def test_azure_openai_provider_missing_deployment(self):
-        """Test Azure OpenAI provider with missing deployment."""
+        """Test Azure OpenAI provider with missing deployment uses model name."""
         config = LLMConfig(
             provider=LLMProvider.AZURE_OPENAI,
             model_name="gpt-4",
             azure_endpoint="https://test.openai.azure.com",
             api_key="test-key",
-            # Missing azure_deployment
+            # Missing azure_deployment - should use model_name
         )
 
         with patch(
-            "azurefunctions.agents.model_providers.azure_openai_provider.AzureOpenAI"
+            "azurefunctions.agents.model_providers.azure_openai_provider.AsyncAzureOpenAI"
         ):
-            with pytest.raises((ValueError, ImportError)):
-                AzureOpenAIProvider(config)
+            provider = AzureOpenAIProvider(config)
+            # Should use model_name as deployment when azure_deployment is not provided
+            assert provider.deployment_name == "gpt-4"
 
-    @patch("azurefunctions.agents.model_providers.azure_openai_provider.AzureOpenAI")
-    def test_azure_openai_provider_generate_response(self, mock_azure_openai_class):
-        """Test Azure OpenAI provider generate_response method."""
+    @patch("azurefunctions.agents.model_providers.azure_openai_provider.AsyncAzureOpenAI")
+    async def test_azure_openai_provider_chat_completion(self, mock_azure_openai_class):
+        """Test Azure OpenAI provider chat_completion method."""
         config = LLMConfig(
             provider=LLMProvider.AZURE_OPENAI,
             model_name="gpt-4",
@@ -311,7 +317,7 @@ class TestAzureOpenAIProvider:
         )
 
         # Mock the Azure OpenAI client and response
-        mock_client = Mock()
+        mock_client = AsyncMock()
         mock_azure_openai_class.return_value = mock_client
 
         mock_response = Mock()
@@ -320,62 +326,70 @@ class TestAzureOpenAIProvider:
         mock_client.chat.completions.create.return_value = mock_response
 
         provider = AzureOpenAIProvider(config)
-        response = provider.generate_response("Test prompt")
+        messages = [ChatMessage(role="user", content="Test prompt")]
+        response = await provider.chat_completion(messages)
 
         # Verify the client was called correctly
         mock_client.chat.completions.create.assert_called_once()
         call_kwargs = mock_client.chat.completions.create.call_args[1]
         assert call_kwargs["model"] == "gpt-4-deployment"  # Should use deployment name
 
-        assert response == "Test response from Azure OpenAI"
+        # Check that response is a dict containing the message
+        assert isinstance(response, dict)
+        assert response["message"].content == "Test response from Azure OpenAI"
 
 
 class TestProviderErrorHandling:
     """Test error handling across providers."""
 
-    @patch("azurefunctions.agents.model_providers.openai_provider.OpenAI")
-    def test_openai_provider_api_error_handling(self, mock_openai_class):
+    @patch("azurefunctions.agents.model_providers.openai_provider.AsyncOpenAI")
+    async def test_openai_provider_api_error_handling(self, mock_openai_class):
         """Test OpenAI provider handles API errors."""
         config = LLMConfig(
             provider=LLMProvider.OPENAI, model_name="gpt-4", api_key="test-key"
         )
 
-        mock_client = Mock()
+        mock_client = AsyncMock()
         mock_openai_class.return_value = mock_client
 
         # Simulate API error
         from openai import APIError
+        import httpx
 
+        mock_request = Mock()
         mock_client.chat.completions.create.side_effect = APIError(
-            "API Error", response=Mock(), body="Error details"
+            "API Error", request=mock_request, body="Error details"
         )
 
         provider = OpenAIProvider(config)
 
         with pytest.raises(APIError):
-            provider.generate_response("Test prompt")
+            await provider.chat_completion([ChatMessage(role="user", content="Test prompt")])
 
-    @patch("azurefunctions.agents.model_providers.openai_provider.OpenAI")
-    def test_openai_provider_rate_limit_handling(self, mock_openai_class):
+    @patch("azurefunctions.agents.model_providers.openai_provider.AsyncOpenAI")
+    async def test_openai_provider_rate_limit_handling(self, mock_openai_class):
         """Test OpenAI provider handles rate limit errors."""
         config = LLMConfig(
             provider=LLMProvider.OPENAI, model_name="gpt-4", api_key="test-key"
         )
 
-        mock_client = Mock()
+        mock_client = AsyncMock()
         mock_openai_class.return_value = mock_client
 
         # Simulate rate limit error
         from openai import RateLimitError
+        import httpx
 
+        mock_response = Mock()
+        mock_response.request = Mock()
         mock_client.chat.completions.create.side_effect = RateLimitError(
-            "Rate limit exceeded", response=Mock(), body="Rate limit details"
+            "Rate limit exceeded", response=mock_response, body="Rate limit details"
         )
 
         provider = OpenAIProvider(config)
 
         with pytest.raises(RateLimitError):
-            provider.generate_response("Test prompt")
+            await provider.chat_completion([ChatMessage(role="user", content="Test prompt")])
 
     def test_provider_import_error_handling(self):
         """Test provider handles missing dependency imports."""
@@ -413,7 +427,7 @@ class TestProviderConfiguration:
         )
 
         with patch(
-            "azurefunctions.agents.model_providers.openai_provider.OpenAI"
+            "azurefunctions.agents.model_providers.openai_provider.AsyncOpenAI"
         ) as mock_openai:
             OpenAIProvider(config)
 
@@ -435,14 +449,14 @@ class TestProviderConfiguration:
         )
 
         with patch(
-            "azurefunctions.agents.model_providers.azure_openai_provider.AzureOpenAI"
+            "azurefunctions.agents.model_providers.azure_openai_provider.AsyncAzureOpenAI"
         ) as mock_azure_openai:
             AzureOpenAIProvider(config)
 
             call_kwargs = mock_azure_openai.call_args[1]
             assert call_kwargs["api_version"] == "2024-02-01"
 
-    def test_provider_model_name_mapping(self):
+    async def test_provider_model_name_mapping(self):
         """Test that providers correctly map model names."""
         config = LLMConfig(
             provider=LLMProvider.AZURE_OPENAI,
@@ -453,9 +467,9 @@ class TestProviderConfiguration:
         )
 
         with patch(
-            "azurefunctions.agents.model_providers.azure_openai_provider.AzureOpenAI"
+            "azurefunctions.agents.model_providers.azure_openai_provider.AsyncAzureOpenAI"
         ) as mock_azure_openai:
-            mock_client = Mock()
+            mock_client = AsyncMock()
             mock_azure_openai.return_value = mock_client
 
             mock_response = Mock()
@@ -464,7 +478,7 @@ class TestProviderConfiguration:
             mock_client.chat.completions.create.return_value = mock_response
 
             provider = AzureOpenAIProvider(config)
-            provider.generate_response("Test")
+            await provider.chat_completion([ChatMessage(role="user", content="Test")])
 
             # For Azure OpenAI, model should be the deployment name
             call_kwargs = mock_client.chat.completions.create.call_args[1]

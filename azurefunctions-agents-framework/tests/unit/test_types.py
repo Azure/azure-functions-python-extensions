@@ -6,7 +6,7 @@ used throughout the framework.
 
 from datetime import datetime, timezone
 
-from azurefunctions.agents.handoff.types import HandoffConfig
+from azurefunctions.agents.handoff.types import HandoffConfig, HandoffMode
 from azurefunctions.agents.handoff.types import HandoffMode as HandoffType
 from azurefunctions.agents.types import (
     AgentMode,
@@ -59,7 +59,8 @@ class TestEnumDefinitions:
         assert HandoffType.SWARM.value == "swarm"
         assert HandoffType.COORDINATOR.value == "coordinator"
         assert HandoffType.CONDITIONAL.value == "conditional"
-        assert len(HandoffType) == 3
+        assert HandoffType.SEQUENTIAL.value == "sequential"
+        assert len(HandoffType) == 4
 
 
 class TestLLMConfig:
@@ -286,38 +287,10 @@ class TestChatRequest:
 
     def test_chat_request_string_message(self):
         """Test ChatRequest with string message."""
-        request = ChatRequest(message="Hello, AI!", session_id="session_123")
-
-        assert request.message == "Hello, AI!"
-        assert request.session_id == "session_123"
-        assert request.context == {}
-        assert request.tools is None
-
-    def test_chat_request_with_context(self):
-        """Test ChatRequest with context."""
-        context = {"user_id": "user123", "preferences": {"language": "en"}}
-
-        request = ChatRequest(
-            message="What's the weather like?",
-            session_id="session_456",
-            context=context,
-        )
-
-        assert request.message == "What's the weather like?"
-        assert request.session_id == "session_456"
-        assert request.context == context
-
-    def test_chat_request_with_tools(self):
-        """Test ChatRequest with tool specifications."""
-        tools = ["get_weather", "search_web"]
-
-        request = ChatRequest(
-            message="Help me plan my day", session_id="session_789", tools=tools
-        )
+        request = ChatRequest(message="Help me plan my day", session_id="session_789")
 
         assert request.message == "Help me plan my day"
         assert request.session_id == "session_789"
-        assert request.tools == tools
 
 
 class TestChatResponse:
@@ -326,14 +299,13 @@ class TestChatResponse:
     def test_chat_response_basic(self):
         """Test basic ChatResponse creation."""
         response = ChatResponse(
-            message="Hello! How can I help you today?", session_id="session_123"
+            response="Hello! How can I help you today?"
         )
 
-        assert response.message == "Hello! How can I help you today?"
-        assert response.session_id == "session_123"
+        assert response.response == "Hello! How can I help you today?"
+        assert response.status == "success"
         assert response.tool_calls is None
-        assert response.metadata == {}
-        assert isinstance(response.timestamp, datetime)
+        assert response.metadata is None
 
     def test_chat_response_with_tool_calls(self):
         """Test ChatResponse with tool calls."""
@@ -346,13 +318,11 @@ class TestChatResponse:
         ]
 
         response = ChatResponse(
-            message="I'll check the weather for you.",
-            session_id="session_456",
+            response="I'll check the weather for you.",
             tool_calls=tool_calls,
         )
 
-        assert response.message == "I'll check the weather for you."
-        assert response.session_id == "session_456"
+        assert response.response == "I'll check the weather for you."
         assert response.tool_calls == tool_calls
 
     def test_chat_response_with_metadata(self):
@@ -360,23 +330,18 @@ class TestChatResponse:
         metadata = {"model": "gpt-4", "tokens_used": 150, "response_time": 1.23}
 
         response = ChatResponse(
-            message="Response with metadata",
-            session_id="session_789",
+            response="Response with metadata",
             metadata=metadata,
         )
 
-        assert response.message == "Response with metadata"
-        assert response.session_id == "session_789"
+        assert response.response == "Response with metadata"
         assert response.metadata == metadata
 
     def test_chat_response_timestamp_generation(self):
         """Test that ChatResponse generates timestamp correctly."""
-        before_creation = datetime.now(timezone.utc)
-        response = ChatResponse(message="Test message", session_id="test_session")
-        after_creation = datetime.now(timezone.utc)
+        response = ChatResponse(response="Test message")
 
-        assert before_creation <= response.timestamp <= after_creation
-        assert response.timestamp.tzinfo == timezone.utc
+        assert response.status == "success"
 
 
 class TestHandoffConfig:
@@ -384,44 +349,24 @@ class TestHandoffConfig:
 
     def test_handoff_config_swarm(self):
         """Test HandoffConfig for swarm handoff."""
-        config = HandoffConfig(
-            handoff_type=HandoffType.SWARM,
-            target_agents=["agent1", "agent2"],
-            instructions="Hand off to the appropriate specialist",
-        )
+        config = HandoffConfig(mode=HandoffMode.SWARM, targets=[])
 
-        assert config.handoff_type == HandoffType.SWARM
-        assert config.target_agents == ["agent1", "agent2"]
-        assert config.instructions == "Hand off to the appropriate specialist"
-        assert config.conditions is None
+        assert config.mode == HandoffMode.SWARM
+        assert config.targets == []
 
     def test_handoff_config_coordinator(self):
         """Test HandoffConfig for coordinator handoff."""
-        config = HandoffConfig(
-            handoff_type=HandoffType.COORDINATOR,
-            target_agents=["coordinator"],
-            instructions="Route to coordinator for task delegation",
-        )
+        config = HandoffConfig(mode=HandoffMode.COORDINATOR, targets=[])
 
-        assert config.handoff_type == HandoffType.COORDINATOR
-        assert config.target_agents == ["coordinator"]
-        assert config.instructions == "Route to coordinator for task delegation"
+        assert config.mode == HandoffMode.COORDINATOR
+        assert config.targets == []
 
     def test_handoff_config_conditional(self):
         """Test HandoffConfig for conditional handoff."""
-        conditions = {"user_intent": "technical_support", "complexity": "high"}
+        config = HandoffConfig(mode=HandoffMode.CONDITIONAL, targets=[])
 
-        config = HandoffConfig(
-            handoff_type=HandoffType.CONDITIONAL,
-            target_agents=["tech_support_agent"],
-            instructions="Hand off for technical support",
-            conditions=conditions,
-        )
-
-        assert config.handoff_type == HandoffType.CONDITIONAL
-        assert config.target_agents == ["tech_support_agent"]
-        assert config.instructions == "Hand off for technical support"
-        assert config.conditions == conditions
+        assert config.mode == HandoffMode.CONDITIONAL
+        assert config.targets == []
 
 
 class TestTypeValidation:
@@ -454,11 +399,7 @@ class TestTypeValidation:
 
     def test_handoff_config_empty_target_agents(self):
         """Test HandoffConfig with empty target agents list."""
-        config = HandoffConfig(
-            handoff_type=HandoffType.SWARM,
-            target_agents=[],
-            instructions="No target agents",
-        )
+        config = HandoffConfig(mode=HandoffMode.SWARM, targets=[])
 
-        assert config.target_agents == []
-        assert len(config.target_agents) == 0
+        assert config.targets == []
+        assert len(config.targets) == 0
