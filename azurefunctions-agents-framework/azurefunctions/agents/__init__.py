@@ -43,6 +43,21 @@ from .types import (
     TriggerType,
 )
 
+# Optional streaming support
+try:
+    from .streaming import AgentStreamingResponse, create_agent_stream
+except ImportError:
+    # Create dummy classes when streaming is not available
+    class AgentStreamingResponse:
+        def __init__(self, *args, **kwargs):
+            raise ImportError(
+                "Streaming requires azurefunctions-extensions-http-fastapi"
+            )
+
+    def create_agent_stream(*args, **kwargs):
+        raise ImportError("Streaming requires azurefunctions-extensions-http-fastapi")
+
+
 __all__ = [
     # Core Framework
     "Agent",
@@ -79,6 +94,9 @@ __all__ = [
     "MCPServerStdioParams",
     "MCPServerStreamableHttpParams",
     "MCPUtil",
+    # Streaming (optional)
+    "AgentStreamingResponse",
+    "create_agent_stream",
 ]
 
 __version__ = "0.0.1a19"

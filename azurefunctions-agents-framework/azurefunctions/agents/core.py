@@ -27,6 +27,21 @@ from .handoff import ControlFlowManager, HandoffEngine
 from .runner import Runner
 from .types import AgentMode, ChatResponse, Response
 
+# Optional streaming support - imported globally to check availability
+try:
+    from azurefunctions.extensions.http.fastapi import Request, StreamingResponse
+
+    STREAMING_AVAILABLE = True
+except ImportError:
+    STREAMING_AVAILABLE = False
+
+    # Fallback classes for type hints
+    class StreamingResponse:
+        pass
+
+    class Request:
+        pass
+
 
 class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
     """
@@ -69,6 +84,7 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
         mode: AgentMode = AgentMode.AZURE_FUNCTION_AGENT,
         http_auth_level: Union[AuthLevel, str] = AuthLevel.FUNCTION,
         create_triggers: bool = True,
+        enable_streaming: bool = False,
     ):
         """
         Initialize the AgentFunctionApp.
@@ -80,8 +96,18 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
             http_auth_level: HTTP authentication level for endpoints
             create_triggers: Whether to automatically create HTTP trigger endpoints.
                            Set to False when using custom triggers or manual integration.
+            enable_streaming: Whether to enable streaming response capabilities.
+                            Requires azurefunctions-extensions-http-fastapi package.
         """
         super().__init__(auth_level=http_auth_level)
+
+        # Validate streaming configuration
+        self.enable_streaming = enable_streaming
+        if enable_streaming and not STREAMING_AVAILABLE:
+            raise ImportError(
+                "Streaming is enabled but azurefunctions-extensions-http-fastapi is not installed. "
+                "Install it with: pip install azurefunctions-extensions-http-fastapi"
+            )
 
         # Convert list to dict if needed, using agent.name as keys
         if isinstance(agents, list):
@@ -150,7 +176,8 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
         self.control_flow_manager.start_cleanup_task()
 
         self.logger.info(
-            f"Initialized AgentFunctionApp in {mode.value} mode with {len(self.agents)} agent(s): {list(self.agents.keys())}"
+            f"Initialized AgentFunctionApp in {mode.value} mode with {len(self.agents)} agent(s): {list(self.agents.keys())}. "
+            f"Streaming: {'enabled' if self.enable_streaming else 'disabled'}"
         )
 
         # Register endpoints only if create_triggers is True
@@ -333,8 +360,13 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
             return await self._handle_health_check()
 
         mode_description = "single-agent" if len(self.agents) == 1 else "multi-agent"
+        streaming_note = (
+            " (streaming via Accept: text/event-stream)"
+            if self.enable_streaming
+            else ""
+        )
         self.logger.info(
-            f"Registered unified endpoints for {mode_description} mode with {len(self.agents)} agent(s): {list(self.agents.keys())}"
+            f"Registered unified endpoints for {mode_description} mode with {len(self.agents)} agent(s): {list(self.agents.keys())}{streaming_note}"
         )
 
     # Legacy handler methods removed - only clean endpoints are supported now
@@ -362,8 +394,8 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
 
     async def _handle_chat_request(
         self, agent: Agent, req: HttpRequest
-    ) -> HttpResponse:
-        """Handle chat requests for both single and multi-agent modes."""
+    ) -> Union[HttpResponse, "StreamingResponse"]:
+        """Handle chat requests for both single and multi-agent modes, with optional streaming support."""
         try:
             request_data = req.get_json() or {}
         except ValueError:
@@ -388,8 +420,39 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
                 status_code=400,
             )
 
+        # Check if streaming is requested
+        streaming_requested = (
+            req.headers.get("Accept") == "text/event-stream"
+            or request_data.get("stream", False)
+            or req.headers.get("X-Stream") == "true"
+        )
+
+        # If streaming is requested but not enabled, return error
+        if streaming_requested and not self.enable_streaming:
+            return self._dict_to_http(
+                {
+                    "error": "Streaming not enabled",
+                    "message": "Set enable_streaming=True when creating AgentFunctionApp to use streaming",
+                },
+                status_code=400,
+            )
+
+        # If streaming is requested but FastAPI not available, return error
+        if streaming_requested and not STREAMING_AVAILABLE:
+            return self._dict_to_http(
+                {
+                    "error": "Streaming dependencies not installed",
+                    "message": "Install azurefunctions-extensions-http-fastapi for streaming support",
+                },
+                status_code=501,
+            )
+
+        # Handle streaming request
+        if streaming_requested and self.enable_streaming and STREAMING_AVAILABLE:
+            return await self._handle_stream_request(agent, req)
+
         try:
-            # Use the Runner to process the request
+            # Use the Runner to process the request (standard non-streaming)
             # Since we now key runners by agent.name, we can access directly
             runner = self.runners[agent.name]
             response = await runner.run(request_data)
@@ -434,6 +497,91 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
                 status_code=500,
             )
 
+    async def _handle_stream_request(
+        self, agent: Agent, req: Request
+    ) -> StreamingResponse:
+        """Handle streaming chat requests."""
+        if not STREAMING_AVAILABLE:
+            # Return an error response in SSE format
+            async def error_stream():
+                error_data = json.dumps(
+                    {
+                        "error": "Streaming not available",
+                        "message": "Install azurefunctions-extensions-http-fastapi to enable streaming",
+                    }
+                )
+                yield f"event: error\ndata: {error_data}\n\n"
+
+            return StreamingResponse(error_stream(), media_type="text/event-stream")
+
+        try:
+            # Parse request body
+            request_body = await req.body()
+            if request_body:
+                request_data = json.loads(request_body.decode())
+            else:
+                request_data = {}
+        except (json.JSONDecodeError, UnicodeDecodeError) as e:
+            self.logger.error(f"Invalid JSON in request body: {e}")
+
+            async def error_stream(e):
+                error_data = json.dumps(
+                    {"error": "Invalid JSON in request body", "message": str(e)}
+                )
+                yield f"event: error\ndata: {error_data}\n\n"
+
+            return StreamingResponse(error_stream(e), media_type="text/event-stream")
+
+        # Validate request format
+        if "messages" not in request_data and "message" not in request_data:
+
+            async def error_stream():
+                error_data = json.dumps(
+                    {
+                        "error": "Either 'message' or 'messages' is required",
+                        "examples": {
+                            "simple": {"message": "Hello, how are you?"},
+                            "openai": {
+                                "messages": [
+                                    {"role": "user", "content": "Hello, how are you?"}
+                                ]
+                            },
+                        },
+                    }
+                )
+                yield f"event: error\ndata: {error_data}\n\n"
+
+            return StreamingResponse(error_stream(), media_type="text/event-stream")
+
+        try:
+            # Import streaming modules when needed
+            from .streaming import AgentStreamingResponse, create_agent_stream
+
+            # Create agent stream
+            agent_stream = create_agent_stream(agent, request_data, self.logger)
+
+            # Create streaming response
+            streaming_response = AgentStreamingResponse(self.logger)
+            return await streaming_response.create_streaming_response(
+                agent_stream, event_type="agent_message"
+            )
+
+        except Exception as e:
+            self.logger.error(f"Error in streaming request: {e}")
+            self.logger.error(f"Full traceback: {traceback.format_exc()}")
+
+            async def error_stream(e):
+                error_data = json.dumps(
+                    {
+                        "error": "Failed to process streaming request",
+                        "message": str(e),
+                        "error_type": type(e).__name__,
+                    }
+                )
+                yield f"event: error\ndata: {error_data}\n\n"
+
+            return StreamingResponse(error_stream(e), media_type="text/event-stream")
+
     async def _handle_health_check(self) -> HttpResponse:
         """Handle health check requests."""
         try:
@@ -450,6 +598,16 @@ class AgentFunctionApp(FunctionRegister, TriggerApi, BindingApi, SettingsApi):
                     "info": "/api/agents/{agent_name}/info",
                     "list": "/api/agents",
                     "health": "/api/health",
+                },
+                "features": {
+                    "streaming_enabled": self.enable_streaming,
+                    "streaming_available": STREAMING_AVAILABLE,
+                    "streaming_method": (
+                        "Add 'Accept: text/event-stream' header or 'stream: true' in request body"
+                        if self.enable_streaming
+                        else None
+                    ),
+                    "a2a_protocol": self.mode == AgentMode.A2A,
                 },
             }
             return self._dict_to_http(health_info)
