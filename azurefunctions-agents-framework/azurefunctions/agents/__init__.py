@@ -96,9 +96,8 @@ __all__ = [
     "MCPUtil",
     # Streaming (optional)
     "AgentStreamingResponse",
-    "create_agent_stream",
 ]
 
-__version__ = "0.0.1a19"
+__version__ = "0.0.1a21"
 __author__ = "Microsoft Azure Functions Team"
 __license__ = "MIT"

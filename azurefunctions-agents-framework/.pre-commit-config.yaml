@@ -66,18 +66,6 @@ repos:
         files: ^azurefunctions-agents-framework/
         exclude: ^azurefunctions-agents-framework/(docs/|\.git/|\.venv/|venv/|__pycache__/|\.pytest_cache/|test_files_llm_created/|tests/|samples/)
 
-  # # mypy - static type checking (optional but recommended)
-  # - repo: https://github.com/pre-commit/mirrors-mypy
-  #   rev: v1.8.0
-  #   hooks:
-  #     - id: mypy
-  #       args: [--ignore-missing-imports, --no-strict-optional]
-  #       files: ^azurefunctions-agents-framework/
-  #       exclude: ^azurefunctions-agents-framework/(docs/|\.git/|\.venv/|venv/|__pycache__/|\.pytest_cache/|test_files_llm_created/|tests/|samples/)
-  #       additional_dependencies:
-  #         - types-requests
-  #         - types-PyYAML
-
 # Configure pre-commit to run on all files when first installed
 default_stages: [pre-commit]
 fail_fast: false
