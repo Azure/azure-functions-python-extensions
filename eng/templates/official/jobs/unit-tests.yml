@@ -14,10 +14,10 @@ parameters:
       python313:
         PYTHON_VERSION: '3.13'
 
-    pool:
-      name: ${{ parameters.PoolName }}
-      image: 1es-ubuntu-22.04
-      os: linux
+pool:
+  name: ${{ parameters.PoolName }}
+  image: 1es-ubuntu-22.04
+  os: linux
 
 jobs:
   - job: "BaseTests"
