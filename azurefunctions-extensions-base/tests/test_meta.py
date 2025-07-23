@@ -1,5 +1,6 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
+import sys
 import unittest
 from typing import List, Mapping
 from unittest.mock import patch
@@ -149,10 +150,17 @@ class TestMeta(unittest.TestCase):
         self.assertEqual(registry.get_raw_bindings(MockIndexedFunction, []), ([], {}))
 
         self.assertFalse(registry.check_supported_type(None))
+        self.assertFalse(registry.has_trigger_support(MockIndexedFunction))
         self.assertFalse(registry.check_supported_type("hello"))
         self.assertTrue(registry.check_supported_type(sdkType.SdkType))
+        self.assertTrue(registry.check_supported_type(List[sdkType.SdkType]))
 
-        self.assertFalse(registry.has_trigger_support(MockIndexedFunction))
+        # Generic types are not subscriptable in Python <3.9
+        if sys.version_info >= (3, 9):
+            self.assertTrue(registry.check_supported_type(list[sdkType.SdkType]))
+            self.assertTrue(registry.check_supported_type(tuple[sdkType.SdkType]))
+            self.assertTrue(registry.check_supported_type(set[sdkType.SdkType]))
+            self.assertFalse(registry.check_supported_type(dict[str, sdkType.SdkType]))
 
     def test_decode_typed_data(self):
         # Case 1: data is None
@@ -166,32 +174,38 @@ class TestMeta(unittest.TestCase):
             meta._BaseConverter._decode_typed_data(datum_mbd, python_type=str), "{}"
         )
 
-        # Case 3: data.type is None
+        # Case 3: data.type is collection_model_binding_data
+        datum_cmbd = meta.Datum(value="{}", type="collection_model_binding_data")
+        self.assertEqual(
+            meta._BaseConverter._decode_typed_data(datum_cmbd, python_type=str), "{}"
+        )
+
+        # Case 4: data.type is None
         datum_none = meta.Datum(value="{}", type=None)
         self.assertIsNone(
             meta._BaseConverter._decode_typed_data(datum_none, python_type=str)
         )
 
-        # Case 4: data.type is unsupported
+        # Case 5: data.type is unsupported
         datum_unsupp = meta.Datum(value="{}", type=dict)
         with self.assertRaises(ValueError):
             meta._BaseConverter._decode_typed_data(datum_unsupp, python_type=str)
 
-        # Case 5: can't coerce
+        # Case 6: can't coerce
         datum_coerce_fail = meta.Datum(value="{}", type="model_binding_data")
         with self.assertRaises(ValueError):
             meta._BaseConverter._decode_typed_data(
                 datum_coerce_fail, python_type=(tuple, list, dict)
             )
 
-        # Case 6: attempt coerce & fail
+        # Case 7: attempt coerce & fail
         datum_attempt_coerce = meta.Datum(value=1, type="model_binding_data")
         with self.assertRaises(ValueError):
             meta._BaseConverter._decode_typed_data(
                 datum_attempt_coerce, python_type=dict
             )
 
-        # Case 7: attempt to coerce and pass
+        # Case 8: attempt to coerce and pass
         datum_coerce_pass = meta.Datum(value=1, type="model_binding_data")
         self.assertEqual(
             meta._BaseConverter._decode_typed_data(datum_coerce_pass, python_type=str),

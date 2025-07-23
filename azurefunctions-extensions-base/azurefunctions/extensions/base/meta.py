@@ -2,9 +2,9 @@
 # Licensed under the MIT License.
 
 import abc
-import inspect
+import collections.abc
 import json
-from typing import Any, Dict, Mapping, Optional, Tuple, Union
+from typing import Any, Dict, Mapping, Optional, Tuple, Union, get_args, get_origin
 
 from . import sdkType, utils
 
@@ -87,10 +87,34 @@ class _ConverterMeta(abc.ABCMeta):
         return utils.get_raw_bindings(indexed_function, input_types)
 
     @classmethod
-    def check_supported_type(cls, subclass: type) -> bool:
-        if subclass is not None and inspect.isclass(subclass):
-            return issubclass(subclass, sdkType.SdkType)
-        return False
+    def check_supported_type(cls, annotation: type) -> bool:
+        if annotation is None:
+            return False
+
+        # The annotation is a class/type (not an object) - not iterable
+        if (isinstance(annotation, type)
+                and issubclass(annotation, sdkType.SdkType)):
+            return True
+
+        # An iterable who only has one inner type and is a subclass of SdkType
+        return cls._is_iterable_supported_type(annotation)
+
+    @classmethod
+    def _is_iterable_supported_type(cls, annotation: type) -> bool:
+        # Check base type from type hint. Ex: List from List[SdkType]
+        base_type = get_origin(annotation)
+        if (base_type is None
+                or not issubclass(base_type, collections.abc.Iterable)):
+            return False
+
+        inner_types = get_args(annotation)
+        if inner_types is None or len(inner_types) != 1:
+            return False
+
+        inner_type = inner_types[0]
+
+        return (isinstance(inner_type, type)
+                and issubclass(inner_type, sdkType.SdkType))
 
     def has_trigger_support(cls) -> bool:
         return cls._trigger is not None  # type: ignore
@@ -110,7 +134,8 @@ class _BaseConverter(metaclass=_ConverterMeta, binding=None):
             return None
 
         data_type = data.type
-        if data_type == "model_binding_data":
+        if (data_type == "model_binding_data"
+                or data_type == "collection_model_binding_data"):
             result = data.value
         elif data_type is None:
             return None

@@ -2,7 +2,6 @@
 #  Licensed under the MIT License.
 
 import json
-from typing import Union
 
 from azure.identity import DefaultAzureCredential
 from azure.storage.blob import BlobServiceClient
@@ -11,7 +10,7 @@ from .utils import get_connection_string, using_managed_identity
 
 
 class ContainerClient(SdkType):
-    def __init__(self, *, data: Union[bytes, Datum]) -> None:
+    def __init__(self, *, data: Datum) -> None:
         # model_binding_data properties
         self._data = data
         self._using_managed_identity = False
@@ -47,4 +46,4 @@ class ContainerClient(SdkType):
                 container=self._containerName
             )
         else:
-            return None
+            raise ValueError(f"Unable to create {self.__class__.__name__} SDK type.")

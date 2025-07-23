@@ -1,11 +1,11 @@
-# This Azure Function receives streaming data from a client and processes it in real-time.
+# This function app receives streaming data from a client and processes it in real-time.
 # It demonstrates streaming upload capabilities for scenarios such as uploading large files,
 # processing continuous data streams, or handling IoT device data.
 
 import azure.functions as func
 from azurefunctions.extensions.http.fastapi import JSONResponse, Request
 
-app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
+app = func.FunctionApp(http_auth_level=func.AuthLevel.FUNCTION)
 
 
 @app.route(route="streaming_upload", methods=[func.HttpMethod.POST])

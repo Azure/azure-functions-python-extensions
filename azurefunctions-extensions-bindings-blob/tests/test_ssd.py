@@ -97,10 +97,10 @@ class TestStorageStreamDownloader(unittest.TestCase):
 
     def test_input_empty(self):
         datum: Datum = Datum(value={}, type="model_binding_data")
-        result: StorageStreamDownloader = BlobClientConverter.decode(
-            data=datum, trigger_metadata=None, pytype=StorageStreamDownloader
-        )
-        self.assertIsNone(result)
+        with self.assertRaises(ValueError):
+            BlobClientConverter.decode(
+                data=datum, trigger_metadata=None, pytype=StorageStreamDownloader
+            )
 
     def test_input_populated(self):
         content = {
@@ -145,13 +145,13 @@ class TestStorageStreamDownloader(unittest.TestCase):
 
         with self.assertRaises(ValueError) as e:
             datum: Datum = Datum(value=sample_mbd, type="model_binding_data")
-            result: StorageStreamDownloader = BlobClientConverter.decode(
+            _: StorageStreamDownloader = BlobClientConverter.decode(
                 data=datum, trigger_metadata=None, pytype=StorageStreamDownloader
             )
         self.assertEqual(
             e.exception.args[0],
-            "Storage account connection string NotARealConnectionString does not exist. "
-            "Please make sure that it is a defined App Setting.",
+            "Storage account connection string NotARealConnectionString"
+            " does not exist. Please make sure that it is a defined App Setting.",
         )
 
     def test_none_input_populated(self):
@@ -170,12 +170,13 @@ class TestStorageStreamDownloader(unittest.TestCase):
 
         with self.assertRaises(ValueError) as e:
             datum: Datum = Datum(value=sample_mbd, type="model_binding_data")
-            result: StorageStreamDownloader = BlobClientConverter.decode(
+            _: StorageStreamDownloader = BlobClientConverter.decode(
                 data=datum, trigger_metadata=None, pytype=StorageStreamDownloader
             )
         self.assertEqual(
             e.exception.args[0],
-            "Storage account connection string cannot be None. Please provide a connection string.",
+            "Storage account connection string cannot be None."
+            " Please provide a connection string.",
         )
 
     def test_input_populated_managed_identity_input(self):

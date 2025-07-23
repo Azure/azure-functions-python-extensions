@@ -1,4 +1,4 @@
-# This Azure Function streams real-time sensor data using Server-Sent Events (SSE).
+# This function app streams real-time sensor data using Server-Sent Events (SSE).
 # It simulates a sensor network transmitting temperature and humidity readings,
 # which can be consumed by IoT dashboards or analytics pipelines.
 
@@ -7,7 +7,7 @@ import time
 import azure.functions as func
 from azurefunctions.extensions.http.fastapi import Request, StreamingResponse
 
-app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
+app = func.FunctionApp(http_auth_level=func.AuthLevel.FUNCTION)
 
 
 def generate_sensor_data():
