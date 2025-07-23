@@ -26,9 +26,9 @@ classifiers= [
     ]
 dependencies = [
         'azurefunctions-extensions-base',
-        'fastapi~=0.115.0',
-        'uvicorn~=0.32.0',
-        'pydantic~=2.10.0',
+        'fastapi>=0.115.0,<1.0',
+        'uvicorn>=0.32.0,<1.0',
+        'pydantic>=2.10.0,<3.0',
     ]
 
 [project.optional-dependencies]
