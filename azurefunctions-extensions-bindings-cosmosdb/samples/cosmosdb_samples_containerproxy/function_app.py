@@ -14,14 +14,15 @@ app = func.FunctionApp(http_auth_level=func.AuthLevel.FUNCTION)
 """
 FOLDER: cosmosdb_samples_containerproxy
 DESCRIPTION:
-    These samples demonstrate how to obtain a ContainerProxy from a Cosmos DB Input function app binding.
+    These samples demonstrate how to obtain a ContainerProxy from a Cosmos DB Input
+    function app binding.
 USAGE:
     Set the environment variables with your own values before running the
     sample:
     1) CosmosDBConnection - the connection string to your Cosmos DB instance
 
-    Set database_name and container_name to the database name the and container name you want to use
-    as inputs to the function (required).
+    Set database_name and container_name to the database name the and container name you want
+    to use as inputs to the function (required).
 """
 
 
@@ -31,7 +32,8 @@ USAGE:
                      database_name="db_name",
                      container_name="container_name")
 def get_docs(req: func.HttpRequest, container: cosmos.ContainerProxy):
-    docs = container.query_items(query="SELECT * FROM c", enable_cross_partition_query=True)
+    docs = container.query_items(query="SELECT * FROM c",
+                                 enable_cross_partition_query=True)
     for d in docs:
         logging.info(f"Found document: {d}")
 
