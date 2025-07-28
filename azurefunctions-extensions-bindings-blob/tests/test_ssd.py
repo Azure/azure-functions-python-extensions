@@ -150,7 +150,7 @@ class TestStorageStreamDownloader(unittest.TestCase):
             )
         self.assertEqual(
             e.exception.args[0],
-            "Storage account connection string NotARealConnectionString"
+            "Storage account connection name NotARealConnectionString"
             " does not exist. Please make sure that it is a defined App Setting.",
         )
 
@@ -175,8 +175,8 @@ class TestStorageStreamDownloader(unittest.TestCase):
             )
         self.assertEqual(
             e.exception.args[0],
-            "Storage account connection string cannot be None."
-            " Please provide a connection string.",
+            "Storage account connection name cannot be None."
+            " Please provide a connection setting.",
         )
 
     def test_input_populated_managed_identity_input(self):

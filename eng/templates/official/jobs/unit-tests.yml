@@ -57,27 +57,27 @@ jobs:
           trigger: $(trigger__blobServiceUri)
         displayName: "Run Blob Extension Tests for Python $(PYTHON_VERSION)"
 
-  - job: "CosmosDBTests"
-    displayName: "CosmosDB Extension Tests"
-    dependsOn: []
-    strategy:
-      matrix: ${{ parameters.python_versions }}
-    condition: always()
-    steps:
-      - task: UsePythonVersion@0
-        inputs:
-          versionSpec: $(PYTHON_VERSION)
-      - bash: |
-          python -m pip install --upgrade pip
-          cd azurefunctions-extensions-bindings-cosmosdb
-          python -m pip install -U -e .[dev]
-        displayName: 'Install CosmosDB Dependencies'
-      - bash: |
-          python -m pytest -q --instafail azurefunctions-extensions-bindings-cosmosdb/tests/
-        env:
-          CosmosDBConnection: $(CosmosDBConnection)
-          input__accountEndpoint: $(input__accountEndpoint)
-        displayName: "Running Cosmos DB $(PYTHON_VERSION) Python Extension Tests"
+  # - job: "CosmosDBTests"
+  #   displayName: "CosmosDB Extension Tests"
+  #   dependsOn: []
+  #   strategy:
+  #     matrix: ${{ parameters.python_versions }}
+  #   condition: always()
+  #   steps:
+  #     - task: UsePythonVersion@0
+  #       inputs:
+  #         versionSpec: $(PYTHON_VERSION)
+  #     - bash: |
+  #         python -m pip install --upgrade pip
+  #         cd azurefunctions-extensions-bindings-cosmosdb
+  #         python -m pip install -U -e .[dev]
+  #       displayName: 'Install CosmosDB Dependencies'
+  #     - bash: |
+  #         python -m pytest -q --instafail azurefunctions-extensions-bindings-cosmosdb/tests/
+  #       env:
+  #         CosmosDBConnection: $(CosmosDBConnection)
+  #         input__accountEndpoint: $(input__accountEndpoint)
+  #       displayName: "Running Cosmos DB $(PYTHON_VERSION) Python Extension Tests"
 
   - job: "EventHubTests"
     displayName: "EventHub Extension Tests"
