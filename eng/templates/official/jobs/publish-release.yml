@@ -8,6 +8,8 @@ jobs:
     os: linux
   steps:
   - powershell: |
+      $githubUser = "$(GithubUser)"
+      $githubToken = "$(GithubPat)"
       $githubToken = "$(GithubPat)"
       $newLibraryVersion = "$(NewLibraryVersion)"
       $extensionName= "$(ExtensionName)"
@@ -17,6 +19,9 @@ jobs:
           # Create GitHub credential
           git config --global user.name "AzureFunctionsPython"
           git config --global user.email "azfunc@microsoft.com"
+      
+          # Create GitHub credential
+          $credential = [System.Convert]::ToBase64String([System.Text.Encoding]::ASCII.GetBytes("${githubUser}:${githubToken}"))
       
           # Heading to Artifact Repository
           Write-Host "Operating based on $stagingDirectory/azure-functions-python-extensions"
@@ -31,6 +36,21 @@ jobs:
           # Create release branch release/X.Y.Z
           Write-Host "Creating release branch release/$newLibraryVersion"
           git push --repo="https://$githubToken@github.com/Azure/azure-functions-python-extensions.git"
+
+          # Create PR
+          Write-Host "Creating PR draft in GitHub"
+          $body = (@{head="$newBranch";base="dev";body="Python Extension [$extensionName] Version [$newLibraryVersion]";draft=$true;maintainer_can_modify=$true;title="build: update $extensionName version to $newLibraryVersion"} | ConvertTo-Json -Compress)
+          $response = Invoke-WebRequest -Headers @{"Cache-Control"="no-cache";"Content-Type"="application/json";"Authorization"="Basic $credential";"Accept"="application/vnd.github.v3+json"} -Method Post -Body "$body" -Uri "https://api.github.com/repos/Azure/azure-functions-python-extensions/pulls"
+      
+          # Return Value
+          if ($response.StatusCode -ne 201) {
+              Write-Host "Failed to create PR in Azure Functions Python Extensions"
+              exit -1
+          }
+      
+          $draftUrl = $response | ConvertFrom-Json | Select -expand url
+          Write-Host "PR draft created in $draftUrl"
+          
       } else {
           Write-Host "NewLibraryVersion $newLibraryVersion is malformed (example: 1.5.0)"
           exit -1
@@ -79,6 +99,7 @@ jobs:
       
           # Push tag to remote
           git push origin $extensionName/$newLibraryVersion
+
       } else {
           Write-Host "NewLibraryVersion $newLibraryVersion is malformed (example: 1.5.0)"
           exit -1
@@ -153,17 +174,17 @@ jobs:
       
           # Modify Extension $extensionName Version in pyproject.toml
           Write-Host "Replacing Extension $extensionName version in worker's pyproject.toml"
-          ((Get-Content pyproject.toml) -replace '"$(ExtensionName)==(\d)+.(\d)+.*"','"$(ExtensionName)==$(NewLibraryVersion)"' -join "`n") + "`n" | Set-Content -NoNewline pyproject.toml
-      
+          ((Get-Content workers/pyproject.toml) -replace '"$(ExtensionName)==(\d)+.(\d)+.*"','"$(ExtensionName)==$(NewLibraryVersion)"' -join "`n") + "`n" | Set-Content -NoNewline workers/pyproject.toml
+
           # Commit Python Version
           Write-Host "Pushing $newBranch to azure-functions-python-worker repo"
-          git add pyproject.toml
+          git add workers/pyproject.toml
           git commit -m "build: update $extensionName version to $newLibraryVersion"
           git push origin $newBranch
       
           # Create PR
           Write-Host "Creating PR draft in GitHub"
-          $body = (@{head="$newBranch";base="dev";body="Python Extension [$extensionName] Version [$newLibraryVersion](https://github.com/Azure/azure-functions-python-extensions/releases/tag/$extensionName/$newLibraryVersion)";draft=$true;maintainer_can_modify=$true;title="buikld: update $extensionName version to $newLibraryVersion"} | ConvertTo-Json -Compress)
+          $body = (@{head="$newBranch";base="dev";body="Python Extension [$extensionName] Version [$newLibraryVersion](https://github.com/Azure/azure-functions-python-extensions/releases/tag/$extensionName/$newLibraryVersion)";draft=$true;maintainer_can_modify=$true;title="build: update $extensionName version to $newLibraryVersion"} | ConvertTo-Json -Compress)
           $response = Invoke-WebRequest -Headers @{"Cache-Control"="no-cache";"Content-Type"="application/json";"Authorization"="Basic $credential";"Accept"="application/vnd.github.v3+json"} -Method Post -Body "$body" -Uri "https://api.github.com/repos/Azure/azure-functions-python-worker/pulls"
       
           # Return Value
@@ -238,34 +259,3 @@ jobs:
           exit -1
       }
     displayName: 'Publish package to pypi.org'
-
-- job: "MergeBack"
-  dependsOn: ['PyPIPackage']
-  displayName: 'Merge Back'
-  steps:
-  - powershell: |
-      $githubToken = "$(GithubPat)"
-      $newLibraryVersion = "$(newLibraryVersion)"
-      $extensionName= "$(ExtensionName)"
-      $extensionDirectory = "$(ExtensionDirectory)"
-      
-      if($newLibraryVersion -match '(\d)+.(\d)+.(\d)+') {
-          # Create GitHub credential
-          git config --global user.name "AzureFunctionsPython"
-          git config --global user.email "azfunc@microsoft.com"
-      
-          # Clone Repository
-          git clone https://$githubToken@github.com/Azure/azure-functions-python-extensions
-          Write-Host "Cloned azure-functions-python-extensions into local"
-          Set-Location "azure-functions-python-extensions"
-      
-          # Merge back to dev
-          Write-Host "Merging $extensionName/release/$newLibraryVersion back to dev"
-          git checkout dev
-          git merge "origin/$extensionName/release/$newLibraryVersion"
-          git push origin dev
-      } else {
-          Write-Host "newLibraryVersion $newLibraryVersion is malformed (example: 1.1.8)"
-          exit -1
-      }
-    displayName: 'Merge release/x.y.z back to dev'

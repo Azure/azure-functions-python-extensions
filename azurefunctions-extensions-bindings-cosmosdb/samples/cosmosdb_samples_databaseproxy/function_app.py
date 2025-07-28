@@ -9,13 +9,15 @@ app = func.FunctionApp(http_auth_level=func.AuthLevel.FUNCTION)
 """
 FOLDER: cosmosdb_samples_databaseproxy
 DESCRIPTION:
-    These samples demonstrate how to obtain a DatabaseProxy from a Cosmos DB Input function app binding.
+    These samples demonstrate how to obtain a DatabaseProxy from a Cosmos DB Input
+    function app binding.
 USAGE:
     Set the environment variables with your own values before running the
     sample:
     1) CosmosDBConnection - the connection string to your Cosmos DB instance
 
-    Set database_name to the database you want to use as an input to the function (required).
+    Set database_name to the database you want to use as an input to
+    the function (required).
 """
 
 

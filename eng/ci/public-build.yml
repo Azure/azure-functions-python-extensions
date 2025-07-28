@@ -47,3 +47,5 @@ extends:
         dependsOn: Build
         jobs:
           - template: /eng/templates/official/jobs/unit-tests.yml@self
+            parameters:
+              PoolName: 1es-pool-azfunc-public
