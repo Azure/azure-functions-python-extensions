@@ -21,8 +21,8 @@ USAGE:
     sample:
     1) CosmosDBConnection - the connection string to your Cosmos DB instance
 
-    Set database_name and container_name to the database name the and container name you want
-    to use as inputs to the function (required).
+    Set database_name and container_name to the database name the and container
+    name you want to use as inputs to the function (required).
 """
 
 

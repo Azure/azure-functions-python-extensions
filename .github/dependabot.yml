@@ -31,3 +31,27 @@ updates:
     commit-message:
       # Prefix all commit messages with "build: "
       prefix: "build"
+  - package-ecosystem: "pip"
+    # Files stored in `app` directory
+    directory: "/azurefunctions-extensions-bindings-cosmosdb"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      # Prefix all commit messages with "build: "
+      prefix: "build"
+  - package-ecosystem: "pip"
+    # Files stored in `app` directory
+    directory: "/azurefunctions-extensions-bindings-eventhub"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      # Prefix all commit messages with "build: "
+      prefix: "build"
+  - package-ecosystem: "pip"
+    # Files stored in `app` directory
+    directory: "/azurefunctions-extensions-bindings-servicebus"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      # Prefix all commit messages with "build: "
+      prefix: "build"

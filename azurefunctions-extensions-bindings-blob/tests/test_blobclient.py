@@ -93,11 +93,15 @@ class TestBlobClient(unittest.TestCase):
             )
 
     def test_input_empty(self):
-        datum: Datum = Datum(value={}, type="model_binding_data")
-        with self.assertRaises(ValueError):
-            BlobClientConverter.decode(
+        with self.assertRaises(ValueError) as e:
+            datum: Datum = Datum(value={}, type="model_binding_data")
+            _: BlobClient = BlobClientConverter.decode(
                 data=datum, trigger_metadata=None, pytype=BlobClient
             )
+        self.assertEqual(
+            e.exception.args[0],
+            "Unable to create Blob Service Client type.",
+        )
 
     def test_input_populated(self):
         content = {
@@ -147,7 +151,7 @@ class TestBlobClient(unittest.TestCase):
             )
         self.assertEqual(
             e.exception.args[0],
-            "Storage account connection string NotARealConnectionString"
+            "Storage account connection name NotARealConnectionString"
             " does not exist. Please make sure that it is a defined App Setting.",
         )
 
@@ -172,8 +176,8 @@ class TestBlobClient(unittest.TestCase):
             )
         self.assertEqual(
             e.exception.args[0],
-            "Storage account connection string cannot be None."
-            " Please provide a connection string.",
+            "Storage account connection name cannot be None."
+            " Please provide a connection setting.",
         )
 
     def test_input_populated_managed_identity_input(self):
