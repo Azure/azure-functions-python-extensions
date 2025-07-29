@@ -1,0 +1,2 @@
+azure-functions>=1.21.0
+-e /Users/varadmeru/work/microsoft/azfunctions/azure-functions-python-extensions/azurefunctions-extensions-mcp-server

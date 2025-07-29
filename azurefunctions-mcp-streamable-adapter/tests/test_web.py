@@ -2,6 +2,16 @@ import asyncio
 import unittest
 from unittest.mock import MagicMock, patch
 
+from starlette.applications import Starlette
+from starlette.requests import Request as StarletteRequest
+from starlette.responses import FileResponse as StarletteFileResponse
+from starlette.responses import HTMLResponse as StarletteHTMLResponse
+from starlette.responses import JSONResponse as StarletteJSONResponse
+from starlette.responses import PlainTextResponse as StarlettePlainTextResponse
+from starlette.responses import RedirectResponse as StarletteRedirectResponse
+from starlette.responses import Response as StarletteResponse
+from starlette.responses import StreamingResponse as StarletteStreamingResponse
+
 from azurefunctions.extensions.base import (
     RequestTrackerMeta,
     ResponseLabels,
@@ -12,16 +22,6 @@ from azurefunctions.extensions.mcp_server.starlette import (
     WebApp,
     WebServer,
 )
-from starlette.applications import Starlette
-
-from starlette.requests import Request as StarletteRequest
-from starlette.responses import Response as StarletteResponse
-from starlette.responses import FileResponse as StarletteFileResponse
-from starlette.responses import HTMLResponse as StarletteHTMLResponse
-from starlette.responses import JSONResponse as StarletteJSONResponse
-from starlette.responses import PlainTextResponse as StarlettePlainTextResponse
-from starlette.responses import RedirectResponse as StarletteRedirectResponse
-from starlette.responses import StreamingResponse as StarletteStreamingResponse
 
 
 class TestRequestTrackerMeta(unittest.TestCase):
@@ -128,10 +128,16 @@ class TestWebServer(unittest.TestCase):
             serve  # Mock the serve method to return a CoroutineMock
         )
 
-        asyncio.get_event_loop().run_until_complete(self.web_server.serve())
+        asyncio.run(self.web_server.serve())
 
         config_mock.assert_called_once_with(
-            self.test_app, host=self.hostname, port=self.port
+            self.test_app,
+            host=self.hostname,
+            port=self.port,
+            loop="asyncio",
+            log_level="debug",
+            lifespan="on",
+            use_colors=True,
         )
         server_mock.assert_called_once_with(config_instance_mock)
 

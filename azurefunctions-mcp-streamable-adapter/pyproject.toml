@@ -1,0 +1,122 @@
+[build-system]
+requires = ["setuptools >= 61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "azurefunctions-extensions-mcp-server"
+dynamic = ["version"]
+requires-python = ">=3.10"
+authors = [{ name = "Azure Functions team at Microsoft Corp.", email = "azurefunctions@microsoft.com"}]
+description = "MCP Python worker extension for Azure Functions."
+readme = "README.md"
+license = {text = "MIT License"}
+classifiers= [
+        'License :: OSI Approved :: MIT License',
+        'Intended Audience :: Developers',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
+        'Programming Language :: Python :: 3.12',
+        'Programming Language :: Python :: 3.13',
+        'Operating System :: Microsoft :: Windows',
+        'Operating System :: POSIX',
+        'Operating System :: MacOS :: MacOS X',
+        'Environment :: Web Environment',
+        'Development Status :: 5 - Production/Stable',
+    ]
+dependencies = [
+        'azurefunctions-extensions-base',
+        'azure-functions',
+        'starlette>=0.47.2,<1.0.0',
+        'uvicorn>=0.35.0,<1.0.0',
+        'pydantic>=2.11.7,<3.0.0',
+        'mcp~=1.12.1'
+    ]
+
+[tool.setuptools.dynamic]
+version = {attr = "azurefunctions.extensions.mcp_server.__version__"}
+
+[tool.setuptools.packages.find]
+exclude = [
+    'azurefunctions.extensions.http','azurefunctions.extensions',
+    'azurefunctions', 'tests', 'samples'
+    ]
+
+[tool.uv]
+dev-dependencies = [
+    'pytest>=7.0.0',
+    'pytest-cov>=4.0.0',
+    'pytest-asyncio>=0.21.0',
+    'coverage>=7.0.0',
+    'pytest-instafail>=0.5.0',
+    'pre-commit>=3.0.0',
+    'isort>=5.12.0',
+    'black>=23.0.0',
+    'flake8>=6.0.0',
+    'mypy>=1.0.0'
+    ]
+
+[tool.uv.sources]
+# You can add specific package sources here if needed
+
+[tool.uv.workspace]
+# Enable workspace support if this is part of a larger workspace
+members = ["."]
+
+[tool.black]
+line-length = 88
+target-version = ['py310']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+known_first_party = ["azurefunctions"]
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-ra -q --strict-markers"
+testpaths = ["tests"]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests"
+]
+
+[tool.coverage.run]
+source = ["azurefunctions"]
+omit = [
+    "*/tests/*",
+    "*/test_*",
+    "setup.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+ignore_missing_imports = true
+

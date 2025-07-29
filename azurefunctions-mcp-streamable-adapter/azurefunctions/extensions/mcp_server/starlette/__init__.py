@@ -1,14 +1,15 @@
-__path__ = __import__("pkgutil").extend_path(__path__, __name__)
-
-from .starlette import (Request, Response,
+from starlette.requests import Request
+from starlette.responses import (
     FileResponse,
     HTMLResponse,
     JSONResponse,
     PlainTextResponse,
     RedirectResponse,
-    StreamingResponse, RequestSynchronizer, WebApp, WebServer
-                        )
-from .decorators import (MCPFunctionApp, FunctionRegister)
+    Response,
+    StreamingResponse,
+)
+
+from .web import RequestSynchronizer, WebApp, WebServer
 
 __all__ = [
     "WebServer",
@@ -22,8 +23,6 @@ __all__ = [
     "RedirectResponse",
     "JSONResponse",
     "FileResponse",
-    "MCPFunctionApp",
-    "FunctionRegister"
 ]
 
-__version__ = "0.0.1b1"
+__version__ = "1.0.0b1"

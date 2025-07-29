@@ -1,9 +1,23 @@
 #  Copyright (c) Microsoft Corporation. All rights reserved.
 #  Licensed under the MIT License.
 
+import logging
 from typing import Callable
+from collections.abc import AsyncIterator
+import contextlib
 
 import uvicorn
+from pydantic import BaseModel
+from starlette.applications import Starlette
+from starlette.requests import Request as StarletteRequest
+from starlette.responses import FileResponse as StarletteFileResponse
+from starlette.responses import HTMLResponse as StarletteHTMLResponse
+from starlette.responses import JSONResponse as StarletteJSONResponse
+from starlette.responses import PlainTextResponse as StarlettePlainTextResponse
+from starlette.responses import RedirectResponse as StarletteRedirectResponse
+from starlette.responses import Response as StarletteResponse
+from starlette.responses import StreamingResponse as StarletteStreamingResponse
+
 from azurefunctions.extensions.base import (
     RequestSynchronizer,
     RequestTrackerMeta,
@@ -12,21 +26,6 @@ from azurefunctions.extensions.base import (
     WebApp,
     WebServer,
 )
-
-from starlette.applications import Starlette
-
-from starlette.requests import Request as StarletteRequest
-from starlette.responses import Response as StarletteResponse
-from starlette.responses import FileResponse as StarletteFileResponse
-from starlette.responses import HTMLResponse as StarletteHTMLResponse
-from starlette.responses import JSONResponse as StarletteJSONResponse
-from starlette.responses import PlainTextResponse as StarlettePlainTextResponse
-from starlette.responses import RedirectResponse as StarletteRedirectResponse
-from starlette.responses import StreamingResponse as StarletteStreamingResponse
-
-from pydantic import BaseModel
-
-import logging
 
 
 class RequestSynchronizer(RequestSynchronizer):
@@ -122,7 +121,10 @@ class WebApp(WebApp):
 
     def route(self, func: Callable):
         # Apply the api_route decorator
-        self.web_app.add_route(route=func, path="/{path:path}", methods=[
+        self.web_app.add_route(
+            route=func,
+            path="/{path:path}",
+            methods=[
                 "GET",
                 "POST",
                 "PUT",
@@ -131,16 +133,33 @@ class WebApp(WebApp):
                 "HEAD",
                 "PATCH",
                 "TRACE",
-            ])
+            ],
+        )
 
     def get_app(self):
         return self.web_app
 
 
 class WebServer(WebServer):
+    @contextlib.asynccontextmanager
+    async def lifespan(app: Starlette) -> AsyncIterator[None]:
+        """Context manager for session manager."""
+        async with session_manager.run():
+            logger.info("Application started with StreamableHTTP session manager!")
+            try:
+                yield
+            finally:
+                logger.info("Application shutting down...")
+
     async def serve(self):
         uvicorn_config = uvicorn.Config(
-            self.web_app, host=self.hostname, port=self.port, loop="asyncio", log_level="debug", lifespan="on", use_colors=True
+            self.web_app,
+            host=self.hostname,
+            port=self.port,
+            loop="asyncio",
+            log_level="debug",
+            lifespan="on",
+            use_colors=True,
         )
         logging.info(f"Starting server on {self.hostname}:{self.port}")
         # Create a Uvicorn server instance
