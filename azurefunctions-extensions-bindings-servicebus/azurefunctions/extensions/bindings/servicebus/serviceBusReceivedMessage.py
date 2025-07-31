@@ -6,7 +6,7 @@ from azurefunctions.extensions.base import Datum, SdkType
 from .utils import get_decoded_message
 
 
-class ServiceBusReceivedMessage(SdkType):
+class ServiceBusReceivedMessage(SdkType, ServiceBusReceivedMessageSdk):
     def __init__(self, *, data: Datum) -> None:
         # model_binding_data properties
         self._data = data

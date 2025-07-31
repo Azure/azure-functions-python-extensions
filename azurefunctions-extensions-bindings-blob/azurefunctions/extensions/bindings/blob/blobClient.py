@@ -1,11 +1,12 @@
 #  Copyright (c) Microsoft Corporation. All rights reserved.
 #  Licensed under the MIT License.
 
+from azure.storage.blob import BlobClient as AzureBlobClient
 from azurefunctions.extensions.base import Datum
 from .blobSdkType import BlobSdkType
 
 
-class BlobClient(BlobSdkType):
+class BlobClient(BlobSdkType, AzureBlobClient):
     def __init__(self, *, data: Datum) -> None:
         super().__init__(data=data)
 
