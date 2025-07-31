@@ -103,9 +103,9 @@ app = MCPFunctionApp(
 
 ## Configuration Formats
 
-The adapter supports multiple JSON configuration formats:
+The adapter supports JSON configuration files with the following format:
 
-### Format 1: mcpServers
+### Standard Configuration Format
 ```json
 {
   "mcpServers": {
@@ -121,33 +121,35 @@ The adapter supports multiple JSON configuration formats:
 }
 ```
 
-### Format 2: servers
+### Example: MySQL Configuration
 ```json
 {
-  "servers": {
+  "mcpServers": {
     "mysql": {
-      "type": "stdio",
       "command": "uvx",
       "args": ["--from", "mysql-mcp-server", "mysql_mcp_server"],
       "env": {
-        "MYSQL_HOST": "localhost"
+        "MYSQL_HOST": "localhost",
+        "MYSQL_PORT": "3306",
+        "MYSQL_USER": "your_username",
+        "MYSQL_PASSWORD": "your_password",
+        "MYSQL_DATABASE": "your_database"
       }
     }
   }
 }
 ```
 
-### Format 3: mcp.server
+### Example: Fabric RTI Configuration  
 ```json
 {
-  "mcp": {
-    "server": {
-      "fabric-rti-mcp": {
-        "command": "uvx",
-        "args": ["microsoft-fabric-rti-mcp"],
-        "env": {
-          "KUSTO_SERVICE_URI": "https://help.kusto.windows.net/"
-        }
+  "mcpServers": {
+    "fabric-rti-mcp": {
+      "command": "uvx",
+      "args": ["microsoft-fabric-rti-mcp"],
+      "env": {
+        "KUSTO_SERVICE_URI": "https://help.kusto.windows.net/",
+        "KUSTO_SERVICE_DEFAULT_DB": "Samples"
       }
     }
   }

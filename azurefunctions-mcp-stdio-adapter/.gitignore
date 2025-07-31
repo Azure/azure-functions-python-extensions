@@ -181,3 +181,9 @@ mcp_config*.json
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+#Extra copilot creations
+test_*
+debug_*
+CHAT_EXPORT*
+PROMPT*

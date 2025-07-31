@@ -11,13 +11,13 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from azurefunctions.extensions.mcp_server.core.process_manager import ProcessManager
 from azurefunctions.extensions.mcp_server.models.configuration import MCPServerStdioParams
 from azurefunctions.extensions.mcp_server.models.enums import MCPServerStatus
-from tests.conftest import AsyncTestCase
 
 
-class TestProcessManager(AsyncTestCase):
+class TestProcessManager:
     """Test ProcessManager class."""
     
-    async def setup_method(self):
+    @pytest.fixture(autouse=True)
+    def setup_test(self):
         """Set up test fixtures."""
         self.params = MCPServerStdioParams(
             command="echo",
@@ -99,8 +99,20 @@ class TestProcessManager(AsyncTestCase):
         # Mock process that exits immediately
         mock_process = AsyncMock()
         mock_process.returncode = 1  # Process exited
-        mock_process.stderr = AsyncMock()
+        
+        # Use regular mocks for synchronous methods to avoid coroutine warnings
+        mock_process.stdin = MagicMock()
+        mock_process.stdin.close = MagicMock()
+        mock_process.stdin.is_closing = MagicMock(return_value=False)
+        
+        mock_process.stdout = MagicMock()
+        mock_process.stdout.close = MagicMock()
+        mock_process.stdout.is_closing = MagicMock(return_value=False)
+        
+        mock_process.stderr = MagicMock()
         mock_process.stderr.read = AsyncMock(return_value=b"Test error")
+        mock_process.stderr.close = MagicMock()
+        mock_process.stderr.is_closing = MagicMock(return_value=False)
         
         with patch('shutil.which', return_value='/usr/bin/echo'):
             with patch('asyncio.create_subprocess_exec', return_value=mock_process):
@@ -194,16 +206,41 @@ class TestProcessManager(AsyncTestCase):
             mock_process.stdin.write.assert_called_once_with(b"test data")
             mock_process.stdin.drain.assert_called_once()
     
-    async def test_send_input_error(self, mock_asyncio_create_subprocess_exec, mock_process):
+    async def test_send_input_error(self, mock_asyncio_create_subprocess_exec):
         """Test error handling in input sending."""
-        mock_process.stdin.write.side_effect = Exception("Write error")
+        # Create a specific mock process for this test
+        mock_process = AsyncMock()
+        mock_process.pid = 12345
+        mock_process.returncode = None
+        mock_process.stdout = AsyncMock()
+        mock_process.stderr = AsyncMock()
+        mock_process.wait = AsyncMock(return_value=0)
+        mock_process.terminate = MagicMock()
+        mock_process.kill = MagicMock()
+        
+        # Create a regular Mock for stdin to ensure exceptions propagate correctly
+        mock_stdin = MagicMock()
+        mock_stdin.write = MagicMock(side_effect=Exception("Write error"))
+        mock_stdin.drain = AsyncMock()
+        mock_process.stdin = mock_stdin
         
         with patch('shutil.which', return_value='/usr/bin/echo'):
-            await self.manager.start()
-            
-            success = await self.manager.send_input(b"test data")
-            
-            assert not success
+            with patch('asyncio.create_subprocess_exec', return_value=mock_process):
+                await self.manager.start()
+                
+                # Verify the process started successfully
+                assert self.manager.is_running
+                
+                # Now attempt to send input, which should fail
+                success = await self.manager.send_input(b"test data")
+                
+                # Should return False due to the exception
+                assert not success
+                
+                # Verify write was called (and raised the exception)
+                mock_stdin.write.assert_called_once_with(b"test data")
+                # drain should not be called if write raised an exception
+                mock_stdin.drain.assert_not_called()
     
     async def test_read_output_not_running(self):
         """Test reading output when process is not running."""
@@ -273,9 +310,24 @@ class TestProcessManager(AsyncTestCase):
         mock_process = AsyncMock()
         mock_process.pid = 12345
         mock_process.returncode = None
-        mock_process.stdin = AsyncMock()
-        mock_process.stdout = AsyncMock()
-        mock_process.stderr = AsyncMock()
+        
+        # Use regular mocks for synchronous methods to avoid coroutine warnings
+        mock_process.stdin = MagicMock()
+        mock_process.stdin.write = MagicMock()
+        mock_process.stdin.drain = AsyncMock()
+        mock_process.stdin.close = MagicMock()
+        mock_process.stdin.is_closing = MagicMock(return_value=False)
+        
+        mock_process.stdout = MagicMock()
+        mock_process.stdout.read = AsyncMock(return_value=b"")
+        mock_process.stdout.close = MagicMock()
+        mock_process.stdout.is_closing = MagicMock(return_value=False)
+        
+        mock_process.stderr = MagicMock()
+        mock_process.stderr.read = AsyncMock(return_value=b"")
+        mock_process.stderr.close = MagicMock()
+        mock_process.stderr.is_closing = MagicMock(return_value=False)
+        
         mock_process.wait = AsyncMock(return_value=1)  # Non-zero exit code
         mock_process.terminate = MagicMock()
         mock_process.kill = MagicMock()
@@ -305,8 +357,20 @@ class TestProcessManager(AsyncTestCase):
         # Mock a failing process
         mock_process = AsyncMock()
         mock_process.returncode = 1
-        mock_process.stderr = AsyncMock()
+        
+        # Use regular mocks for synchronous methods to avoid coroutine warnings
+        mock_process.stdin = MagicMock()
+        mock_process.stdin.close = MagicMock()
+        mock_process.stdin.is_closing = MagicMock(return_value=False)
+        
+        mock_process.stdout = MagicMock()
+        mock_process.stdout.close = MagicMock()
+        mock_process.stdout.is_closing = MagicMock(return_value=False)
+        
+        mock_process.stderr = MagicMock()
         mock_process.stderr.read = AsyncMock(return_value=b"Error")
+        mock_process.stderr.close = MagicMock()
+        mock_process.stderr.is_closing = MagicMock(return_value=False)
         
         with patch('shutil.which', return_value='/usr/bin/echo'):
             with patch('asyncio.create_subprocess_exec', return_value=mock_process):

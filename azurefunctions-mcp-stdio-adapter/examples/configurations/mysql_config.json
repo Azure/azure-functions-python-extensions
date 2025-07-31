@@ -1,7 +1,6 @@
 {
-  "servers": {
+  "mcpServers": {
     "mysql": {
-      "type": "stdio",
       "command": "uvx",
       "args": [
         "--from",

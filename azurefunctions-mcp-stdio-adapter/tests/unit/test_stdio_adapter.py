@@ -9,10 +9,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 from azurefunctions.extensions.mcp_server.core.stdio_adapter import MCPStdioAdapter
 from azurefunctions.extensions.mcp_server.models.enums import MCPServerStatus
-from tests.conftest import AsyncTestCase
 
 
-class TestMCPStdioAdapter(AsyncTestCase):
+class TestMCPStdioAdapter:
     """Test MCPStdioAdapter class."""
     
     async def test_initialization(self, sample_mcp_config):
@@ -88,7 +87,7 @@ class TestMCPStdioAdapter(AsyncTestCase):
             assert adapter._bytes_sent > 0
     
     async def test_content_length_framing(self, sample_mcp_config, mock_asyncio_create_subprocess_exec):
-        """Test Content-Length framing of messages."""
+        """Test line-delimited JSON framing of messages."""
         adapter = MCPStdioAdapter(sample_mcp_config)
         
         with patch('shutil.which', return_value='/usr/bin/echo'):
@@ -106,32 +105,26 @@ class TestMCPStdioAdapter(AsyncTestCase):
             
             await adapter.send_message(message)
             
-            # Verify Content-Length framing
+            # Verify line-delimited JSON framing
             assert len(sent_data) == 1
             frame = sent_data[0]
             
-            # Should start with Content-Length header
-            assert frame.startswith(b'Content-Length: ')
-            assert b'\r\n\r\n' in frame
+            # Should be JSON message followed by newline
+            assert frame.endswith(b'\n')
             
-            # Extract message part
-            header_end = frame.find(b'\r\n\r\n') + 4
-            message_part = frame[header_end:]
-            
-            # Parse message
+            # Parse message (remove newline)
+            message_part = frame[:-1]
             parsed_message = json.loads(message_part.decode('utf-8'))
             assert parsed_message == message
     
     async def test_process_buffer_complete_message(self, sample_mcp_config):
-        """Test processing complete message from buffer."""
+        """Test processing complete line-delimited JSON message from buffer."""
         adapter = MCPStdioAdapter(sample_mcp_config)
         
-        # Create a complete message frame
+        # Create a complete line-delimited JSON message
         message = {"jsonrpc": "2.0", "method": "test", "id": "1"}
         message_json = json.dumps(message)
-        message_bytes = message_json.encode('utf-8')
-        content_length = len(message_bytes)
-        frame = f"Content-Length: {content_length}\r\n\r\n".encode('utf-8') + message_bytes
+        frame = message_json.encode('utf-8') + b'\n'
         
         # Set up message handler
         received_messages = []
@@ -151,19 +144,14 @@ class TestMCPStdioAdapter(AsyncTestCase):
         assert adapter._read_buffer == b''  # Buffer should be empty
     
     async def test_process_buffer_incomplete_message(self, sample_mcp_config):
-        """Test processing incomplete message from buffer."""
+        """Test processing incomplete line-delimited JSON message from buffer."""
         adapter = MCPStdioAdapter(sample_mcp_config)
         
-        # Create an incomplete message frame
+        # Create an incomplete message (JSON without newline)
         message = {"jsonrpc": "2.0", "method": "test", "id": "1"}
         message_json = json.dumps(message)
-        message_bytes = message_json.encode('utf-8')
-        content_length = len(message_bytes)
-        
-        # Only send header and partial message
-        header = f"Content-Length: {content_length}\r\n\r\n".encode('utf-8')
-        partial_message = message_bytes[:10]  # Only first 10 bytes
-        frame = header + partial_message
+        # No newline - incomplete message
+        frame = message_json.encode('utf-8')
         
         adapter._read_buffer = frame
         
@@ -175,10 +163,10 @@ class TestMCPStdioAdapter(AsyncTestCase):
         assert adapter._read_buffer == frame  # Buffer should remain unchanged
     
     async def test_process_buffer_multiple_messages(self, sample_mcp_config):
-        """Test processing multiple messages from buffer."""
+        """Test processing multiple line-delimited JSON messages from buffer."""
         adapter = MCPStdioAdapter(sample_mcp_config)
         
-        # Create two complete message frames
+        # Create two complete message lines
         messages = [
             {"jsonrpc": "2.0", "method": "test1", "id": "1"},
             {"jsonrpc": "2.0", "method": "test2", "id": "2"}
@@ -187,9 +175,7 @@ class TestMCPStdioAdapter(AsyncTestCase):
         frames = b''
         for message in messages:
             message_json = json.dumps(message)
-            message_bytes = message_json.encode('utf-8')
-            content_length = len(message_bytes)
-            frame = f"Content-Length: {content_length}\r\n\r\n".encode('utf-8') + message_bytes
+            frame = message_json.encode('utf-8') + b'\n'
             frames += frame
         
         # Set up message handler

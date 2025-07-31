@@ -7,16 +7,19 @@ as streamable HTTP endpoints without modifying the underlying MCP server behavio
 """
 
 # This is a namespace package to allow coexistence with other azurefunctions packages
-__path__ = __import__('pkgutil').extend_path(__path__, __name__)
+__path__ = __import__("pkgutil").extend_path(__path__, __name__)
 
 from .extensions.mcp_server.decorators.mcp_app import MCPFunctionApp
-from .extensions.mcp_server.models.configuration import MCPStdioConfiguration, MCPServerStdioParams
+from .extensions.mcp_server.models.configuration import (
+    MCPServerStdioParams,
+    MCPStdioConfiguration,
+)
 from .extensions.mcp_server.models.enums import MCPMode
 
 __version__ = "0.1.0"
 __all__ = [
     "MCPFunctionApp",
-    "MCPStdioConfiguration", 
+    "MCPStdioConfiguration",
     "MCPServerStdioParams",
     "MCPMode",
 ]

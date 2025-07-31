@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "git-tools": {
+      "command": "uvx",
+      "args": ["mcp-server-git"],
+      "env": {
+        "GIT_REPO_PATH": "/Users/varadmeru/work/microsoft/azfunctions/azfuncpyworker"
+      }
+    }
+  }
+}

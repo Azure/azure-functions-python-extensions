@@ -18,10 +18,9 @@ from azurefunctions.extensions.mcp_server import (
     MCPStdioConfiguration,
     MCPServerStdioParams,
 )
-from tests.conftest import AsyncTestCase
 
 
-class TestMCPFunctionAppIntegration(AsyncTestCase):
+class TestMCPFunctionAppIntegration:
     """Integration tests for MCPFunctionApp."""
     
     async def test_app_initialization_with_config(self, sample_mcp_config, mock_shutil_which):

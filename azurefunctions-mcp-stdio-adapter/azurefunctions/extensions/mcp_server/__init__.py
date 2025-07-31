@@ -6,12 +6,12 @@ to streamable HTTP endpoints within Azure Functions.
 """
 
 from .decorators.mcp_app import MCPFunctionApp
-from .models.configuration import MCPStdioConfiguration, MCPServerStdioParams
+from .models.configuration import MCPServerStdioParams, MCPStdioConfiguration
 from .models.enums import MCPMode
 
 __all__ = [
     "MCPFunctionApp",
     "MCPStdioConfiguration",
-    "MCPServerStdioParams", 
+    "MCPServerStdioParams",
     "MCPMode",
 ]

@@ -17,12 +17,7 @@ from azurefunctions.extensions.mcp_server.models.configuration import (
 from azurefunctions.extensions.mcp_server.models.enums import MCPMode
 
 
-@pytest.fixture(scope="session")
-def event_loop():
-    """Create an instance of the default event loop for the test session."""
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    yield loop
-    loop.close()
+# Remove deprecated event_loop fixture - pytest-asyncio handles this automatically
 
 
 @pytest.fixture
@@ -107,15 +102,27 @@ def mock_process():
     process = AsyncMock()
     process.pid = 12345
     process.returncode = None
-    process.stdin = AsyncMock()
-    process.stdout = AsyncMock()
-    process.stderr = AsyncMock()
+    
+    # Create regular mocks for synchronous methods
+    process.stdin = MagicMock()
+    process.stdin.write = MagicMock()
+    process.stdin.drain = AsyncMock()
+    process.stdin.close = MagicMock()
+    process.stdin.is_closing = MagicMock(return_value=False)
+    
+    process.stdout = MagicMock()
+    process.stdout.read = AsyncMock(return_value=b"test output")
+    process.stdout.close = MagicMock()
+    process.stdout.is_closing = MagicMock(return_value=False)
+    
+    process.stderr = MagicMock()
+    process.stderr.read = AsyncMock(return_value=b"")
+    process.stderr.close = MagicMock()
+    process.stderr.is_closing = MagicMock(return_value=False)
+    
     process.wait = AsyncMock(return_value=0)
     process.terminate = MagicMock()
     process.kill = MagicMock()
-    
-    # Mock the stdin.drain() method
-    process.stdin.drain = AsyncMock()
     
     return process
 
@@ -166,14 +173,5 @@ def sample_content_length_frame() -> bytes:
     return frame + message_bytes
 
 
-@pytest.mark.asyncio
-class AsyncTestCase:
-    """Base class for async test cases."""
-    
-    async def setup_method(self):
-        """Setup method called before each test method."""
-        pass
-    
-    async def teardown_method(self):
-        """Teardown method called after each test method."""
-        pass
+# AsyncTestCase is no longer needed - pytest-asyncio handles async tests automatically
+# Tests should inherit from regular classes and use @pytest.mark.asyncio on async methods
