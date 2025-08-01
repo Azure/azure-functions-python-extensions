@@ -8,7 +8,7 @@ from azure.eventhub import EventData as EventDataSDK
 from azurefunctions.extensions.base import Datum, SdkType
 
 
-class EventData(SdkType):
+class EventData(SdkType, EventDataSDK):
     def __init__(self, *, data: Datum) -> None:
         # model_binding_data properties
         self._data = data
