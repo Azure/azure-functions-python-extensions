@@ -1,0 +1,25 @@
+{
+  "mcpServers": {
+    "fabric-rti-mcp-with-obo": {
+      "command": "uvx",
+      "args": [
+        "microsoft-fabric-rti-mcp"
+      ],
+      "env": {
+        "KUSTO_SERVICE_URI": "https://help.kusto.windows.net/",
+        "KUSTO_SERVICE_DEFAULT_DB": "Samples",
+        "AZ_OPENAI_EMBEDDING_ENDPOINT": "https://your-openai-resource.openai.azure.com/openai/deployments/text-embedding-ada-002/embeddings?api-version=2024-10-21;impersonate"
+      },
+      "auth": {
+        "method": "azure_obo",
+        "azure_client_id": "${AZURE_CLIENT_ID}",
+        "azure_client_secret": "${AZURE_CLIENT_SECRET}",
+        "azure_scopes": [
+          "https://management.azure.com/.default",
+          "https://fabric.microsoft.com/.default"
+        ],
+        "forward_user_token": true
+      }
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "mcpServers": {
+    "azure-default-mcp": {
+      "command": "uvx",
+      "args": [
+        "azure-mcp-server"
+      ],
+      "env": {
+        "AZURE_RESOURCE_GROUP": "my-rg",
+        "AZURE_SUBSCRIPTION_ID": "12345678-1234-1234-1234-123456789012"
+      },
+      "auth": {
+        "method": "azure_default",
+        "azure_scopes": [
+          "https://management.azure.com/.default"
+        ],
+        "forward_user_token": false
+      }
+    }
+  }
+}

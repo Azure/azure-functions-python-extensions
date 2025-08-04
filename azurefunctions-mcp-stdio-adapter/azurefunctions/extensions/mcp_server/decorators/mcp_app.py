@@ -82,8 +82,14 @@ class MCPFunctionApp(TriggerApi, FunctionRegister):
         self._active_sessions: Dict[str, bool] = {}
         self._response_timeout = 30.0  # 30 seconds timeout for responses
 
+        # Authentication manager
+        self._auth_manager: Optional[Any] = None
+
         # Load configuration
         self._load_configuration(mcp_server, config_file)
+
+        # Initialize authentication
+        self._initialize_authentication()
 
         # Add HTTP endpoint
         self._add_http_app(auth_level)
@@ -138,6 +144,46 @@ class MCPFunctionApp(TriggerApi, FunctionRegister):
             logger.error(f"Failed to load MCP configuration: {e}")
             raise
 
+    def _initialize_authentication(self) -> None:
+        """Initialize authentication manager based on configuration."""
+        if not self.current_server_config:
+            logger.warning("No server configuration available for authentication")
+            return
+        
+        # Import here to avoid circular imports
+        from ..auth.provider_factory import AuthProviderFactory
+        from ..auth.token_handler import AuthManager
+        
+        try:
+            provider = AuthProviderFactory.create_provider(self.current_server_config.auth)
+            self._auth_manager = AuthManager(provider)
+            logger.info(f"Initialized authentication with method: {self.current_server_config.auth.method}")
+        except Exception as e:
+            logger.error(f"Failed to initialize authentication: {e}")
+            self._auth_manager = None
+
+    async def _authenticate_request(self, headers: Dict[str, str]) -> Optional[Any]:
+        """
+        Authenticate incoming request.
+        
+        Args:
+            headers: HTTP request headers
+            
+        Returns:
+            AuthContext if authentication succeeds, None if no auth configured
+            
+        Raises:
+            Exception: If authentication fails
+        """
+        if not self._auth_manager:
+            return None
+        
+        try:
+            return await self._auth_manager.authenticate_request(headers)
+        except Exception as e:
+            logger.error(f"Authentication failed: {e}")
+            raise
+
     def _add_http_app(self, auth_level: Union[AuthLevel, str]) -> None:
         """
         Add the HTTP endpoint for MCP communication.
@@ -161,8 +207,9 @@ class MCPFunctionApp(TriggerApi, FunctionRegister):
                 accept = req.headers.get("accept", "Not set")
                 session_id_header = req.headers.get("mcp-session-id", "Not set")
                 user_agent = req.headers.get("user-agent", "Not set")
+                auth_header = req.headers.get("authorization", "Not set")
                 logger.debug(
-                    f"=== NEW REQUEST === {req.method} {req.url} | Headers: {dict(req.headers)} | Query: {dict(req.query_params)} | Content-Type: {content_type}, Accept: {accept}, User-Agent: {user_agent}, MCP-Session-ID: {session_id_header}"
+                    f"=== NEW REQUEST === {req.method} {req.url} | Headers: {dict(req.headers)} | Query: {dict(req.query_params)} | Content-Type: {content_type}, Accept: {accept}, User-Agent: {user_agent}, MCP-Session-ID: {session_id_header}, Auth: {auth_header[:20] + '...' if auth_header != 'Not set' else 'Not set'}"
                 )
 
                 # Handle CORS preflight requests
@@ -182,6 +229,9 @@ class MCPFunctionApp(TriggerApi, FunctionRegister):
                     logger.debug(f"OPTIONS Response Headers: {dict(response.headers)}")
                     return response
 
+                # Authenticate the request
+                auth_context = await self._authenticate_request(req.headers)
+
                 # Check if this is a streamable HTTP connection request from MCP Inspector
                 if req.method.upper() == "GET":
                     # Check if this is an MCP Inspector streamable HTTP request
@@ -189,7 +239,7 @@ class MCPFunctionApp(TriggerApi, FunctionRegister):
 
                     if transport_type == "streamable-http":
                         logger.debug(f"Establishing MCP Streamable HTTP connection")
-                        response = await self._handle_streamable_http_connection(req)
+                        response = await self._handle_streamable_http_connection(req, auth_context)
                         logger.debug(
                             f"Streamable HTTP connection established - Status: {response.status_code}"
                         )
@@ -509,7 +559,7 @@ class MCPFunctionApp(TriggerApi, FunctionRegister):
 
         return Response(body, status_code=status_code, headers=headers)
 
-    async def _ensure_connection(self, session_id: Optional[str] = None) -> bool:
+    async def _ensure_connection(self, session_id: Optional[str] = None, auth_context: Optional[Any] = None) -> bool:
         """
         Ensure the STDIO adapter is connected to the MCP server.
 
@@ -530,12 +580,11 @@ class MCPFunctionApp(TriggerApi, FunctionRegister):
                 adapter = MCPStdioAdapter(
                     self.current_server_config,
                     message_handler=self._handle_stdio_message,
+                    auth_context=auth_context,
                 )
-                # Mark this as a session adapter so it uses persistent connections
-                adapter._is_session_adapter = True
                 self._session_adapters[session_id] = adapter
                 logger.debug(
-                    f"Session adapter - created new for {session_id}: {self.current_server_config.name}"
+                    f"Session adapter - created new for {session_id}: {self.current_server_config.name} with auth: {auth_context.method if auth_context else 'none'}"
                 )
             else:
                 logger.debug(f"Session adapter - using existing for {session_id}")
@@ -550,6 +599,7 @@ class MCPFunctionApp(TriggerApi, FunctionRegister):
                 self.stdio_adapter = MCPStdioAdapter(
                     self.current_server_config,
                     message_handler=self._handle_stdio_message,
+                    auth_context=auth_context,
                 )
 
             adapter = self.stdio_adapter
@@ -605,7 +655,7 @@ class MCPFunctionApp(TriggerApi, FunctionRegister):
 
         return None
 
-    async def _handle_streamable_http_connection(self, req: Request) -> Response:
+    async def _handle_streamable_http_connection(self, req: Request, auth_context: Optional[Any] = None) -> Response:
         """
         Handle MCP Streamable HTTP connection establishment using proper MCP protocol.
 
@@ -630,7 +680,7 @@ class MCPFunctionApp(TriggerApi, FunctionRegister):
         logger.debug(f"{session_status} MCP session: {session_id}")
 
         # Ensure STDIO adapter is connected for this session
-        if not await self._ensure_connection(session_id):
+        if not await self._ensure_connection(session_id, auth_context):
             logger.error("STDIO adapter connection failed during streamable HTTP setup")
             return Response(
                 json.dumps({"error": "MCP server connection failed"}),

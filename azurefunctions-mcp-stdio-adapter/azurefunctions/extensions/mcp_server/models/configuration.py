@@ -7,8 +7,83 @@ and their execution parameters.
 
 import os
 from typing import Dict, List, Optional
+from enum import Enum
 
 from pydantic import BaseModel, Field, field_validator, model_validator
+
+
+class AuthMethod(str, Enum):
+    """Supported authentication methods."""
+    NONE = "none"
+    AZURE_DEFAULT = "azure_default" 
+    AZURE_OBO = "azure_obo"
+    OAUTH2_BEARER = "oauth2_bearer"
+
+
+class AuthConfiguration(BaseModel):
+    """
+    Authentication configuration for MCP servers.
+    
+    This class defines how authentication should be handled
+    for requests to the MCP server.
+    """
+    
+    method: AuthMethod = Field(
+        default=AuthMethod.NONE,
+        description="Authentication method to use"
+    )
+    
+    # Azure-specific settings
+    azure_client_id: Optional[str] = Field(
+        default=None,
+        description="Azure client ID for OBO authentication"
+    )
+    azure_client_secret: Optional[str] = Field(
+        default=None,
+        description="Azure client secret for OBO authentication"
+    )
+    azure_scopes: List[str] = Field(
+        default_factory=lambda: ["https://management.azure.com/.default"],
+        description="Azure scopes to request"
+    )
+    
+    # OAuth2 settings
+    oauth2_required_scopes: List[str] = Field(
+        default_factory=list,
+        description="Required OAuth2 scopes"
+    )
+    oauth2_issuer: Optional[str] = Field(
+        default=None,
+        description="OAuth2 token issuer for validation"
+    )
+    
+    # Token forwarding
+    forward_user_token: bool = Field(
+        default=True,
+        description="Whether to forward user tokens to MCP server"
+    )
+    
+    @field_validator("azure_client_id")
+    @classmethod
+    def validate_azure_client_id(cls, v: Optional[str], info) -> Optional[str]:
+        """Validate Azure client ID when using Azure OBO."""
+        values = info.data if hasattr(info, 'data') else {}
+        method = values.get("method")
+        
+        if method == AuthMethod.AZURE_OBO and not v:
+            raise ValueError("azure_client_id is required for Azure OBO authentication")
+        return v
+
+    @field_validator("azure_client_secret")
+    @classmethod
+    def validate_azure_client_secret(cls, v: Optional[str], info) -> Optional[str]:
+        """Validate Azure client secret when using Azure OBO."""
+        values = info.data if hasattr(info, 'data') else {}
+        method = values.get("method")
+        
+        if method == AuthMethod.AZURE_OBO and not v:
+            raise ValueError("azure_client_secret is required for Azure OBO authentication")
+        return v
 
 
 class MCPServerStdioParams(BaseModel):
@@ -72,6 +147,10 @@ class MCPStdioConfiguration(BaseModel):
     )
     enabled: bool = Field(
         default=True, description="Whether this server configuration is enabled"
+    )
+    auth: AuthConfiguration = Field(
+        default_factory=AuthConfiguration, 
+        description="Authentication configuration for the MCP server"
     )
 
     @field_validator("name")

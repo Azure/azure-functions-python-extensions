@@ -31,7 +31,11 @@ class ProcessManager:
     """
 
     def __init__(
-        self, name: str, params: MCPServerStdioParams, process_id: Optional[str] = None
+        self, 
+        name: str, 
+        params: MCPServerStdioParams, 
+        process_id: Optional[str] = None,
+        auth_env: Optional[Dict[str, str]] = None
     ):
         """
         Initialize the process manager.
@@ -40,10 +44,12 @@ class ProcessManager:
             name: Unique name for the MCP server
             params: Server execution parameters
             process_id: Optional process ID for tracking
+            auth_env: Optional authentication environment variables
         """
         self.name = name
         self.params = params
         self.process_id = process_id or f"mcp-{name}-{uuid.uuid4().hex[:8]}"
+        self.auth_env = auth_env or {}
 
         self._process: Optional[asyncio.subprocess.Process] = None
         self._status = MCPServerStatus.STOPPED
@@ -371,6 +377,9 @@ class ProcessManager:
         """
         env = os.environ.copy()
         env.update(self.params.env)
+        
+        # Add authentication environment variables
+        env.update(self.auth_env)
 
         # Add some environment variables that might help with subprocess interaction
         # Force line buffering which might help with uvx subprocess behavior

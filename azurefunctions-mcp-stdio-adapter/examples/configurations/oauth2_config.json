@@ -1,0 +1,22 @@
+{
+  "mcpServers": {
+    "generic-oauth-mcp": {
+      "command": "uvx",
+      "args": [
+        "some-generic-mcp-server"
+      ],
+      "env": {
+        "API_BASE_URL": "https://api.example.com"
+      },
+      "auth": {
+        "method": "oauth2_bearer",
+        "oauth2_required_scopes": [
+          "read:data",
+          "write:data"
+        ],
+        "oauth2_issuer": "https://auth.example.com",
+        "forward_user_token": true
+      }
+    }
+  }
+}

@@ -10,6 +10,7 @@ import json
 import logging
 from typing import Any, Awaitable, Callable, Dict, Optional
 
+from ..auth.token_handler import AuthContext
 from ..core.process_manager import ProcessManager
 from ..core.session_manager import get_session_manager
 from ..models.configuration import MCPStdioConfiguration
@@ -32,6 +33,7 @@ class MCPStdioAdapter:
         message_handler: Optional[
             Callable[[Dict[str, Any]], Awaitable[Optional[Dict[str, Any]]]]
         ] = None,
+        auth_context: Optional[AuthContext] = None,
     ):
         """
         Initialize the STDIO adapter.
@@ -39,10 +41,15 @@ class MCPStdioAdapter:
         Args:
             config: MCP server configuration
             message_handler: Optional handler for processing messages
+            auth_context: Authentication context for this session
         """
         self.config = config
         self.message_handler = message_handler
-        self.process_manager = ProcessManager(config.name, config.params)
+        self.auth_context = auth_context
+        
+        # Create process manager with authentication environment variables
+        auth_env = self._get_auth_environment_vars()
+        self.process_manager = ProcessManager(config.name, config.params, auth_env=auth_env)
 
         # Communication state
         self._read_buffer = b""
@@ -59,6 +66,26 @@ class MCPStdioAdapter:
         self._messages_received = 0
         self._bytes_sent = 0
         self._bytes_received = 0
+
+    def _get_auth_environment_vars(self) -> Dict[str, str]:
+        """
+        Get environment variables for authentication.
+        
+        Returns:
+            Dictionary of environment variables to pass to the MCP server process
+        """
+        if not self.auth_context:
+            return {}
+        
+        # Import here to avoid circular imports
+        from ..auth.provider_factory import AuthProviderFactory
+        
+        try:
+            provider = AuthProviderFactory.create_provider(self.config.auth)
+            return provider.get_environment_vars(self.auth_context)
+        except Exception as e:
+            logger.warning(f"Failed to get auth environment vars: {e}")
+            return {}
 
     @property
     def is_connected(self) -> bool:
