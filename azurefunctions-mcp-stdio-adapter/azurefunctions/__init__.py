@@ -11,6 +11,8 @@ __path__ = __import__("pkgutil").extend_path(__path__, __name__)
 
 from .extensions.mcp_server.decorators.mcp_app import MCPFunctionApp
 from .extensions.mcp_server.models.configuration import (
+    AuthConfiguration,
+    AuthMethod,
     MCPServerStdioParams,
     MCPStdioConfiguration,
 )
@@ -22,4 +24,6 @@ __all__ = [
     "MCPStdioConfiguration",
     "MCPServerStdioParams",
     "MCPMode",
+    "AuthConfiguration", 
+    "AuthMethod",
 ]

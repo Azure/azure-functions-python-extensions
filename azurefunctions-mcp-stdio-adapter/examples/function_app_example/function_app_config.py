@@ -22,8 +22,9 @@ app = MCPFunctionApp(
     config_file=str(config_file),
     auth_level=func.AuthLevel.FUNCTION,
     name="Git MCP Adapter (Config File)",
-    instructions="Azure Functions adapter for Git MCP server using config file"
+    instructions="Azure Functions adapter for Git MCP server using config file",
 )
+
 
 # Optional: Add custom endpoints
 @app.function_name(name="health")
@@ -35,11 +36,11 @@ def health_check(req: func.HttpRequest) -> func.HttpResponse:
         return func.HttpResponse(
             body=f"Git MCP Server Health (Config): {stats}",
             status_code=200,
-            headers={"Content-Type": "application/json"}
+            headers={"Content-Type": "application/json"},
         )
     except Exception as e:
         return func.HttpResponse(
             body=f"Health check failed: {str(e)}",
             status_code=500,
-            headers={"Content-Type": "text/plain"}
+            headers={"Content-Type": "text/plain"},
         )

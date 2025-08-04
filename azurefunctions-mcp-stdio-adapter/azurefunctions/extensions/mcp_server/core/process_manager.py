@@ -31,11 +31,11 @@ class ProcessManager:
     """
 
     def __init__(
-        self, 
-        name: str, 
-        params: MCPServerStdioParams, 
+        self,
+        name: str,
+        params: MCPServerStdioParams,
         process_id: Optional[str] = None,
-        auth_env: Optional[Dict[str, str]] = None
+        auth_env: Optional[Dict[str, str]] = None,
     ):
         """
         Initialize the process manager.
@@ -377,8 +377,13 @@ class ProcessManager:
         """
         env = os.environ.copy()
         env.update(self.params.env)
-        
+
         # Add authentication environment variables
+        logger.info(f"=== PROCESS MANAGER: Adding {len(self.auth_env)} auth environment variables ===")
+        for key, value in self.auth_env.items():
+            masked_value = value[:10] + "..." if len(value) > 10 else value
+            logger.info(f"Auth env: {key} = {masked_value}")
+        
         env.update(self.auth_env)
 
         # Add some environment variables that might help with subprocess interaction
@@ -387,6 +392,13 @@ class ProcessManager:
         # Ensure we have a proper TERM setting
         if "TERM" not in env:
             env["TERM"] = "xterm-256color"
+            
+        # Debug: Log Azure-specific environment variables that will be passed to subprocess
+        azure_vars_in_env = {k: v for k, v in env.items() if any(prefix in k.upper() for prefix in ["AZURE", "IDENTITY", "MSI"])}
+        logger.info(f"=== SUBPROCESS WILL RECEIVE {len(azure_vars_in_env)} AZURE ENVIRONMENT VARIABLES ===")
+        for key in sorted(azure_vars_in_env.keys()):
+            masked_value = azure_vars_in_env[key][:10] + "..." if len(azure_vars_in_env[key]) > 10 else azure_vars_in_env[key]
+            logger.info(f"Subprocess env: {key} = {masked_value}")
 
         return env
 

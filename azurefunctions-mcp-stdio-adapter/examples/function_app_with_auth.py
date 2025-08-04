@@ -61,7 +61,7 @@ def github_mcp_endpoint():
             forward_user_token=True,
         ),
     )
-    
+
     return MCPFunctionApp(
         mcp_server=github_config,
         auth_level=func.AuthLevel.FUNCTION,
@@ -88,7 +88,7 @@ def azure_resources_endpoint():
             forward_user_token=False,  # Use function's managed identity
         ),
     )
-    
+
     return MCPFunctionApp(
         mcp_server=azure_config,
         auth_level=func.AuthLevel.FUNCTION,

@@ -46,10 +46,12 @@ class MCPStdioAdapter:
         self.config = config
         self.message_handler = message_handler
         self.auth_context = auth_context
-        
+
         # Create process manager with authentication environment variables
         auth_env = self._get_auth_environment_vars()
-        self.process_manager = ProcessManager(config.name, config.params, auth_env=auth_env)
+        self.process_manager = ProcessManager(
+            config.name, config.params, auth_env=auth_env
+        )
 
         # Communication state
         self._read_buffer = b""
@@ -70,16 +72,16 @@ class MCPStdioAdapter:
     def _get_auth_environment_vars(self) -> Dict[str, str]:
         """
         Get environment variables for authentication.
-        
+
         Returns:
             Dictionary of environment variables to pass to the MCP server process
         """
         if not self.auth_context:
             return {}
-        
+
         # Import here to avoid circular imports
         from ..auth.provider_factory import AuthProviderFactory
-        
+
         try:
             provider = AuthProviderFactory.create_provider(self.config.auth)
             return provider.get_environment_vars(self.auth_context)

@@ -4,34 +4,55 @@ build-backend = "hatchling.build"
 
 [project]
 name = "azurefunctions-mcp-stdio-adapter"
-version = "0.1.0"
+version = "0.1.0a16"
 description = "Azure Functions Python extension for MCP STDIO adapter - converts STDIO MCP servers to streamable HTTP endpoints"
 readme = "README.md"
 requires-python = ">=3.11"
-license = { file = "LICENSE" }
 authors = [
-    { name = "Microsoft Corporation" },
+    { name = "Microsoft Corporation", email = "azpysdkhelp@microsoft.com" },
 ]
-keywords = ["azure", "functions", "azure functions", "mcp", "stdio", "model-context-protocol"]
+maintainers = [
+    { name = "Microsoft Corporation", email = "azpysdkhelp@microsoft.com" },
+]
+keywords = [
+    "azure", 
+    "functions", 
+    "azure-functions", 
+    "mcp", 
+    "stdio", 
+    "model-context-protocol",
+    "authentication",
+    "oauth2",
+    "azure-ad"
+]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3 :: Only",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
+    "Topic :: System :: Networking",
+    "Topic :: Security :: Cryptography",
+    "Framework :: AsyncIO",
+    "Environment :: Web Environment",
 ]
 
 dependencies = [
-    "azure-functions",
-    'azurefunctions-extensions-base',
-    'azurefunctions-extensions-http-fastapi',
+    "azure-functions>=1.18.0,<2.0.0",
+    "azurefunctions-extensions-base",
+    "azurefunctions-extensions-http-fastapi>=0.1.0",
     "mcp>=1.0.0,<2.0.0",
     "pydantic>=2.0.0,<3.0.0",
-    "uv>=0.8.0,<1.0.0"
+    "uv>=0.8.0,<1.0.0",
+    "azure-identity>=1.15.0,<2.0.0",
+    "PyJWT>=2.8.0,<3.0.0",
+    "cryptography>=41.0.0,<43.0.0",
 ]
 
 [project.optional-dependencies]
@@ -46,7 +67,6 @@ dev = [
     "ruff>=0.2.0,<1.0.0",
     "pre-commit>=3.6.0,<4.0.0",
     "bandit>=1.7.0,<2.0.0",
-    "twine>=4.0.0,<5.0.0",
 ]
 
 test = [
@@ -58,14 +78,72 @@ test = [
     "responses>=0.24.0,<1.0.0",
 ]
 
+build = [
+    "build>=1.0.0,<2.0.0",
+    "twine>=4.0.0,<6.0.0",
+    "hatchling>=1.18.0,<2.0.0",
+    "wheel>=0.42.0,<1.0.0",
+    "setuptools>=69.0.0,<71.0.0",
+    "check-manifest>=0.49,<1.0",
+]
+
+docs = [
+    "sphinx>=7.0.0,<8.0.0",
+    "sphinx-rtd-theme>=2.0.0,<3.0.0",
+    "myst-parser>=2.0.0,<4.0.0",
+    "sphinx-autodoc-typehints>=1.25.0,<3.0.0",
+]
+
+auth = [
+    "azure-identity>=1.15.0,<2.0.0",
+    "PyJWT>=2.8.0,<3.0.0",
+    "cryptography>=41.0.0,<43.0.0",
+]
+
 [project.urls]
 Homepage = "https://github.com/Azure/azure-functions-python-extensions"
-Repository = "https://github.com/Azure/azure-functions-python-extensions"
+Repository = "https://github.com/Azure/azure-functions-python-extensions.git"
 Documentation = "https://docs.microsoft.com/azure/azure-functions/"
 "Bug Reports" = "https://github.com/Azure/azure-functions-python-extensions/issues"
+"Source Code" = "https://github.com/Azure/azure-functions-python-extensions/tree/main/azurefunctions-mcp-stdio-adapter"
+Changelog = "https://github.com/Azure/azure-functions-python-extensions/blob/main/azurefunctions-mcp-stdio-adapter/CHANGELOG.md"
+Funding = "https://github.com/sponsors/Azure"
 
 [tool.hatch.build.targets.wheel]
 packages = ["azurefunctions"]
+exclude = [
+    "tests",
+    "*.tests",
+    "*.tests.*",
+    "tests.*",
+    "examples",
+    "docs",
+    "AUTHENTICATION.md",
+]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "azurefunctions/",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md",
+]
+exclude = [
+    "tests/",
+    "examples/",
+    "docs/",
+    "*.pyc",
+    "__pycache__/",
+    ".pytest_cache/",
+    ".coverage",
+    "htmlcov/",
+]
+
+[tool.hatch.version]
+path = "azurefunctions/extensions/mcp_server/__init__.py"
+
+[project.license]
+file = "LICENSE"
 
 [tool.black]
 line-length = 88
@@ -186,3 +264,40 @@ exclude_lines = [
 dev = [
     "pytest>=8.4.1",
 ]
+
+# PyPI publishing helper scripts
+[tool.hatch.envs.release]
+dependencies = [
+    "build",
+    "twine",
+    "wheel",
+    "check-manifest",
+]
+
+[tool.hatch.envs.release.scripts]
+check = "check-manifest"
+build = "python -m build"
+upload-test = "twine upload --repository testpypi dist/*"
+upload = "twine upload dist/*"
+clean = "rm -rf dist/ build/ *.egg-info/"
+
+# Development environment
+[tool.hatch.envs.default]
+dependencies = [
+    "pytest",
+    "pytest-asyncio", 
+    "pytest-cov",
+    "pytest-mock",
+    "black",
+    "isort",
+    "mypy",
+    "ruff",
+]
+
+[tool.hatch.envs.default.scripts]
+test = "pytest {args:tests}"
+test-cov = "pytest --cov=azurefunctions {args:tests}"
+lint = "ruff check {args:.}"
+format = "black {args:.}"
+format-check = "black --check {args:.}"
+type-check = "mypy {args:azurefunctions}"

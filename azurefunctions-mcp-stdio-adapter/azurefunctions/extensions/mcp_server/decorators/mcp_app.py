@@ -24,6 +24,10 @@ from ..utils.validation import ConfigurationValidator
 
 logger = logging.getLogger(__name__)
 
+# Version marker for debugging
+PACKAGE_VERSION = "0.1.0a14-managed-identity-fix"
+logger.info(f"🔍 MCPFunctionApp module loaded - Package version: {PACKAGE_VERSION}")
+
 
 class MCPFunctionApp(TriggerApi, FunctionRegister):
     """
@@ -55,44 +59,98 @@ class MCPFunctionApp(TriggerApi, FunctionRegister):
             name: Optional name for the MCP server
             instructions: Optional instructions for the MCP server
         """
-        # Initialize parent classes
-        FunctionRegister.__init__(self, auth_level=auth_level, *args, **kwargs)
-        # FastMCP.__init__(self, name or "MCP STDIO Adapter", **kwargs)
+        logger.info("🚀 === STARTING MCPFunctionApp INITIALIZATION ===")
+        logger.info(f"📦 Package version: {PACKAGE_VERSION}")
+        logger.info(f"🔧 Args: mode={mode}, auth_level={auth_level}, mcp_server provided: {mcp_server is not None}")
+        print(f"🚀 MCPFunctionApp.__init__ called - Version: {PACKAGE_VERSION}")
+        print(f"📊 Args received: mode={mode}, mcp_server={mcp_server is not None}")
+        
+        try:
+            # Initialize parent classes
+            print("🔧 Initializing parent classes...")
+            logger.info("Initializing parent classes...")
+            FunctionRegister.__init__(self, auth_level=auth_level, *args, **kwargs)
+            print("✅ FunctionRegister initialized")
+            logger.info("✅ FunctionRegister initialized")
+            # FastMCP.__init__(self, name or "MCP STDIO Adapter", **kwargs)
 
-        # Store configuration
-        self.mode = mode
-        self._auth_level = auth_level  # Use private attribute to avoid conflicts
+            # Store configuration
+            print("⚙️ Setting up basic configuration...")
+            logger.info("Setting up basic configuration...")
+            self.mode = mode
+            self._auth_level = auth_level  # Use private attribute to avoid conflicts
 
-        # Configuration loading
-        self.config_loader = ConfigurationLoader()
-        self.validator = ConfigurationValidator()
-        self.multi_config: Optional[MCPMultiServerConfiguration] = None
-        self.current_server_config: Optional[MCPStdioConfiguration] = None
+            # Configuration loading
+            self.config_loader = ConfigurationLoader()
+            self.validator = ConfigurationValidator()
+            self.multi_config: Optional[MCPMultiServerConfiguration] = None
+            self.current_server_config: Optional[MCPStdioConfiguration] = None
 
-        # STDIO adapters per session for streamable HTTP
-        self._session_adapters: Dict[str, MCPStdioAdapter] = {}
+            # STDIO adapters per session for streamable HTTP
+            self._session_adapters: Dict[str, MCPStdioAdapter] = {}
 
-        # Session manager for stateless operation
-        self._session_manager = MCPSessionManager()
+            # Session manager for stateless operation
+            self._session_manager = MCPSessionManager()
 
-        # Legacy single adapter for backward compatibility
-        self.stdio_adapter: Optional[MCPStdioAdapter] = None
+            # Legacy single adapter for backward compatibility
+            self.stdio_adapter: Optional[MCPStdioAdapter] = None
 
-        # Session management for streamable HTTP
-        self._active_sessions: Dict[str, bool] = {}
-        self._response_timeout = 30.0  # 30 seconds timeout for responses
+            # Session management for streamable HTTP
+            self._active_sessions: Dict[str, bool] = {}
+            self._response_timeout = 30.0  # 30 seconds timeout for responses
 
-        # Authentication manager
-        self._auth_manager: Optional[Any] = None
+            # Authentication manager
+            self._auth_manager: Optional[Any] = None
+            print("✅ Basic configuration complete")
+            logger.info("✅ Basic configuration complete")
 
-        # Load configuration
-        self._load_configuration(mcp_server, config_file)
+            # Load configuration
+            try:
+                print("=== LOADING CONFIGURATION ===")
+                logger.info("=== LOADING CONFIGURATION ===")
+                self._load_configuration(mcp_server, config_file)
+                print("✅ Configuration loaded successfully")
+                logger.info("✅ Configuration loaded successfully")
+            except Exception as e:
+                print(f"❌ Failed to load configuration: {e}")
+                logger.error(f"❌ Failed to load configuration: {e}", exc_info=True)
+                raise
 
-        # Initialize authentication
-        self._initialize_authentication()
+            # Initialize authentication
+            try:
+                print("=== STARTING AUTHENTICATION INITIALIZATION ===")
+                logger.info("=== STARTING AUTHENTICATION INITIALIZATION ===")
+                self._initialize_authentication()
+                print("✅ Authentication initialization completed")
+                logger.info("✅ Authentication initialization completed")
+            except Exception as e:
+                print(f"❌ CRITICAL: Failed to initialize authentication: {e}")
+                print(f"❌ CRITICAL: Exception type: {type(e)}")
+                print(f"❌ CRITICAL: Exception args: {e.args}")
+                logger.error(f"❌ Failed to initialize authentication: {e}", exc_info=True)
+                # Don't fail completely - continue without auth
+                self._auth_manager = None
+                print(f"⚠️ CRITICAL: Auth manager set to None due to initialization failure")
 
-        # Add HTTP endpoint
-        self._add_http_app(auth_level)
+            # Add HTTP endpoint
+            try:
+                print("📡 Adding HTTP endpoint...")
+                logger.info("Adding HTTP endpoint...")
+                self._add_http_app(auth_level)
+                print("✅ HTTP endpoint added successfully")
+                logger.info("✅ HTTP endpoint added successfully")
+            except Exception as e:
+                print(f"❌ Failed to add HTTP endpoint: {e}")
+                logger.error(f"❌ Failed to add HTTP endpoint: {e}", exc_info=True)
+                raise
+                
+            print("🎉 === MCPFunctionApp INITIALIZATION COMPLETE ===")
+            logger.info("🎉 === MCPFunctionApp INITIALIZATION COMPLETE ===")
+            
+        except Exception as e:
+            print(f"💥 === MCPFunctionApp INITIALIZATION FAILED ===: {e}")
+            logger.error(f"💥 === MCPFunctionApp INITIALIZATION FAILED ===: {e}", exc_info=True)
+            raise
 
     def _load_configuration(
         self, mcp_server: Optional[MCPStdioConfiguration], config_file: Optional[str]
@@ -145,43 +203,104 @@ class MCPFunctionApp(TriggerApi, FunctionRegister):
             raise
 
     def _initialize_authentication(self) -> None:
-        """Initialize authentication manager based on configuration."""
+        """Initialize authentication manager based on server configuration."""
+        print("🔐 === INITIALIZING AUTHENTICATION ===")
+        logger.info("=== INITIALIZING AUTHENTICATION ===")
+        
+        print(f"📋 Server config available: {self.current_server_config is not None}")
         if not self.current_server_config:
-            logger.warning("No server configuration available for authentication")
+            print("❌ No server configuration available for authentication")
+            logger.error("❌ No server configuration available for authentication")
+            raise ValueError("No server configuration available")
+
+        print(f"🔍 Server name: {self.current_server_config.name}")
+        print(f"🔍 Auth config available: {hasattr(self.current_server_config, 'auth')}")
+        logger.info(f"Server name: {self.current_server_config.name}")
+        logger.info(f"Auth config available: {hasattr(self.current_server_config, 'auth')}")
+        
+        if hasattr(self.current_server_config, 'auth') and self.current_server_config.auth:
+            print(f"🔑 Auth method: {self.current_server_config.auth.method}")
+            print(f"🔑 Auth scopes: {getattr(self.current_server_config.auth, 'azure_scopes', [])}")
+            print(f"🔑 Auth client_id: {getattr(self.current_server_config.auth, 'azure_client_id', 'Not configured')}")
+            logger.info(f"Auth method: {self.current_server_config.auth.method}")
+            logger.info(f"Auth scopes: {getattr(self.current_server_config.auth, 'azure_scopes', [])}")
+            logger.info(f"Auth client_id: {getattr(self.current_server_config.auth, 'azure_client_id', 'Not configured')}")
+        else:
+            print("❌ No auth configuration found on server config")
+            logger.error("❌ No auth configuration found on server config")
             return
-        
+
         # Import here to avoid circular imports
-        from ..auth.provider_factory import AuthProviderFactory
-        from ..auth.token_handler import AuthManager
-        
         try:
-            provider = AuthProviderFactory.create_provider(self.current_server_config.auth)
-            self._auth_manager = AuthManager(provider)
-            logger.info(f"Initialized authentication with method: {self.current_server_config.auth.method}")
+            print("📦 Importing authentication modules...")
+            logger.info("Importing authentication modules...")
+            from ..auth.provider_factory import AuthProviderFactory
+            from ..auth.token_handler import AuthManager
+            print("✅ Authentication modules imported successfully")
+            logger.info("✅ Authentication modules imported successfully")
         except Exception as e:
-            logger.error(f"Failed to initialize authentication: {e}")
-            self._auth_manager = None
+            print(f"❌ Failed to import authentication modules: {e}")
+            logger.error(f"❌ Failed to import authentication modules: {e}", exc_info=True)
+            raise
+
+        try:
+            print("🏭 Creating authentication provider...")
+            logger.info("Creating authentication provider...")
+            provider = AuthProviderFactory.create_provider(
+                self.current_server_config.auth
+            )
+            print(f"✅ Provider created: {type(provider)}")
+            logger.info(f"✅ Provider created: {type(provider)}")
+            
+            print("🎛️ Creating authentication manager...")
+            logger.info("Creating authentication manager...")
+            self._auth_manager = AuthManager(provider)
+            print(f"✅ Auth manager created: {self._auth_manager}")
+            logger.info(f"✅ Auth manager created: {self._auth_manager}")
+            
+            print(f"🎉 Successfully initialized authentication with method: {self.current_server_config.auth.method}")
+            logger.info(
+                f"🎉 Successfully initialized authentication with method: {self.current_server_config.auth.method}"
+            )
+        except Exception as e:
+            print(f"❌ Failed to create authentication provider/manager: {e}")
+            logger.error(f"❌ Failed to create authentication provider/manager: {e}", exc_info=True)
+            raise
 
     async def _authenticate_request(self, headers: Dict[str, str]) -> Optional[Any]:
         """
         Authenticate incoming request.
-        
+
         Args:
             headers: HTTP request headers
-            
+
         Returns:
             AuthContext if authentication succeeds, None if no auth configured
-            
+
         Raises:
             Exception: If authentication fails
         """
-        if not self._auth_manager:
-            return None
+        logger.info("=== AUTHENTICATING REQUEST ===")
+        logger.info(f"Auth manager available: {self._auth_manager is not None}")
         
+        if not self._auth_manager:
+            logger.info("❌ No auth manager - skipping authentication")
+            return None
+
         try:
-            return await self._auth_manager.authenticate_request(headers)
+            logger.info("🔐 Calling auth manager to authenticate request")
+            logger.info(f"Request headers: {list(headers.keys())}")
+            
+            auth_context = await self._auth_manager.authenticate_request(headers)
+            
+            logger.info(f"✅ Authentication result: {auth_context}")
+            if auth_context:
+                logger.info(f"Auth method: {auth_context.method}")
+                logger.info(f"User ID: {auth_context.user_id}")
+            
+            return auth_context
         except Exception as e:
-            logger.error(f"Authentication failed: {e}")
+            logger.error(f"❌ Authentication failed: {e}", exc_info=True)
             raise
 
     def _add_http_app(self, auth_level: Union[AuthLevel, str]) -> None:
@@ -239,7 +358,9 @@ class MCPFunctionApp(TriggerApi, FunctionRegister):
 
                     if transport_type == "streamable-http":
                         logger.debug(f"Establishing MCP Streamable HTTP connection")
-                        response = await self._handle_streamable_http_connection(req, auth_context)
+                        response = await self._handle_streamable_http_connection(
+                            req, auth_context
+                        )
                         logger.debug(
                             f"Streamable HTTP connection established - Status: {response.status_code}"
                         )
@@ -329,6 +450,9 @@ class MCPFunctionApp(TriggerApi, FunctionRegister):
         """
         logger.debug("Processing MCP POST request")
         try:
+            # Authenticate the request first
+            auth_context = await self._authenticate_request(req.headers)
+            
             accept_header = req.headers.get("accept", "")
             has_json = "application/json" in accept_header
             has_sse = "text/event-stream" in accept_header
@@ -364,7 +488,7 @@ class MCPFunctionApp(TriggerApi, FunctionRegister):
                 logger.debug(
                     f"Session management - {session_status} session: {session_id}"
                 )
-            if not await self._ensure_connection(session_id):
+            if not await self._ensure_connection(session_id, auth_context):
                 return self._create_error_response(
                     "Internal error: MCP server connection failed", 503, -32603
                 )
@@ -559,7 +683,9 @@ class MCPFunctionApp(TriggerApi, FunctionRegister):
 
         return Response(body, status_code=status_code, headers=headers)
 
-    async def _ensure_connection(self, session_id: Optional[str] = None, auth_context: Optional[Any] = None) -> bool:
+    async def _ensure_connection(
+        self, session_id: Optional[str] = None, auth_context: Optional[Any] = None
+    ) -> bool:
         """
         Ensure the STDIO adapter is connected to the MCP server.
 
@@ -569,25 +695,41 @@ class MCPFunctionApp(TriggerApi, FunctionRegister):
         Returns:
             True if connected, False otherwise
         """
+        logger.info(f"=== ENSURING CONNECTION FOR SESSION: {session_id} ===")
+        logger.info(f"Auth context provided: {auth_context is not None}")
+        if auth_context:
+            logger.info(f"Auth method: {auth_context.method}")
+            
         if not self.current_server_config:
-            logger.error("No MCP server configuration available")
+            logger.error("❌ No MCP server configuration available")
             return False
 
         # Determine which adapter to use
         if session_id:
             # Session-specific adapter for streamable HTTP
             if session_id not in self._session_adapters:
+                logger.info(f"🆕 Creating new session adapter for {session_id}")
+                
+                # Get auth environment variables
+                auth_env = {}
+                if auth_context and self._auth_manager:
+                    logger.info("🔐 Getting auth environment variables from auth manager")
+                    auth_env = self._auth_manager.get_auth_env_vars(auth_context)
+                    logger.info(f"Auth env vars count: {len(auth_env)}")
+                else:
+                    logger.warning("⚠️ No auth context or auth manager - no auth env vars will be set")
+                
                 adapter = MCPStdioAdapter(
                     self.current_server_config,
                     message_handler=self._handle_stdio_message,
                     auth_context=auth_context,
                 )
                 self._session_adapters[session_id] = adapter
-                logger.debug(
-                    f"Session adapter - created new for {session_id}: {self.current_server_config.name} with auth: {auth_context.method if auth_context else 'none'}"
+                logger.info(
+                    f"📡 Session adapter - created new for {session_id}: {self.current_server_config.name} with auth: {auth_context.method if auth_context else 'none'}"
                 )
             else:
-                logger.debug(f"Session adapter - using existing for {session_id}")
+                logger.info(f"♻️ Session adapter - using existing for {session_id}")
 
             adapter = self._session_adapters[session_id]
         else:
@@ -655,7 +797,9 @@ class MCPFunctionApp(TriggerApi, FunctionRegister):
 
         return None
 
-    async def _handle_streamable_http_connection(self, req: Request, auth_context: Optional[Any] = None) -> Response:
+    async def _handle_streamable_http_connection(
+        self, req: Request, auth_context: Optional[Any] = None
+    ) -> Response:
         """
         Handle MCP Streamable HTTP connection establishment using proper MCP protocol.
 

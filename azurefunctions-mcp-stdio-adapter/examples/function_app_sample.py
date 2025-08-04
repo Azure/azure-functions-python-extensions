@@ -27,8 +27,9 @@ app = MCPFunctionApp(
     config_file=str(config_file),
     auth_level=func.AuthLevel.FUNCTION,
     name="MySQL MCP Adapter",
-    instructions="Azure Functions adapter for MySQL MCP server"
+    instructions="Azure Functions adapter for MySQL MCP server",
 )
+
 
 # Optional: Add custom endpoint for health check
 @app.function_name(name="health")
@@ -38,17 +39,15 @@ def health_check(req: func.HttpRequest) -> func.HttpResponse:
     try:
         # Get server statistics
         stats = app.get_server_stats()
-        
+
         return func.HttpResponse(
             body=f"MCP Adapter Health: {stats}",
             status_code=200,
-            headers={"Content-Type": "application/json"}
+            headers={"Content-Type": "application/json"},
         )
     except Exception as e:
-        return func.HttpResponse(
-            body=f"Health check failed: {str(e)}",
-            status_code=500
-        )
+        return func.HttpResponse(body=f"Health check failed: {str(e)}", status_code=500)
+
 
 # Optional: Add custom endpoint for server statistics
 @app.function_name(name="stats")
@@ -57,18 +56,17 @@ def get_stats(req: func.HttpRequest) -> func.HttpResponse:
     """Get MCP server statistics."""
     try:
         stats = app.get_server_stats()
-        
+
         import json
+
         return func.HttpResponse(
             body=json.dumps(stats, indent=2),
             status_code=200,
-            headers={"Content-Type": "application/json"}
+            headers={"Content-Type": "application/json"},
         )
     except Exception as e:
-        return func.HttpResponse(
-            body=f"Error getting stats: {str(e)}",
-            status_code=500
-        )
+        return func.HttpResponse(body=f"Error getting stats: {str(e)}", status_code=500)
+
 
 # The main MCP endpoint is automatically created at /api/mcp
 # Additional endpoints:
