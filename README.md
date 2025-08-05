@@ -17,6 +17,8 @@ The libraries are supported on Function Apps using Python 3.9 or later. For more
 
 ## SDK Support
 * Azure Storage Blob
+* Azure Functions Agents Framework
+* Azure Functions Agents Durable Extension
 
 ## Need help?
 
