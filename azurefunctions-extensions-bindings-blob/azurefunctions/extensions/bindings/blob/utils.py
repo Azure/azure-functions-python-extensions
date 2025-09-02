@@ -43,6 +43,8 @@ def get_connection_string(connection_name: str) -> str:
         return os.getenv(connection_name + "__serviceUri")
     elif connection_name + "__blobServiceUri" in os.environ:
         return os.getenv(connection_name + "__blobServiceUri")
+    elif connection_name == "AzureWebJobsStorage" and connection_name + "__accountName" in os.environ:
+        return f"https://{os.getenv(connection_name + "__accountName")}.blob.core.windows.net"
     else:
         raise ValueError(
             f"Storage account connection name {connection_name} does not exist. "
@@ -56,9 +58,11 @@ def using_system_managed_identity(connection_name: str) -> bool:
     the provided connection string has either of the two suffixes:
     __serviceUri or __blobServiceUri.
     """
-    return (os.getenv(connection_name + "__serviceUri") is not None) or (
-        os.getenv(connection_name + "__blobServiceUri") is not None
-    )
+    return (os.getenv(connection_name + "__serviceUri") is not None) or 
+        (os.getenv(connection_name + "__blobServiceUri") is not None) or (
+            connection_name == "AzureWebJobsStorage" and 
+            os.getenv(connection_name + "__accountName") is not None
+        )
 
 
 def using_user_managed_identity(connection_name: str) -> bool:
