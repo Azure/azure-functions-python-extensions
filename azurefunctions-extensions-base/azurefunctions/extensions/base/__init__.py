@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+from .grpcClientType import GrpcClientType
 from .meta import (
     Datum,
     InConverter,
@@ -27,6 +28,7 @@ __all__ = [
     "_BaseConverter",
     "InConverter",
     "OutConverter",
+    "GrpcClientType",
     "SdkType",
     "get_binding_registry",
     "ModuleTrackerMeta",

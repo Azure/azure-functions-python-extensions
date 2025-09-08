@@ -2,7 +2,10 @@
 # Licensed under the MIT License.
 
 from typing import Optional
-from protos.settlement_pb2 import (
+
+from azurefunctions.extensions.base import GrpcClientType
+
+from ..protos.settlement_pb2 import (
     AbandonRequest,
     CompleteRequest,
     DeadletterRequest,
@@ -12,13 +15,13 @@ from protos.settlement_pb2 import (
     RenewSessionLockRequest,
     SetSessionStateRequest,
 )
-from protos.settlement_pb2_grpc import SettlementStub
+from ..protos.settlement_pb2_grpc import SettlementStub
 
 from .grpcClient import GrpcClientFactory
 from .grpc_utils import build_grpc_uri
 
 
-class ServiceBusMessageActions:
+class ServiceBusMessageActions(GrpcClientType):
     """
     ServiceBusMessageActions class.
     Provides async methods for message settlement over gRPC.

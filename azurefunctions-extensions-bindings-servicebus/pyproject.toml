@@ -28,7 +28,10 @@ classifiers= [
 dependencies = [
     'azurefunctions-extensions-base',
     'azure-servicebus>=7.14.2,<8.0',
-    'uamqp>=1.6.11,<2.0'
+    'uamqp>=1.6.11,<2.0',
+    'protobuf>=6.32.0,<7.0',
+    'grpcio>=1.74.0,<2.0',
+    'grpcio-tools>=1.74.0,<2.0'
     ]
 
 [project.optional-dependencies]
