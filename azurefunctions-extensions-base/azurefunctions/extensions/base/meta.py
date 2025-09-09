@@ -100,7 +100,7 @@ class _ConverterMeta(abc.ABCMeta):
         return cls._is_iterable_supported_type(annotation)
 
     @classmethod
-    def check_grpc_client_type(cls, annotation: type) -> bool:
+    def check_supported_grpc_client_type(cls, annotation: type) -> bool:
         if annotation is None:
             return False
 
