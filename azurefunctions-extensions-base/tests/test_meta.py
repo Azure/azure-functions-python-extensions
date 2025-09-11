@@ -5,7 +5,8 @@ import unittest
 from typing import List, Mapping
 from unittest.mock import patch
 
-from ..azurefunctions.extensions.base import meta, grpcClientType, sdkType
+from azurefunctions.extensions.base import meta, sdkType
+from azurefunctions.extensions.base.grpcClientType import GrpcClientType
 
 
 class TestMeta(unittest.TestCase):
@@ -175,15 +176,15 @@ class TestMeta(unittest.TestCase):
 
         self.assertFalse(registry.check_supported_grpc_client_type(None))
         self.assertFalse(registry.check_supported_grpc_client_type("hello"))
-        self.assertTrue(registry.check_supported_grpc_client_type(grpcClientType.GrpcClientType))
-        self.assertTrue(registry.check_supported_grpc_client_type(List[grpcClientType.GrpcClientType]))
+        self.assertTrue(registry.check_supported_grpc_client_type(GrpcClientType))
+        self.assertTrue(registry.check_supported_grpc_client_type(List[GrpcClientType]))
 
         # Generic types are not subscriptable in Python <3.9
         if sys.version_info >= (3, 9):
-            self.assertTrue(registry.check_supported_grpc_client_type(list[grpcClientType.GrpcClientType]))
-            self.assertTrue(registry.check_supported_grpc_client_type(tuple[grpcClientType.GrpcClientType]))
-            self.assertTrue(registry.check_supported_grpc_client_type(set[grpcClientType.GrpcClientType]))
-            self.assertFalse(registry.check_supported_grpc_client_type(dict[str, grpcClientType.GrpcClientType]))
+            self.assertTrue(registry.check_supported_grpc_client_type(list[GrpcClientType]))
+            self.assertTrue(registry.check_supported_grpc_client_type(tuple[GrpcClientType]))
+            self.assertTrue(registry.check_supported_grpc_client_type(set[GrpcClientType]))
+            self.assertFalse(registry.check_supported_grpc_client_type(dict[str, GrpcClientType]))
 
     def test_decode_typed_data(self):
         # Case 1: data is None
