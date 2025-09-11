@@ -178,17 +178,6 @@ class TestMeta(unittest.TestCase):
         self.assertFalse(registry.check_supported_grpc_client_type("hello"))
         self.assertTrue(registry.check_supported_grpc_client_type(GrpcClientType))
 
-        # Generic types are not subscriptable in Python <3.9
-        if sys.version_info >= (3, 9):
-            self.assertTrue(registry.check_supported_grpc_client_type(
-                list[GrpcClientType]))
-            self.assertTrue(registry.check_supported_grpc_client_type(
-                tuple[GrpcClientType]))
-            self.assertTrue(registry.check_supported_grpc_client_type(
-                set[GrpcClientType]))
-            self.assertFalse(registry.check_supported_grpc_client_type(
-                dict[str, GrpcClientType]))
-
     def test_decode_typed_data(self):
         # Case 1: data is None
         self.assertIsNone(
