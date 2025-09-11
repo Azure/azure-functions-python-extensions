@@ -52,7 +52,8 @@ class GrpcClientFactory:
         ]
 
         if secure:
-            credentials = grpc.ssl_channel_credentials(root_certificates=root_certificates)
+            credentials = grpc.ssl_channel_credentials(
+                root_certificates=root_certificates)
             channel = grpc.secure_channel(address, credentials, options=options)
         else:
             channel = grpc.insecure_channel(address, options=options)

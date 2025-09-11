@@ -4,6 +4,7 @@
 from typing import Optional
 
 from azurefunctions.extensions.base import GrpcClientType
+from google.protobuf.wrappers_pb2 import StringValue
 
 from ..protos.settlement_pb2 import (
     AbandonRequest,
@@ -31,12 +32,12 @@ class ServiceBusMessageActions(GrpcClientType):
     _instance: Optional["ServiceBusMessageActions"] = None
 
     def __init__(self) -> None:
-        uri, grpc_max_message_length = build_grpc_uri()
+        self._uri, self._grpc_max_message_length = build_grpc_uri()
 
         self._client: SettlementStub = GrpcClientFactory.create_client(
             service_stub=SettlementStub,
-            address=uri,
-            grpc_max_message_length=grpc_max_message_length,
+            address=self._uri,
+            grpc_max_message_length=self._grpc_max_message_length,
             secure=False,
         )
 
@@ -56,53 +57,85 @@ class ServiceBusMessageActions(GrpcClientType):
     # Settlement methods
     # -------------------------------
 
-    async def complete(self, message) -> None:
+    def complete(self,
+                 message
+                 ) -> None:
         locktoken = self._validate_lock_token(message)
-        request = CompleteRequest(locktoken=locktoken)
-        await self._client.Complete(request)
+        request = CompleteRequest()
+        request.locktoken = str(locktoken)
+        self._client.Complete(request)
 
-    async def abandon(self, message, properties_to_modify: bytes = b"") -> None:
+    def abandon(self,
+                message,
+                properties_to_modify: bytes = b""
+                ) -> None:
         locktoken = self._validate_lock_token(message)
-        request = AbandonRequest(locktoken=locktoken, propertiesToModify=properties_to_modify)
-        await self._client.Abandon(request)
+        request = AbandonRequest()
+        request.locktoken = str(locktoken)
+        request.propertiesToModify = properties_to_modify
+        self._client.Abandon(request)
 
-    async def deadletter(
-        self,
-        message,
-        properties_to_modify: bytes = b"",
-        deadletter_reason: Optional[str] = None,
-        deadletter_error_description: Optional[str] = None,
-    ) -> None:
+    def deadletter(self,
+                   message,
+                   properties_to_modify: bytes = b"",
+                   deadletter_reason: Optional[str] = None,
+                   deadletter_error_description: Optional[str] = None,
+                   ) -> None:
         locktoken = self._validate_lock_token(message)
-        request = DeadletterRequest(
-            locktoken=locktoken,
-            propertiesToModify=properties_to_modify,
-            deadletterReason=deadletter_reason or "",
-            deadletterErrorDescription=deadletter_error_description or "",
-        )
-        await self._client.Deadletter(request)
+        request = DeadletterRequest()
+        request.locktoken = str(locktoken)
+        request.propertiesToModify = properties_to_modify
 
-    async def defer(self, message, properties_to_modify: bytes = b"") -> None:
+        if deadletter_reason:
+            request.deadletterReason.CopyFrom(StringValue(value=deadletter_reason))
+
+        if deadletter_error_description:
+            request.deadletterErrorDescription.CopyFrom(
+                StringValue(value=deadletter_error_description))
+        self._client.Deadletter(request)
+
+    def defer(self,
+              message,
+              properties_to_modify: bytes = b""
+              ) -> None:
         locktoken = self._validate_lock_token(message)
-        request = DeferRequest(locktoken=locktoken, propertiesToModify=properties_to_modify)
-        await self._client.Defer(request)
+        request = DeferRequest()
+        request.locktoken = str(locktoken)
+        request.propertiesToModify = properties_to_modify
+        self._client.Defer(request)
 
-    async def renew_message_lock(self, message) -> None:
+    def renew_message_lock(self,
+                           message
+                           ) -> None:
         locktoken = self._validate_lock_token(message)
-        request = RenewMessageLockRequest(locktoken=locktoken)
-        await self._client.RenewMessageLock(request)
+        request = RenewMessageLockRequest()
+        request.locktoken = str(locktoken)
+        self._client.RenewMessageLock(request)
 
-    async def set_session_state(self, session_id: str, session_state: bytes) -> None:
-        request = SetSessionStateRequest(sessionId=session_id, sessionState=session_state)
-        await self._client.SetSessionState(request)
+    def set_session_state(self,
+                          session_id: str,
+                          session_state: bytes
+                          ) -> None:
+        request = SetSessionStateRequest()
+        request.sessionId = session_id
+        request.sessionState = session_state
+        self._client.SetSessionState(request)
 
-    async def release_session(self, session_id: str) -> None:
-        request = ReleaseSessionRequest(sessionId=session_id)
-        await self._client.ReleaseSession(request)
+    def release_session(self,
+                        session_id: str
+                        ) -> None:
+        request = ReleaseSessionRequest()
+        request.sessionId = session_id
+        self._client.ReleaseSession(request)
 
-    async def renew_session_lock(self, session_id: str) -> str:
-        request = RenewSessionLockRequest(sessionId=session_id)
-        response = await self._client.RenewSessionLock(request)
+    def renew_session_lock(self,
+                           session_id: str):
+        request = RenewSessionLockRequest()
+        request.sessionId = session_id
+        response = self._client.RenewSessionLock(request)
+
         if not response or not response.lockedUntil:
-            raise RuntimeError("No response or lockedUntil returned from renewSessionLock")
+            raise RuntimeError("No response or lockedUntil "
+                               "returned from renewSessionLock")
+
         return response.lockedUntil

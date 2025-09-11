@@ -108,7 +108,7 @@ class _ConverterMeta(abc.ABCMeta):
         if (isinstance(annotation, type)
                 and issubclass(annotation, grpcClientType.GrpcClientType)):
             return True
-    
+
     @classmethod
     def _is_iterable_supported_type(cls, annotation: type) -> bool:
         # Check base type from type hint. Ex: List from List[SdkType]

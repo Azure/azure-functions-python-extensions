@@ -3,7 +3,7 @@
 
 from typing import Any
 
-from azurefunctions.extensions.base import Datum, InConverter
+from azurefunctions.extensions.base import InConverter
 from .serviceBusMessageActions import ServiceBusMessageActions
 
 
@@ -15,6 +15,6 @@ class ServiceBusClientConverter(
     @classmethod
     def get_client(cls) -> Any:
         """
-        TODO: comments
+        Returns an instance of ServiceBusMessageActions.
         """
         return ServiceBusMessageActions.get_instance()
