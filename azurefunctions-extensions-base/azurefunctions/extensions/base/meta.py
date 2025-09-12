@@ -105,9 +105,8 @@ class _ConverterMeta(abc.ABCMeta):
             return False
 
         # The annotation is a class/type (not an object) - not iterable
-        if (isinstance(annotation, type)
-                and issubclass(annotation, grpcClientType.GrpcClientType)):
-            return True
+        return (isinstance(annotation, type)
+                and issubclass(annotation, grpcClientType.GrpcClientType))
 
     @classmethod
     def _is_iterable_supported_type(cls, annotation: type) -> bool:

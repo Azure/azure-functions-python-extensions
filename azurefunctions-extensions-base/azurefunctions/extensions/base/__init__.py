@@ -33,6 +33,7 @@ __all__ = [
     "get_binding_registry",
     "ModuleTrackerMeta",
     "RequestTrackerMeta",
+    "GrpcClientType",
     "ResponseTrackerMeta",
     "HttpV2FeatureChecker",
     "ResponseLabels",
@@ -41,4 +42,4 @@ __all__ = [
     "RequestSynchronizer",
 ]
 
-__version__ = '1.0.0'
+__version__ = '1.1.0'
