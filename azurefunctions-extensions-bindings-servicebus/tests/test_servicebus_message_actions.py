@@ -1,7 +1,6 @@
 #  Copyright (c) Microsoft Corporation. All rights reserved.
 #  Licensed under the MIT License.
 
-import pytest
 import unittest
 
 from unittest.mock import patch, MagicMock
@@ -12,114 +11,142 @@ from azurefunctions.extensions.bindings.servicebus import ServiceBusMessageActio
 from azurefunctions.extensions.bindings.protos import settlement_pb2 as pb2
 
 
-@pytest.fixture
-def mock_client():
-    """Patch the GrpcClientFactory to return a mock SettlementStub."""
-    with patch("azurefunctions.extensions.bindings.servicebus.GrpcClientFactory.create_client") as mock_factory: # noqa
-        client = MagicMock()
-        mock_factory.return_value = client
-        yield client
-
-
-@pytest.fixture
-def actions(mock_client):
-    """Return a fresh ServiceBusMessageActions instance with mocked gRPC client."""
-    # Clear singleton
-    ServiceBusMessageActions._instance = None
-    return ServiceBusMessageActions.get_instance()
-
-
 class DummyMessage:
-    def __init__(self, lock_token=None):
-        self.lock_token = lock_token
+    def __init__(self, locktoken):
+        self.lock_token = locktoken
 
 
 class TestServiceBusMessageActions(unittest.TestCase):
-    def test_complete_calls_grpc(actions, mock_client):
-        msg = DummyMessage("lock123")
-        actions.complete(msg)
-        # Check that gRPC method was called
-        called_req = mock_client.Complete.call_args[0][0]
-        assert isinstance(called_req, pb2.CompleteRequest)
-        assert called_req.locktoken == "lock123"
+    def setUp(self):
+        ServiceBusMessageActions._instance = None
+        # Patch create_client so we control what gets returned
+        patcher = patch(
+            "azurefunctions.extensions.bindings.servicebus.serviceBusMessageActions.GrpcClientFactory.create_client")  # noqa
+        self.addCleanup(patcher.stop)
+        self.mock_create_client = patcher.start()
 
-    def test_abandon_calls_grpc(actions, mock_client):
-        msg = DummyMessage("lock123")
-        actions.abandon(msg, properties_to_modify=b"foo")
-        called_req = mock_client.Abandon.call_args[0][0]
-        assert isinstance(called_req, pb2.AbandonRequest)
-        assert called_req.locktoken == "lock123"
-        assert called_req.propertiesToModify == b"foo"
+        # Patch build_grpc_uri so we don't need CLI args
+        patcher_uri = patch(
+            "azurefunctions.extensions.bindings.servicebus.serviceBusMessageActions.build_grpc_uri",  # noqa
+            return_value=("localhost:50051", 4 * 1024 * 1024))
+        self.addCleanup(patcher_uri.stop)
+        patcher_uri.start()
 
-    def test_deadletter_with_reasons(actions, mock_client):
+        # The fake gRPC client returned by create_client
+        self.mock_client = MagicMock()
+        self.mock_client.Complete = MagicMock()
+        self.mock_client.Abandon = MagicMock()
+        self.mock_client.Deadletter = MagicMock()
+        self.mock_client.Defer = MagicMock()
+        self.mock_client.RenewMessageLock = MagicMock()
+        self.mock_client.SetSessionState = MagicMock()
+        self.mock_client.ReleaseSession = MagicMock()
+        self.mock_client.RenewSessionLock = MagicMock()
+        self.mock_create_client.return_value = self.mock_client
+
+        # Now actions will use our patched client
+        self.actions = ServiceBusMessageActions().get_instance()
+
+    def tearDown(self):
+        # Ensure singleton is cleared after each test too
+        ServiceBusMessageActions._instance = None
+
+    def test_complete_calls_grpc(self):
         msg = DummyMessage("lock123")
-        actions.deadletter(
+        self.actions.complete(msg)
+
+        self.mock_client.Complete.assert_called_once()
+        called_req = self.mock_client.Complete.call_args[0][0]
+        self.assertIsInstance(called_req, pb2.CompleteRequest)
+        self.assertEqual(called_req.locktoken, "lock123")
+
+    def test_abandon_calls_grpc(self):
+        msg = DummyMessage("lock123")
+        self.actions.abandon(msg, properties_to_modify=b"foo")
+
+        self.mock_client.Abandon.assert_called_once()
+        called_req = self.mock_client.Abandon.call_args[0][0]
+        self.assertIsInstance(called_req, pb2.AbandonRequest)
+        self.assertEqual(called_req.locktoken, "lock123")
+        self.assertEqual(called_req.propertiesToModify, b"foo")
+
+    def test_deadletter_with_reasons(self):
+        msg = DummyMessage("lock123")
+        self.actions.deadletter(
             msg,
             properties_to_modify=b"p",
             deadletter_reason="reason",
             deadletter_error_description="desc"
         )
-        called_req = mock_client.Deadletter.call_args[0][0]
-        assert isinstance(called_req, pb2.DeadletterRequest)
-        assert called_req.locktoken == "lock123"
-        assert called_req.propertiesToModify == b"p"
-        assert called_req.deadletterReason.value == "reason"
-        assert called_req.deadletterErrorDescription.value == "desc"
 
-    def test_defer_calls_grpc(actions, mock_client):
+        self.mock_client.Deadletter.assert_called_once()
+        called_req = self.mock_client.Deadletter.call_args[0][0]
+        self.assertIsInstance(called_req, pb2.DeadletterRequest)
+        self.assertEqual(called_req.locktoken, "lock123")
+        self.assertEqual(called_req.propertiesToModify, b"p")
+        self.assertEqual(called_req.deadletterReason.value, "reason")
+        self.assertEqual(called_req.deadletterErrorDescription.value, "desc")
+
+    def test_defer_calls_grpc(self):
         msg = DummyMessage("lock123")
-        actions.defer(msg, properties_to_modify=b"defer")
-        called_req = mock_client.Defer.call_args[0][0]
-        assert isinstance(called_req, pb2.DeferRequest)
-        assert called_req.locktoken == "lock123"
-        assert called_req.propertiesToModify == b"defer"
+        self.actions.defer(msg, properties_to_modify=b"defer")
 
-    def test_renew_message_lock_calls_grpc(actions, mock_client):
+        self.mock_client.Defer.assert_called_once()
+        called_req = self.mock_client.Defer.call_args[0][0]
+        self.assertIsInstance(called_req, pb2.DeferRequest)
+        self.assertEqual(called_req.locktoken, "lock123")
+        self.assertEqual(called_req.propertiesToModify, b"defer")
+
+    def test_renew_message_lock_calls_grpc(self):
         msg = DummyMessage("lock123")
-        actions.renew_message_lock(msg)
-        called_req = mock_client.RenewMessageLock.call_args[0][0]
-        assert isinstance(called_req, pb2.RenewMessageLockRequest)
-        assert called_req.locktoken == "lock123"
+        self.actions.renew_message_lock(msg)
 
-    def test_set_session_state(actions, mock_client):
-        actions.set_session_state("sid", b"state")
-        called_req = mock_client.SetSessionState.call_args[0][0]
-        assert isinstance(called_req, pb2.SetSessionStateRequest)
-        assert called_req.sessionId == "sid"
-        assert called_req.sessionState == b"state"
+        self.mock_client.RenewMessageLock.assert_called_once()
+        called_req = self.mock_client.RenewMessageLock.call_args[0][0]
+        self.assertIsInstance(called_req, pb2.RenewMessageLockRequest)
+        self.assertEqual(called_req.locktoken, "lock123")
 
-    def test_release_session(actions, mock_client):
-        actions.release_session("sid")
-        called_req = mock_client.ReleaseSession.call_args[0][0]
-        assert isinstance(called_req, pb2.ReleaseSessionRequest)
-        assert called_req.sessionId == "sid"
+    def test_set_session_state(self):
+        self.actions.set_session_state("sid", b"state")
 
-    def test_renew_session_lock_success(actions, mock_client):
+        self.mock_client.SetSessionState.assert_called_once()
+        called_req = self.mock_client.SetSessionState.call_args[0][0]
+        self.assertIsInstance(called_req, pb2.SetSessionStateRequest)
+        self.assertEqual(called_req.sessionId, "sid")
+        self.assertEqual(called_req.sessionState, b"state")
+
+    def test_release_session(self):
+        self.actions.release_session("sid")
+
+        self.mock_client.ReleaseSession.assert_called_once()
+        called_req = self.mock_client.ReleaseSession.call_args[0][0]
+        self.assertIsInstance(called_req, pb2.ReleaseSessionRequest)
+        self.assertEqual(called_req.sessionId, "sid")
+
+    def test_renew_session_lock_success(self):
         ts = Timestamp()
         ts.GetCurrentTime()
-        mock_client.RenewSessionLock.return_value.lockedUntil.CopyFrom(ts)
+        # Mock gRPC response
+        resp = pb2.RenewSessionLockResponse()
+        resp.lockedUntil.CopyFrom(ts)
+        self.mock_client.RenewSessionLock.return_value = resp
 
-        result = actions.renew_session_lock("sid")
+        result = self.actions.renew_session_lock("sid")
 
-        called_req = mock_client.RenewSessionLock.call_args[0][0]
-        assert isinstance(called_req, pb2.RenewSessionLockRequest)
-        assert called_req.sessionId == "sid"
-        assert isinstance(result, Timestamp)  # raw proto object returned
-        assert result == ts
+        self.mock_client.RenewSessionLock.assert_called_once()
+        called_req = self.mock_client.RenewSessionLock.call_args[0][0]
+        self.assertIsInstance(called_req, pb2.RenewSessionLockRequest)
+        self.assertEqual(called_req.sessionId, "sid")
+        self.assertIsInstance(result, Timestamp)
+        self.assertEqual(result, ts)
 
-    def test_renew_session_lock_failure(actions, mock_client):
+    def test_renew_session_lock_failure(self):
         # No response
-        mock_client.RenewSessionLock.return_value = None
-        with pytest.raises(RuntimeError):
-            actions.renew_session_lock("sid")
+        self.mock_client.RenewSessionLock.return_value = None
+        with self.assertRaises(RuntimeError):
+            self.actions.renew_session_lock("sid")
 
-        # Empty response
-        empty_resp = pb2.RenewSessionLockResponse()
-        mock_client.RenewSessionLock.return_value = empty_resp
-        with pytest.raises(RuntimeError):
-            actions.renew_session_lock("sid")
-
-    def test_validate_lock_token_raises(actions):
+    def test_validate_lock_token_raises(self):
         msg = DummyMessage(None)
-        with pytest.raises(ValueError):
-            actions._validate_lock_token(msg)
+        with self.assertRaises(ValueError):
+            self.actions._validate_lock_token(msg)

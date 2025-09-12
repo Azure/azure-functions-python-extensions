@@ -11,13 +11,13 @@ import pytest
 
 
 class TestGrpcClient(unittest.TestCase):
-    def test_create_client_insecure_channel():
+    def test_create_client_insecure_channel(self):
         # Dummy stub class to verify it receives a channel
         class DummyStub:
             def __init__(self, channel):
                 self._channel = channel
 
-        with patch("mypackage.grpcClient.grpc.insecure_channel") as mock_insecure:
+        with patch("azurefunctions.extensions.bindings.servicebus.grpcClient.grpc.insecure_channel") as mock_insecure: # noqa
             fake_channel = MagicMock()
             mock_insecure.return_value = fake_channel
 
@@ -37,13 +37,13 @@ class TestGrpcClient(unittest.TestCase):
             assert isinstance(client, DummyStub)
             assert client._channel == fake_channel
 
-    def test_create_client_secure_channel_with_root_certs():
+    def test_create_client_secure_channel_with_root_certs(self):
         class DummyStub:
             def __init__(self, channel):
                 self._channel = channel
 
-        with (patch("mypackage.grpcClient.grpc.secure_channel") as mock_secure,
-              patch("mypackage.grpcClient.grpc.ssl_channel_credentials") as mock_creds):
+        with (patch("azurefunctions.extensions.bindings.servicebus.grpcClient.grpc.secure_channel") as mock_secure,  # noqa
+              patch("azurefunctions.extensions.bindings.servicebus.grpcClient.grpc.ssl_channel_credentials") as mock_creds):  # noqa
             fake_channel = MagicMock()
             fake_creds = MagicMock()
             mock_secure.return_value = fake_channel
@@ -70,7 +70,7 @@ class TestGrpcClient(unittest.TestCase):
 
 
 class TestGrpcUtils(unittest.TestCase):
-    def test_build_grpc_uri_valid_args():
+    def test_build_grpc_uri_valid_args(self):
         argv = [
             "--host", "localhost",
             "--port", "50051",
@@ -80,7 +80,7 @@ class TestGrpcUtils(unittest.TestCase):
         assert uri == "localhost:50051"
         assert max_len == 4096
 
-    def test_build_grpc_uri_missing_host():
+    def test_build_grpc_uri_missing_host(self):
         argv = [
             "--port", "50051",
             "--functions-grpc-max-message-length", "4096"
@@ -89,7 +89,7 @@ class TestGrpcUtils(unittest.TestCase):
             build_grpc_uri(argv)
         assert "host" in str(excinfo.value)
 
-    def test_build_grpc_uri_missing_port():
+    def test_build_grpc_uri_missing_port(self):
         argv = [
             "--host", "localhost",
             "--functions-grpc-max-message-length", "4096"
@@ -98,7 +98,7 @@ class TestGrpcUtils(unittest.TestCase):
             build_grpc_uri(argv)
         assert "port" in str(excinfo.value)
 
-    def test_build_grpc_uri_missing_message_length():
+    def test_build_grpc_uri_missing_message_length(self):
         argv = [
             "--host", "localhost",
             "--port", "50051",
@@ -107,7 +107,7 @@ class TestGrpcUtils(unittest.TestCase):
             build_grpc_uri(argv)
         assert "functions-grpc-max-message-length" in str(excinfo.value)
 
-    def test_build_grpc_uri_multiple_missing():
+    def test_build_grpc_uri_multiple_missing(self):
         argv = []
         with pytest.raises(ArgumentError) as excinfo:
             build_grpc_uri(argv)
