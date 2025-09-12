@@ -6,6 +6,7 @@ from typing import List, Mapping
 from unittest.mock import patch
 
 from azurefunctions.extensions.base import meta, sdkType
+from azurefunctions.extensions.base.grpcClientType import GrpcClientType
 
 
 class TestMeta(unittest.TestCase):
@@ -161,6 +162,21 @@ class TestMeta(unittest.TestCase):
             self.assertTrue(registry.check_supported_type(tuple[sdkType.SdkType]))
             self.assertTrue(registry.check_supported_type(set[sdkType.SdkType]))
             self.assertFalse(registry.check_supported_type(dict[str, sdkType.SdkType]))
+
+    def test_registry_grpc_client(self):
+        registry = meta.get_binding_registry()
+        self.assertIsInstance(registry, type(meta._ConverterMeta))
+        self.assertIsNone(registry.get("test"))
+
+        class MockIndexedFunction:
+            _bindings = {}
+            _trigger = None
+
+        self.assertEqual(registry.get_raw_bindings(MockIndexedFunction, []), ([], {}))
+
+        self.assertFalse(registry.check_supported_grpc_client_type(None))
+        self.assertFalse(registry.check_supported_grpc_client_type("hello"))
+        self.assertTrue(registry.check_supported_grpc_client_type(GrpcClientType))
 
     def test_decode_typed_data(self):
         # Case 1: data is None

@@ -6,7 +6,7 @@ import collections.abc
 import json
 from typing import Any, Dict, Mapping, Optional, Tuple, Union, get_args, get_origin
 
-from . import sdkType, utils
+from . import grpcClientType, sdkType, utils
 
 
 class Datum:
@@ -98,6 +98,15 @@ class _ConverterMeta(abc.ABCMeta):
 
         # An iterable who only has one inner type and is a subclass of SdkType
         return cls._is_iterable_supported_type(annotation)
+
+    @classmethod
+    def check_supported_grpc_client_type(cls, annotation: type) -> bool:
+        if annotation is None:
+            return False
+
+        # The annotation is a class/type (not an object) - not iterable
+        return (isinstance(annotation, type)
+                and issubclass(annotation, grpcClientType.GrpcClientType))
 
     @classmethod
     def _is_iterable_supported_type(cls, annotation: type) -> bool:
