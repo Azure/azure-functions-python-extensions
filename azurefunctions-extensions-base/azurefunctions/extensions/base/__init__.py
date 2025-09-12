@@ -28,7 +28,6 @@ __all__ = [
     "_BaseConverter",
     "InConverter",
     "OutConverter",
-    "GrpcClientType",
     "SdkType",
     "get_binding_registry",
     "ModuleTrackerMeta",
