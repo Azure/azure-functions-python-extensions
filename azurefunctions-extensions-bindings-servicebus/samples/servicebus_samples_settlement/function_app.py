@@ -27,7 +27,7 @@ USAGE:
 """
 
 
-@app.service_bus_queue_trigger(arg_name="receivedmessage",
+@app.service_bus_queue_trigger(arg_name="received_message",
                                queue_name="QUEUE_NAME",
                                connection="SERVICEBUS_CONNECTION",
                                auto_complete_messages=False)
