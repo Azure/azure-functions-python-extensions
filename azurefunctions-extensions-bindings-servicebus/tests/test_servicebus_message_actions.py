@@ -1,6 +1,7 @@
 #  Copyright (c) Microsoft Corporation. All rights reserved.
 #  Licensed under the MIT License.
 
+import grpc
 import unittest
 
 from unittest.mock import patch, MagicMock
@@ -8,6 +9,7 @@ from unittest.mock import patch, MagicMock
 from google.protobuf.timestamp_pb2 import Timestamp
 
 from azurefunctions.extensions.bindings.servicebus import ServiceBusMessageActions
+from azurefunctions.extensions.bindings.servicebus.serviceBusMessageActions import SettlementError  # noqa
 from azurefunctions.extensions.bindings.protos import settlement_pb2 as pb2
 
 
@@ -25,12 +27,22 @@ class TestServiceBusMessageActions(unittest.TestCase):
         self.addCleanup(patcher.stop)
         self.mock_create_client = patcher.start()
 
-        # Patch build_grpc_uri so we don't need CLI args
+        patcher_args = patch(
+            "azurefunctions.extensions.bindings.servicebus.serviceBusMessageActions.parse_grpc_args")  # noqa
+        self.addCleanup(patcher_args.stop)
+        patcher_args.start()
+
+        # Patch get_grpc_uri so we don't need CLI args
         patcher_uri = patch(
-            "azurefunctions.extensions.bindings.servicebus.serviceBusMessageActions.build_grpc_uri",  # noqa
+            "azurefunctions.extensions.bindings.servicebus.serviceBusMessageActions.get_grpc_uri",  # noqa
             return_value=("localhost:50051", 4 * 1024 * 1024))
         self.addCleanup(patcher_uri.stop)
         patcher_uri.start()
+
+        patcher_message_length = patch(
+            "azurefunctions.extensions.bindings.servicebus.serviceBusMessageActions.get_grpc_max_message_length")  # noqa
+        self.addCleanup(patcher_message_length.stop)
+        patcher_message_length.start()
 
         # The fake gRPC client returned by create_client
         self.mock_client = MagicMock()
@@ -150,3 +162,80 @@ class TestServiceBusMessageActions(unittest.TestCase):
         msg = DummyMessage(None)
         with self.assertRaises(ValueError):
             self.actions._validate_lock_token(msg)
+
+    def test_complete_raises_SettlementError(self):
+        msg = DummyMessage("lt1")
+        self.mock_client.Complete.side_effect = grpc.RpcError("boom")
+
+        with self.assertRaises(SettlementError) as cm:
+            self.actions.complete(msg)
+
+        self.assertIn("complete", str(cm.exception))
+        self.assertIn("lt1", str(cm.exception))
+
+    def test_abandon_raises_SettlementError(self):
+        msg = DummyMessage("lt2")
+        self.mock_client.Abandon.side_effect = grpc.RpcError("fail")
+
+        with self.assertRaises(SettlementError) as cm:
+            self.actions.abandon(msg)
+
+        self.assertIn("abandon", str(cm.exception))
+        self.assertIn("lt2", str(cm.exception))
+
+    def test_deadletter_raises_SettlementError(self):
+        msg = DummyMessage("lt3")
+        self.mock_client.Deadletter.side_effect = grpc.RpcError("oops")
+
+        with self.assertRaises(SettlementError) as cm:
+            self.actions.deadletter(msg, deadletter_reason="reason")
+
+        self.assertIn("deadletter", str(cm.exception))
+        self.assertIn("lt3", str(cm.exception))
+
+    def test_defer_raises_SettlementError(self):
+        msg = DummyMessage("lt4")
+        self.mock_client.Defer.side_effect = grpc.RpcError("bad")
+
+        with self.assertRaises(SettlementError) as cm:
+            self.actions.defer(msg)
+
+        self.assertIn("defer", str(cm.exception))
+        self.assertIn("lt4", str(cm.exception))
+
+    def test_renew_message_lock_raises_SettlementError(self):
+        msg = DummyMessage("lt5")
+        self.mock_client.RenewMessageLock.side_effect = grpc.RpcError("err")
+
+        with self.assertRaises(SettlementError) as cm:
+            self.actions.renew_message_lock(msg)
+
+        self.assertIn("renew_message_lock", str(cm.exception))
+        self.assertIn("lt5", str(cm.exception))
+
+    def test_set_session_state_raises_SettlementError(self):
+        self.mock_client.SetSessionState.side_effect = grpc.RpcError("nope")
+
+        with self.assertRaises(SettlementError) as cm:
+            self.actions.set_session_state("sid1", b"state")
+
+        self.assertIn("set_session_state", str(cm.exception))
+        self.assertIn("sid1", str(cm.exception))
+
+    def test_release_session_raises_SettlementError(self):
+        self.mock_client.ReleaseSession.side_effect = grpc.RpcError("denied")
+
+        with self.assertRaises(SettlementError) as cm:
+            self.actions.release_session("sid2")
+
+        self.assertIn("release_session", str(cm.exception))
+        self.assertIn("sid2", str(cm.exception))
+
+    def test_renew_session_lock_raises_SettlementError(self):
+        self.mock_client.RenewSessionLock.side_effect = grpc.RpcError("boom")
+
+        with self.assertRaises(SettlementError) as cm:
+            self.actions.renew_session_lock("sid3")
+
+        self.assertIn("renew_session_lock", str(cm.exception))
+        self.assertIn("sid3", str(cm.exception))

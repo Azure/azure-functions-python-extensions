@@ -1,5 +1,6 @@
 # Copyright (c) .NET Foundation. All rights reserved.
 # Licensed under the MIT License.
+import threading
 
 from typing import Optional
 
@@ -19,7 +20,16 @@ from ..protos.settlement_pb2 import (
 from ..protos.settlement_pb2_grpc import SettlementStub
 
 from .grpcClient import GrpcClientFactory
-from .grpc_utils import build_grpc_uri
+from .grpc_utils import get_grpc_uri, get_grpc_max_message_length, parse_grpc_args
+
+
+class SettlementError(Exception):
+    """Custom exception for ServiceBusMessageActions errors."""
+    def __init__(self, method: str, details: str, original: Exception):
+        super().__init__(f"[{method}] {details}. Underlying error: {original}")
+        self.method = method
+        self.details = details
+        self.original = original
 
 
 class ServiceBusMessageActions(GrpcClientType):
@@ -30,21 +40,25 @@ class ServiceBusMessageActions(GrpcClientType):
     """
 
     _instance: Optional["ServiceBusMessageActions"] = None
+    _lock = threading.Lock()  # class-level lock
 
     def __init__(self) -> None:
-        self._uri, self._grpc_max_message_length = build_grpc_uri()
+        args = parse_grpc_args()
+        self._uri = get_grpc_uri(args)
+        self._grpc_max_message_length = get_grpc_max_message_length(args)
 
         self._client: SettlementStub = GrpcClientFactory.create_client(
             service_stub=SettlementStub,
             address=self._uri,
             grpc_max_message_length=self._grpc_max_message_length,
-            secure=False,
+            secure=True,
         )
 
     @classmethod
     def get_instance(cls) -> "ServiceBusMessageActions":
-        if cls._instance is None:
-            cls._instance = ServiceBusMessageActions()
+        with cls._lock:
+            if cls._instance is None:
+                cls._instance = ServiceBusMessageActions()
         return cls._instance
 
     def _validate_lock_token(self, message) -> str:
@@ -57,85 +71,101 @@ class ServiceBusMessageActions(GrpcClientType):
     # Settlement methods
     # -------------------------------
 
-    def complete(self,
-                 message
-                 ) -> None:
-        locktoken = self._validate_lock_token(message)
-        request = CompleteRequest()
-        request.locktoken = str(locktoken)
-        self._client.Complete(request)
+    def complete(self, message) -> None:
+        try:
+            locktoken = self._validate_lock_token(message)
+            request = CompleteRequest()
+            request.locktoken = str(locktoken)
+            self._client.Complete(request)
+        except Exception as e:
+            raise SettlementError("complete",
+                                  f"Failed to complete message {locktoken}", e)
 
-    def abandon(self,
-                message,
-                properties_to_modify: bytes = b""
-                ) -> None:
-        locktoken = self._validate_lock_token(message)
-        request = AbandonRequest()
-        request.locktoken = str(locktoken)
-        request.propertiesToModify = properties_to_modify
-        self._client.Abandon(request)
+    def abandon(self, message, properties_to_modify: bytes = b"") -> None:
+        try:
+            locktoken = self._validate_lock_token(message)
+            request = AbandonRequest()
+            request.locktoken = str(locktoken)
+            request.propertiesToModify = properties_to_modify
+            self._client.Abandon(request)
+        except Exception as e:
+            raise SettlementError("abandon",
+                                  f"Failed to abandon message {locktoken}", e)
 
-    def deadletter(self,
-                   message,
-                   properties_to_modify: bytes = b"",
-                   deadletter_reason: Optional[str] = None,
-                   deadletter_error_description: Optional[str] = None,
-                   ) -> None:
-        locktoken = self._validate_lock_token(message)
-        request = DeadletterRequest()
-        request.locktoken = str(locktoken)
-        request.propertiesToModify = properties_to_modify
+    def deadletter(
+            self,
+            message,
+            properties_to_modify: bytes = b"",
+            deadletter_reason: Optional[str] = None,
+            deadletter_error_description: Optional[str] = None) -> None:
+        try:
+            locktoken = self._validate_lock_token(message)
+            request = DeadletterRequest()
+            request.locktoken = str(locktoken)
+            request.propertiesToModify = properties_to_modify
 
-        if deadletter_reason:
-            request.deadletterReason.CopyFrom(StringValue(value=deadletter_reason))
+            if deadletter_reason:
+                request.deadletterReason.CopyFrom(StringValue(value=deadletter_reason))
+            if deadletter_error_description:
+                request.deadletterErrorDescription.CopyFrom(
+                    StringValue(value=deadletter_error_description))
 
-        if deadletter_error_description:
-            request.deadletterErrorDescription.CopyFrom(
-                StringValue(value=deadletter_error_description))
-        self._client.Deadletter(request)
+            self._client.Deadletter(request)
+        except Exception as e:
+            raise SettlementError("deadletter",
+                                  f"Failed to deadletter message {locktoken}", e)
 
-    def defer(self,
-              message,
-              properties_to_modify: bytes = b""
-              ) -> None:
-        locktoken = self._validate_lock_token(message)
-        request = DeferRequest()
-        request.locktoken = str(locktoken)
-        request.propertiesToModify = properties_to_modify
-        self._client.Defer(request)
+    def defer(self, message, properties_to_modify: bytes = b"") -> None:
+        try:
+            locktoken = self._validate_lock_token(message)
+            request = DeferRequest()
+            request.locktoken = str(locktoken)
+            request.propertiesToModify = properties_to_modify
 
-    def renew_message_lock(self,
-                           message
-                           ) -> None:
-        locktoken = self._validate_lock_token(message)
-        request = RenewMessageLockRequest()
-        request.locktoken = str(locktoken)
-        self._client.RenewMessageLock(request)
+            self._client.Defer(request)
+        except Exception as e:
+            raise SettlementError("defer", f"Failed to defer message {locktoken}", e)
 
-    def set_session_state(self,
-                          session_id: str,
-                          session_state: bytes
-                          ) -> None:
-        request = SetSessionStateRequest()
-        request.sessionId = session_id
-        request.sessionState = session_state
-        self._client.SetSessionState(request)
+    def renew_message_lock(self, message) -> None:
+        try:
+            locktoken = self._validate_lock_token(message)
+            request = RenewMessageLockRequest()
+            request.locktoken = str(locktoken)
+            self._client.RenewMessageLock(request)
+        except Exception as e:
+            raise SettlementError("renew_message_lock",
+                                  f"Failed to renew lock for {locktoken}", e)
 
-    def release_session(self,
-                        session_id: str
-                        ) -> None:
-        request = ReleaseSessionRequest()
-        request.sessionId = session_id
-        self._client.ReleaseSession(request)
+    def set_session_state(self, session_id: str, session_state: bytes) -> None:
+        try:
+            request = SetSessionStateRequest()
+            request.sessionId = session_id
+            request.sessionState = session_state
+            self._client.SetSessionState(request)
+        except Exception as e:
+            raise SettlementError("set_session_state",
+                                  f"Failed to set state for session {session_id}", e)
 
-    def renew_session_lock(self,
-                           session_id: str):
-        request = RenewSessionLockRequest()
-        request.sessionId = session_id
-        response = self._client.RenewSessionLock(request)
+    def release_session(self, session_id: str) -> None:
+        try:
+            request = ReleaseSessionRequest()
+            request.sessionId = session_id
+            self._client.ReleaseSession(request)
+        except Exception as e:
+            raise SettlementError("release_session",
+                                  f"Failed to release session {session_id}", e)
+
+    def renew_session_lock(self, session_id: str):
+        try:
+            request = RenewSessionLockRequest()
+            request.sessionId = session_id
+            response = self._client.RenewSessionLock(request)
+        except Exception as e:
+            raise SettlementError("renew_session_lock", f"Failed to renew "
+                                  f"lock for session {session_id}", e)
 
         if not response or not response.lockedUntil:
-            raise RuntimeError("No response or lockedUntil "
-                               "returned from renewSessionLock")
+            raise RuntimeError("No response or lockedUntil returned "
+                               "from renewSessionLock")
 
         return response.lockedUntil

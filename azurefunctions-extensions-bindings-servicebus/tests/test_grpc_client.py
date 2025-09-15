@@ -4,19 +4,22 @@
 import unittest
 from unittest.mock import patch, MagicMock
 
-from azurefunctions.extensions.bindings.servicebus.grpcClient import GrpcClientFactory
-from azurefunctions.extensions.bindings.servicebus.grpc_utils import (build_grpc_uri,
-                                                                      ArgumentError)
-import pytest
+from azurefunctions.extensions.bindings.servicebus.grpcClient import (GrpcClientFactory,
+                                                                      GrpcChannelError)
+from azurefunctions.extensions.bindings.servicebus.grpc_utils import (
+    get_grpc_uri,
+    get_grpc_max_message_length,
+    parse_grpc_args,
+    ArgumentError)
+
+
+class DummyStub:
+    def __init__(self, channel):
+        self._channel = channel
 
 
 class TestGrpcClient(unittest.TestCase):
     def test_create_client_insecure_channel(self):
-        # Dummy stub class to verify it receives a channel
-        class DummyStub:
-            def __init__(self, channel):
-                self._channel = channel
-
         with patch("azurefunctions.extensions.bindings.servicebus.grpcClient.grpc.insecure_channel") as mock_insecure: # noqa
             fake_channel = MagicMock()
             mock_insecure.return_value = fake_channel
@@ -38,10 +41,6 @@ class TestGrpcClient(unittest.TestCase):
             assert client._channel == fake_channel
 
     def test_create_client_secure_channel_with_root_certs(self):
-        class DummyStub:
-            def __init__(self, channel):
-                self._channel = channel
-
         with (patch("azurefunctions.extensions.bindings.servicebus.grpcClient.grpc.secure_channel") as mock_secure,  # noqa
               patch("azurefunctions.extensions.bindings.servicebus.grpcClient.grpc.ssl_channel_credentials") as mock_creds):  # noqa
             fake_channel = MagicMock()
@@ -68,49 +67,87 @@ class TestGrpcClient(unittest.TestCase):
             assert isinstance(client, DummyStub)
             assert client._channel == fake_channel
 
+    @patch("azurefunctions.extensions.bindings.servicebus.grpcClient."
+           "grpc.insecure_channel")
+    def test_create_client_raises_on_insecure_channel_failure(self,
+                                                              mock_insecure_channel):
+        # Arrange: force grpc.insecure_channel to throw
+        mock_insecure_channel.side_effect = RuntimeError("connection failed")
+
+        # Act + Assert
+        with self.assertRaises(GrpcChannelError) as ctx:
+            GrpcClientFactory.create_client(DummyStub, "localhost:1234", secure=False)
+
+        # Ensure exception contains useful context
+        self.assertIn("Failed to create gRPC channel", str(ctx.exception))
+        self.assertIn("localhost:1234", str(ctx.exception))
+
+    @patch("azurefunctions.extensions.bindings.servicebus.grpcClient."
+           "grpc.secure_channel")
+    @patch("azurefunctions.extensions.bindings.servicebus.grpcClient."
+           "grpc.ssl_channel_credentials")
+    def test_create_client_raises_on_secure_channel_failure(self,
+                                                            mock_ssl_creds,
+                                                            mock_secure_channel):
+        # Arrange: make secure_channel raise
+        mock_secure_channel.side_effect = ValueError("SSL handshake failed")
+
+        # Act + Assert
+        with self.assertRaises(GrpcChannelError) as ctx:
+            GrpcClientFactory.create_client(DummyStub,
+                                            "localhost:5678",
+                                            secure=True,
+                                            root_certificates=b"dummy")
+
+        self.assertIn("Failed to create gRPC channel", str(ctx.exception))
+        self.assertIn("localhost:5678", str(ctx.exception))
+
 
 class TestGrpcUtils(unittest.TestCase):
-    def test_build_grpc_uri_valid_args(self):
+    def test_get_grpc_uri_and_max_message_length_valid_args(self):
         argv = [
             "--host", "localhost",
             "--port", "50051",
             "--functions-grpc-max-message-length", "4096"
         ]
-        uri, max_len = build_grpc_uri(argv)
+        args = parse_grpc_args(argv)
+        uri = get_grpc_uri(args)
+        max_len = get_grpc_max_message_length(args)
         assert uri == "localhost:50051"
         assert max_len == 4096
 
-    def test_build_grpc_uri_missing_host(self):
+    def test_get_grpc_uri_missing_host(self):
         argv = [
             "--port", "50051",
             "--functions-grpc-max-message-length", "4096"
         ]
-        with pytest.raises(ArgumentError) as excinfo:
-            build_grpc_uri(argv)
-        assert "host" in str(excinfo.value)
+        with self.assertRaises(ArgumentError) as excinfo:
+            parse_grpc_args(argv)
+        self.assertIn("host", str(excinfo.exception))
 
-    def test_build_grpc_uri_missing_port(self):
+    def test_get_grpc_uri_missing_port(self):
         argv = [
             "--host", "localhost",
             "--functions-grpc-max-message-length", "4096"
         ]
-        with pytest.raises(ArgumentError) as excinfo:
-            build_grpc_uri(argv)
-        assert "port" in str(excinfo.value)
+        with self.assertRaises(ArgumentError) as excinfo:
+            parse_grpc_args(argv)
+        self.assertIn("port", str(excinfo.exception))
 
-    def test_build_grpc_uri_missing_message_length(self):
+    def test_get_grpc_max_message_length_missing(self):
         argv = [
             "--host", "localhost",
             "--port", "50051",
         ]
-        with pytest.raises(ArgumentError) as excinfo:
-            build_grpc_uri(argv)
-        assert "functions-grpc-max-message-length" in str(excinfo.value)
+        with self.assertRaises(ArgumentError) as excinfo:
+            parse_grpc_args(argv)
+        self.assertIn("functions-grpc-max-message-length", str(excinfo.exception))
 
-    def test_build_grpc_uri_multiple_missing(self):
+    def test_get_grpc_uri_and_max_message_length_multiple_missing(self):
         argv = []
-        with pytest.raises(ArgumentError) as excinfo:
-            build_grpc_uri(argv)
-        msg = str(excinfo.value)
-        assert ("host" in msg and "port" in msg
-                and "functions-grpc-max-message-length" in msg)
+        with self.assertRaises(ArgumentError) as excinfo:
+            parse_grpc_args(argv)
+        msg = str(excinfo.exception)
+        self.assertIn("host", msg)
+        self.assertIn("port", msg)
+        self.assertIn("functions-grpc-max-message-length", msg)

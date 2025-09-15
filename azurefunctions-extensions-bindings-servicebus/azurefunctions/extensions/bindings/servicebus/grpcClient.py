@@ -2,7 +2,11 @@
 # Licensed under the MIT License.
 
 import grpc
-from typing import Any, Type
+from typing import Any, Optional, Type
+
+
+class GrpcChannelError(Exception):
+    """Exception raised when gRPC channel creation fails."""
 
 
 class GrpcClientFactory:
@@ -30,7 +34,7 @@ class GrpcClientFactory:
         address: str,
         grpc_max_message_length: int = 4 * 1024 * 1024,
         secure: bool = False,
-        root_certificates: bytes | None = None,
+        root_certificates: Optional[bytes] = None,
     ) -> Any:
         """
         Creates and returns a gRPC client for the given service stub.
@@ -51,11 +55,15 @@ class GrpcClientFactory:
             ("grpc.max_receive_message_length", grpc_max_message_length),
         ]
 
-        if secure:
-            credentials = grpc.ssl_channel_credentials(
-                root_certificates=root_certificates)
-            channel = grpc.secure_channel(address, credentials, options=options)
-        else:
-            channel = grpc.insecure_channel(address, options=options)
+        try:
+            if secure:
+                credentials = grpc.ssl_channel_credentials(
+                    root_certificates=root_certificates)
+                channel = grpc.secure_channel(address, credentials, options=options)
+            else:
+                channel = grpc.insecure_channel(address, options=options)
+        except Exception as e:
+            raise GrpcChannelError(f"Failed to create gRPC channel. URL: {address},"
+                                   f" Options: {options}, Error: {e}")
 
         return service_stub(channel)

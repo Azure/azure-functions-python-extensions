@@ -2,7 +2,7 @@
 #  Licensed under the MIT License.
 
 import argparse
-from typing import Tuple, List
+from typing import List, Optional
 
 
 class ArgumentError(Exception):
@@ -10,26 +10,20 @@ class ArgumentError(Exception):
     pass
 
 
-def build_grpc_uri(argv: List[str] | None = None) -> Tuple[str, int]:
+def parse_grpc_args(argv: Optional[List[str]] = None):
     """
-    Builds a gRPC URI and retrieves the max message length from CLI args.
-
-    Expected CLI arguments:
-      --host HOST
-      --port PORT
-      --functions-grpc-max-message-length LENGTH
+    Parses CLI arguments for gRPC connection.
 
     Args:
         argv: Optional list of CLI arguments (defaults to sys.argv[1:]).
 
     Returns:
-        (uri, grpc_max_message_length)
+        args: Namespace with host, port, and functions_grpc_max_message_length
 
     Raises:
         ArgumentError if required arguments are missing or invalid.
     """
     parser = argparse.ArgumentParser(add_help=False)
-
     parser.add_argument("--host", help="gRPC server host")
     parser.add_argument("--port", help="gRPC server port")
     parser.add_argument(
@@ -37,19 +31,30 @@ def build_grpc_uri(argv: List[str] | None = None) -> Tuple[str, int]:
         type=int,
         help="Maximum gRPC message size in bytes",
     )
-
     args, _ = parser.parse_known_args(argv)
 
-    missing = []
+    missing_args = []
     if not args.host:
-        missing.append("'host'")
+        missing_args.append("'host'")
     if not args.port:
-        missing.append("'port'")
+        missing_args.append("'port'")
     if not args.functions_grpc_max_message_length:
-        missing.append("'functions-grpc-max-message-length'")
+        missing_args.append("'functions-grpc-max-message-length'")
 
-    if missing:
-        raise ArgumentError(f"Missing required arguments: {', '.join(missing)}")
+    if missing_args:
+        raise ArgumentError(f"Missing required arguments: {', '.join(missing_args)}")
+    return args
 
-    uri = f"{args.host}:{args.port}"
-    return uri, args.functions_grpc_max_message_length
+
+def get_grpc_uri(args) -> str:
+    """
+    Returns the gRPC URI from CLI args.
+    """
+    return f"{args.host}:{args.port}"
+
+
+def get_grpc_max_message_length(args) -> int:
+    """
+    Returns the gRPC max message length from CLI args.
+    """
+    return args.functions_grpc_max_message_length
