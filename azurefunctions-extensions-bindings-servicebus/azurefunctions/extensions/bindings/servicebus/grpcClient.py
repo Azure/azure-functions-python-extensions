@@ -33,6 +33,7 @@ class GrpcClientFactory:
         service_stub: Type[Any],
         address: str,
         grpc_max_message_length: int = 4 * 1024 * 1024,
+        secure: bool = False,
         root_certificates: Optional[bytes] = None,
     ) -> Any:
         """
@@ -42,6 +43,7 @@ class GrpcClientFactory:
             service_stub: The generated service stub class (e.g. `MyServiceStub`).
             address: The server address (e.g., "localhost:50051").
             grpc_max_message_length: Max message size for send/receive.
+            secure: If True, use a secure channel; otherwise, insecure.
             root_certificates: Optional root certificates for TLS.
 
         Returns:
@@ -54,9 +56,12 @@ class GrpcClientFactory:
         ]
 
         try:
-            credentials = grpc.ssl_channel_credentials(
-                root_certificates=root_certificates)
-            channel = grpc.secure_channel(address, credentials, options=options)
+            if secure:
+                credentials = grpc.ssl_channel_credentials(
+                    root_certificates=root_certificates)
+                channel = grpc.secure_channel(address, credentials, options=options)
+            else:
+                channel = grpc.insecure_channel(address, options=options)
         except Exception as e:
             raise GrpcChannelError(f"Failed to create gRPC channel. URL: {address},"
                                    f" Options: {options}, Error: {e}")

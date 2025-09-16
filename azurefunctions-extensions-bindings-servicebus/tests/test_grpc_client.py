@@ -19,6 +19,27 @@ class DummyStub:
 
 
 class TestGrpcClient(unittest.TestCase):
+    def test_create_client_insecure_channel(self):
+        with patch("azurefunctions.extensions.bindings.servicebus.grpcClient.grpc.insecure_channel") as mock_insecure: # noqa
+            fake_channel = MagicMock()
+            mock_insecure.return_value = fake_channel
+
+            client = GrpcClientFactory.create_client(
+                service_stub=DummyStub,
+                address="localhost:1234",
+                grpc_max_message_length=1024,
+                secure=False,
+            )
+
+            mock_insecure.assert_called_once()
+            args, kwargs = mock_insecure.call_args
+            assert args[0] == "localhost:1234"
+            assert ("grpc.max_send_message_length", 1024) in kwargs["options"]
+            assert ("grpc.max_receive_message_length", 1024) in kwargs["options"]
+
+            assert isinstance(client, DummyStub)
+            assert client._channel == fake_channel
+
     def test_create_client_secure_channel_with_root_certs(self):
         with (patch("azurefunctions.extensions.bindings.servicebus.grpcClient.grpc.secure_channel") as mock_secure,  # noqa
               patch("azurefunctions.extensions.bindings.servicebus.grpcClient.grpc.ssl_channel_credentials") as mock_creds):  # noqa
@@ -31,6 +52,7 @@ class TestGrpcClient(unittest.TestCase):
                 service_stub=DummyStub,
                 address="securehost:9999",
                 grpc_max_message_length=2048,
+                secure=True,
                 root_certificates=b"fakecerts",
             )
 
@@ -46,6 +68,21 @@ class TestGrpcClient(unittest.TestCase):
             assert client._channel == fake_channel
 
     @patch("azurefunctions.extensions.bindings.servicebus.grpcClient."
+           "grpc.insecure_channel")
+    def test_create_client_raises_on_insecure_channel_failure(self,
+                                                              mock_insecure_channel):
+        # Arrange: force grpc.insecure_channel to throw
+        mock_insecure_channel.side_effect = RuntimeError("connection failed")
+
+        # Act + Assert
+        with self.assertRaises(GrpcChannelError) as ctx:
+            GrpcClientFactory.create_client(DummyStub, "localhost:1234", secure=False)
+
+        # Ensure exception contains useful context
+        self.assertIn("Failed to create gRPC channel", str(ctx.exception))
+        self.assertIn("localhost:1234", str(ctx.exception))
+
+    @patch("azurefunctions.extensions.bindings.servicebus.grpcClient."
            "grpc.secure_channel")
     @patch("azurefunctions.extensions.bindings.servicebus.grpcClient."
            "grpc.ssl_channel_credentials")
@@ -59,6 +96,7 @@ class TestGrpcClient(unittest.TestCase):
         with self.assertRaises(GrpcChannelError) as ctx:
             GrpcClientFactory.create_client(DummyStub,
                                             "localhost:5678",
+                                            secure=True,
                                             root_certificates=b"dummy")
 
         self.assertIn("Failed to create gRPC channel", str(ctx.exception))
