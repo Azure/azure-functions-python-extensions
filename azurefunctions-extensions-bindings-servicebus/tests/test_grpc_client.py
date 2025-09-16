@@ -48,7 +48,7 @@ class TestGrpcClient(unittest.TestCase):
 
         # Act + Assert
         with self.assertRaises(GrpcChannelError) as ctx:
-            GrpcClientFactory.create_client(DummyStub, "localhost:1234", secure=False)
+            GrpcClientFactory.create_client(DummyStub, "localhost:1234")
 
         # Ensure exception contains useful context
         self.assertIn("Failed to create gRPC channel", str(ctx.exception))
