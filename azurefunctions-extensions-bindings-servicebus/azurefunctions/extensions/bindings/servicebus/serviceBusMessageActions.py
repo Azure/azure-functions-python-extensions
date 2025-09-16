@@ -1,5 +1,6 @@
 # Copyright (c) .NET Foundation. All rights reserved.
 # Licensed under the MIT License.
+
 import threading
 
 from typing import Optional
@@ -51,7 +52,6 @@ class ServiceBusMessageActions(GrpcClientType):
             service_stub=SettlementStub,
             address=self._uri,
             grpc_max_message_length=self._grpc_max_message_length,
-            secure=True,
         )
 
     @classmethod
