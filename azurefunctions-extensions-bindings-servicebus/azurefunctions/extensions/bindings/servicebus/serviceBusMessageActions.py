@@ -51,7 +51,6 @@ class ServiceBusMessageActions(GrpcClientType):
             service_stub=SettlementStub,
             address=self._uri,
             grpc_max_message_length=self._grpc_max_message_length,
-            secure=True,
         )
 
     @classmethod
