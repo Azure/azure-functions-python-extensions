@@ -13,7 +13,8 @@ def get_lock_token(message: bytes, index: int) -> str:
     lock_token_encoded = message[:index]
 
     # Convert the lock token to a UUID using the first 16 bytes
-    lock_token_uuid = uuid.UUID(bytes=lock_token_encoded[:16])
+    # Use little-endian to match SDK
+    lock_token_uuid = uuid.UUID(bytes_le=lock_token_encoded[:16])
 
     return lock_token_uuid
 
