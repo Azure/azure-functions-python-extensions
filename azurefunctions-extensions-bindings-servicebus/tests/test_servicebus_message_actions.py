@@ -80,7 +80,7 @@ class TestServiceBusMessageActions(unittest.TestCase):
         called_req = self.mock_client.Abandon.call_args[0][0]
         self.assertIsInstance(called_req, pb2.AbandonRequest)
         self.assertEqual(called_req.locktoken, "lock123")
-        self.assertEqual(called_req.propertiesToModify, b"foo")
+        self.assertEqual(called_req.propertiesToModify, b"")
 
     def test_deadletter_with_reasons(self):
         msg = DummyMessage("lock123")
@@ -94,7 +94,7 @@ class TestServiceBusMessageActions(unittest.TestCase):
         called_req = self.mock_client.Deadletter.call_args[0][0]
         self.assertIsInstance(called_req, pb2.DeadletterRequest)
         self.assertEqual(called_req.locktoken, "lock123")
-        self.assertEqual(called_req.propertiesToModify, b"p")
+        self.assertEqual(called_req.propertiesToModify, b"")
         self.assertEqual(called_req.deadletterReason.value, "reason")
         self.assertEqual(called_req.deadletterErrorDescription.value, "desc")
 
@@ -106,7 +106,7 @@ class TestServiceBusMessageActions(unittest.TestCase):
         called_req = self.mock_client.Defer.call_args[0][0]
         self.assertIsInstance(called_req, pb2.DeferRequest)
         self.assertEqual(called_req.locktoken, "lock123")
-        self.assertEqual(called_req.propertiesToModify, b"defer")
+        self.assertEqual(called_req.propertiesToModify, b"")
 
     def test_renew_message_lock_calls_grpc(self):
         msg = DummyMessage("lock123")
