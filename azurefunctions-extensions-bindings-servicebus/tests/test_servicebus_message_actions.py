@@ -74,7 +74,7 @@ class TestServiceBusMessageActions(unittest.TestCase):
 
     def test_abandon_calls_grpc(self):
         msg = DummyMessage("lock123")
-        self.actions.abandon(msg, properties_to_modify=b"foo")
+        self.actions.abandon(msg)
 
         self.mock_client.Abandon.assert_called_once()
         called_req = self.mock_client.Abandon.call_args[0][0]
@@ -86,7 +86,6 @@ class TestServiceBusMessageActions(unittest.TestCase):
         msg = DummyMessage("lock123")
         self.actions.deadletter(
             msg,
-            properties_to_modify=b"p",
             deadletter_reason="reason",
             deadletter_error_description="desc"
         )
@@ -101,7 +100,7 @@ class TestServiceBusMessageActions(unittest.TestCase):
 
     def test_defer_calls_grpc(self):
         msg = DummyMessage("lock123")
-        self.actions.defer(msg, properties_to_modify=b"defer")
+        self.actions.defer(msg)
 
         self.mock_client.Defer.assert_called_once()
         called_req = self.mock_client.Defer.call_args[0][0]

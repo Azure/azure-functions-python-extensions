@@ -80,12 +80,12 @@ class ServiceBusMessageActions(GrpcClientType):
             raise SettlementError("complete",
                                   f"Failed to complete message {locktoken}", e)
 
-    def abandon(self, message, properties_to_modify: bytes = b"") -> None:
+    def abandon(self, message) -> None:
         try:
             locktoken = self._validate_lock_token(message)
             request = AbandonRequest()
             request.locktoken = str(locktoken)
-            request.propertiesToModify = properties_to_modify
+            request.propertiesToModify = b""
             self._client.Abandon(request)
         except Exception as e:
             raise SettlementError("abandon",
@@ -94,14 +94,13 @@ class ServiceBusMessageActions(GrpcClientType):
     def deadletter(
             self,
             message,
-            properties_to_modify: bytes = b"",
             deadletter_reason: Optional[str] = None,
             deadletter_error_description: Optional[str] = None) -> None:
         try:
             locktoken = self._validate_lock_token(message)
             request = DeadletterRequest()
             request.locktoken = str(locktoken)
-            request.propertiesToModify = properties_to_modify
+            request.propertiesToModify = b""
 
             if deadletter_reason:
                 request.deadletterReason.CopyFrom(StringValue(value=deadletter_reason))
@@ -114,12 +113,12 @@ class ServiceBusMessageActions(GrpcClientType):
             raise SettlementError("deadletter",
                                   f"Failed to deadletter message {locktoken}", e)
 
-    def defer(self, message, properties_to_modify: bytes = b"") -> None:
+    def defer(self, message) -> None:
         try:
             locktoken = self._validate_lock_token(message)
             request = DeferRequest()
             request.locktoken = str(locktoken)
-            request.propertiesToModify = properties_to_modify
+            request.propertiesToModify = b""
 
             self._client.Defer(request)
         except Exception as e:
