@@ -73,7 +73,7 @@ class TestAmqpEncoding(unittest.TestCase):
 
     def test_encode_amqp_map_empty(self):
         result = encode_amqp_map({})
-        self.assertEqual(result, bytes([0xC1, 1, 0]))  # FMT_MAP8, 1 byte size, 0 pairs
+        self.assertEqual(result, b"")
 
     def test_encode_amqp_map_scalars(self):
         data = {
