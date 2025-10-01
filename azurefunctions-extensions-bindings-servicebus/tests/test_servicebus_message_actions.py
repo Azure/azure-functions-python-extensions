@@ -10,6 +10,7 @@ from google.protobuf.timestamp_pb2 import Timestamp
 
 from azurefunctions.extensions.bindings.servicebus import ServiceBusMessageActions
 from azurefunctions.extensions.bindings.servicebus.serviceBusMessageActions import SettlementError  # noqa
+from azurefunctions.extensions.bindings.servicebus.utils import convert_to_bytestring
 from azurefunctions.extensions.bindings.protos import settlement_pb2 as pb2
 
 
@@ -82,6 +83,28 @@ class TestServiceBusMessageActions(unittest.TestCase):
         self.assertEqual(called_req.locktoken, "lock123")
         self.assertEqual(called_req.propertiesToModify, b"")
 
+    def test_abandon_with_properties(self):
+        msg = DummyMessage("lock123")
+        props = {"status": "done", "attempt": 3}
+        self.actions.abandon(msg, props)
+        # Verify gRPC call happened
+        self.mock_client.Abandon.assert_called_once()
+        called_req = self.mock_client.Abandon.call_args[0][0]
+        self.assertEqual(called_req.locktoken, "lock123")
+        self.assertEqual(called_req.propertiesToModify, convert_to_bytestring(props))
+
+    def test_deadletter(self):
+        msg = DummyMessage("lock123")
+        self.actions.deadletter(msg)
+
+        self.mock_client.Deadletter.assert_called_once()
+        called_req = self.mock_client.Deadletter.call_args[0][0]
+        self.assertIsInstance(called_req, pb2.DeadletterRequest)
+        self.assertEqual(called_req.locktoken, "lock123")
+        self.assertEqual(called_req.propertiesToModify, b"")
+        self.assertEqual(called_req.deadletterReason.value, "")
+        self.assertEqual(called_req.deadletterErrorDescription.value, "")
+
     def test_deadletter_with_reasons(self):
         msg = DummyMessage("lock123")
         self.actions.deadletter(
@@ -98,7 +121,21 @@ class TestServiceBusMessageActions(unittest.TestCase):
         self.assertEqual(called_req.deadletterReason.value, "reason")
         self.assertEqual(called_req.deadletterErrorDescription.value, "desc")
 
-    def test_defer_calls_grpc(self):
+    def test_deadletter_with_properties_and_reason(self):
+        msg = DummyMessage("lock123")
+        props = {"errorCode": 500}
+        self.actions.deadletter(msg, deadletter_reason="bad data",
+                                deadletter_error_description="validation failed",
+                                properties_to_modify=props)
+        self.mock_client.Deadletter.assert_called_once()
+        called_req = self.mock_client.Deadletter.call_args[0][0]
+        self.assertEqual(called_req.propertiesToModify, convert_to_bytestring(props))
+        # Check reason was set
+        self.assertEqual(called_req.deadletterReason.value, "bad data")
+        self.assertEqual(called_req.deadletterErrorDescription.value,
+                         "validation failed")
+
+    def test_defer(self):
         msg = DummyMessage("lock123")
         self.actions.defer(msg)
 
@@ -107,6 +144,14 @@ class TestServiceBusMessageActions(unittest.TestCase):
         self.assertIsInstance(called_req, pb2.DeferRequest)
         self.assertEqual(called_req.locktoken, "lock123")
         self.assertEqual(called_req.propertiesToModify, b"")
+
+    def test_defer_with_properties(self):
+        msg = DummyMessage("lock123")
+        props = {"deferFlag": True}
+        self.actions.defer(msg, props)
+        self.mock_client.Defer.assert_called_once()
+        called_req = self.mock_client.Defer.call_args[0][0]
+        self.assertEqual(called_req.propertiesToModify, convert_to_bytestring(props))
 
     def test_renew_message_lock_calls_grpc(self):
         msg = DummyMessage("lock123")

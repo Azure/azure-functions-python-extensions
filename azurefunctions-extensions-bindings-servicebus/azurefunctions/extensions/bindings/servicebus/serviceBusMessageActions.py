@@ -21,6 +21,7 @@ from ..protos.settlement_pb2_grpc import SettlementStub
 
 from .grpcClient import GrpcClientFactory
 from .grpc_utils import get_grpc_uri, get_grpc_max_message_length, parse_grpc_args
+from .utils import convert_to_bytestring
 
 
 class SettlementError(Exception):
@@ -80,12 +81,12 @@ class ServiceBusMessageActions(GrpcClientType):
             raise SettlementError("complete",
                                   f"Failed to complete message {locktoken}", e)
 
-    def abandon(self, message) -> None:
+    def abandon(self, message, properties_to_modify: Optional[dict] = {}) -> None:
         try:
             locktoken = self._validate_lock_token(message)
             request = AbandonRequest()
             request.locktoken = str(locktoken)
-            request.propertiesToModify = b""
+            request.propertiesToModify = convert_to_bytestring(properties_to_modify)
             self._client.Abandon(request)
         except Exception as e:
             raise SettlementError("abandon",
@@ -95,12 +96,13 @@ class ServiceBusMessageActions(GrpcClientType):
             self,
             message,
             deadletter_reason: Optional[str] = None,
-            deadletter_error_description: Optional[str] = None) -> None:
+            deadletter_error_description: Optional[str] = None,
+            properties_to_modify: Optional[dict] = {}) -> None:
         try:
             locktoken = self._validate_lock_token(message)
             request = DeadletterRequest()
             request.locktoken = str(locktoken)
-            request.propertiesToModify = b""
+            request.propertiesToModify = convert_to_bytestring(properties_to_modify)
 
             if deadletter_reason:
                 request.deadletterReason.CopyFrom(StringValue(value=deadletter_reason))
@@ -113,12 +115,12 @@ class ServiceBusMessageActions(GrpcClientType):
             raise SettlementError("deadletter",
                                   f"Failed to deadletter message {locktoken}", e)
 
-    def defer(self, message) -> None:
+    def defer(self, message, properties_to_modify: Optional[dict] = {}) -> None:
         try:
             locktoken = self._validate_lock_token(message)
             request = DeferRequest()
             request.locktoken = str(locktoken)
-            request.propertiesToModify = b""
+            request.propertiesToModify = convert_to_bytestring(properties_to_modify)
 
             self._client.Defer(request)
         except Exception as e:
