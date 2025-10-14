@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "victorias-test-package"
+dynamic = ["version"]
+requires-python = ">=3.10"
+authors = [{ name = "Azure Functions team at Microsoft Corp.", email = "azurefunctions@microsoft.com"}]
+description = "MCP Python worker extension for Azure Functions."
+readme = "README.md"
+license = {text = "MIT License"}
+classifiers= [
+        'License :: OSI Approved :: MIT License',
+        'Intended Audience :: Developers',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
+        'Programming Language :: Python :: 3.12',
+        'Programming Language :: Python :: 3.13',
+        'Operating System :: Microsoft :: Windows',
+        'Operating System :: POSIX',
+        'Operating System :: MacOS :: MacOS X',
+        'Environment :: Web Environment',
+        'Development Status :: 5 - Production/Stable',
+    ]
+dependencies = [
+    'azure-functions>=1.24.0'
+    ]
+
+[project.optional-dependencies]
+dev = [
+    'flake8',
+    'mypy',
+    'pytest',
+    'pytest-cov',
+    'coverage',
+    'pytest-instafail',
+    'pre-commit'
+    ]
+
+[tool.setuptools.dynamic]
+version = {attr = "azurefunctions.extensions.mcp.__version__"}
+
+[tool.setuptools.packages.find]
+exclude = [
+    'azurefunctions.extensions',
+    'azurefunctions', 'tests', 'samples'
+    ]
