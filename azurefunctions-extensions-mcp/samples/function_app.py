@@ -1,4 +1,4 @@
-#TODO: from <package-name> import McpApp, MCPToolContext
+from azurefunctions.extensions.mcp import McpApp, MCPToolContext
 from typing import Annotated
 
 app = McpApp()
