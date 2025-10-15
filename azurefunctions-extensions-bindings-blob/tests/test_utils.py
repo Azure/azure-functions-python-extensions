@@ -44,6 +44,13 @@ class TestUtils(unittest.TestCase):
             result = get_connection_string("MY_CONNECTION")
             self.assertEqual(result, "blob_service_uri_string")
 
+    def test_host_storage_exists(self):
+        with patch.dict(os.environ, {"AzureWebJobsStorage__accountName":
+                        "account_name_string"}):
+            result = get_connection_string("AzureWebJobsStorage")
+            self.assertEqual(result,
+                             "https://account_name_string.blob.core.windows.net")
+
     def test_connection_string_missing_raises_value_error(self):
         with patch.dict(os.environ, {}, clear=True):
             with self.assertRaises(ValueError) as context:
@@ -62,6 +69,12 @@ class TestUtils(unittest.TestCase):
         with patch.dict(os.environ, {"MY_CONNECTION__blobServiceUri":
                         "https://example.blob.core.windows.net/"}):
             result = using_system_managed_identity("MY_CONNECTION")
+            self.assertTrue(result)
+
+    def test_host_storage_present(self):
+        with patch.dict(os.environ, {"AzureWebJobsStorage__accountName":
+                        "https://example.blob.core.windows.net/"}):
+            result = using_system_managed_identity("AzureWebJobsStorage")
             self.assertTrue(result)
 
     def test_both_uris_present(self):
