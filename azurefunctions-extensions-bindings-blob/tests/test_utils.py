@@ -45,8 +45,10 @@ class TestUtils(unittest.TestCase):
             self.assertEqual(result, "blob_service_uri_string")
 
     def test_host_storage_exists(self):
-        with patch.dict(os.environ, {"AzureWebJobsStorage__accountName":
-                        "account_name_string"}):
+        with patch.dict(os.environ, {
+            "AzureWebJobsStorage__accountName": "account_name_string",
+            "AzureWebJobsStorage": None}):
+            os.environ.pop("AzureWebJobsStorage", None)
             result = get_connection_string("AzureWebJobsStorage")
             self.assertEqual(result,
                              "https://account_name_string.blob.core.windows.net")
