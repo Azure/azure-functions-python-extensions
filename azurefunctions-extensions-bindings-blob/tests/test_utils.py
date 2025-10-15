@@ -46,8 +46,7 @@ class TestUtils(unittest.TestCase):
 
     def test_host_storage_exists(self):
         with patch.dict(os.environ, {
-            "AzureWebJobsStorage__accountName": "account_name_string",
-            "AzureWebJobsStorage": None}):
+                "AzureWebJobsStorage__accountName": "account_name_string"}):
             os.environ.pop("AzureWebJobsStorage", None)
             result = get_connection_string("AzureWebJobsStorage")
             self.assertEqual(result,
