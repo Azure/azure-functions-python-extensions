@@ -149,3 +149,30 @@ class TestServiceBus(unittest.TestCase):
             _ = get_decoded_message("Invalid message")
 
         self.assertIn("Failed to decode ServiceBus content", e.exception.args[0])
+
+    def test_populated_properties(self):
+        sample_mbd = MockMBD(
+            version="1.0",
+            source="AzureServiceBusReceivedMessage",
+            content_type="application/octet-stream",
+            content=SERVICEBUS_SAMPLE_CONTENT
+        )
+
+        datum: Datum = Datum(value=sample_mbd, type="model_binding_data")
+        result: ServiceBusReceivedMessage = ServiceBusConverter.decode(
+            data=datum, trigger_metadata=None, pytype=ServiceBusReceivedMessage
+        )
+
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, ServiceBusSDK)
+
+        self.assertIsNotNone(result.body)
+        self.assertIsNotNone(result.delivery_count)
+        self.assertIsNotNone(result.enqueued_time_utc)
+        self.assertIsNotNone(result.expires_at_utc)
+        self.assertIsNotNone(result.lock_token)
+        self.assertIsNotNone(result.locked_until_utc)
+        self.assertIsNotNone(result.message_id)
+        self.assertIsNotNone(result.sequence_number)
+        self.assertIsNotNone(result.state)
+        self.assertIsNotNone(result.time_to_live)

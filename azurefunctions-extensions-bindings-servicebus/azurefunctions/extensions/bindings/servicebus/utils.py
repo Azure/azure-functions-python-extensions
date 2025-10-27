@@ -8,6 +8,7 @@ import uuid
 
 
 _X_OPT_LOCK_TOKEN = b"x-opt-lock-token"
+LOCK_TOKEN_LENGTH = 16
 
 # AMQP format codes (subset)
 FMT_NULL = 0x40
@@ -30,17 +31,17 @@ def get_lock_token(message: bytes, index: int) -> str:
 
     # Convert the lock token to a UUID using the first 16 bytes
     # Use little-endian to match SDK
-    lock_token_uuid = uuid.UUID(bytes_le=lock_token_encoded[:16])
+    lock_token_uuid = uuid.UUID(bytes_le=lock_token_encoded[:LOCK_TOKEN_LENGTH])
 
     return lock_token_uuid
 
 
-def get_amqp_message(message: bytes, index: int):
+def get_amqp_message(message: bytes):
     """
     Get the amqp message from the model_binding_data content
     and create the message.
     """
-    amqp_message = message[index + len(_X_OPT_LOCK_TOKEN):]
+    amqp_message = message[LOCK_TOKEN_LENGTH:]
     decoded_message = uamqp.Message().decode_from_bytes(amqp_message)
 
     return decoded_message
@@ -62,7 +63,7 @@ def get_decoded_message(content: bytes):
             lock_token = get_lock_token(content, index)
             delivery_anno_dict = {_X_OPT_LOCK_TOKEN: lock_token}
 
-            decoded_message = get_amqp_message(content, index)
+            decoded_message = get_amqp_message(content)
             decoded_message.delivery_annotations = delivery_anno_dict
             return decoded_message
         except Exception as e:
