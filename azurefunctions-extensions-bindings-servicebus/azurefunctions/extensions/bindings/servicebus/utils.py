@@ -36,7 +36,7 @@ def get_lock_token(message: bytes, index: int) -> str:
     return lock_token_uuid
 
 
-def get_amqp_message(message: bytes, index: int):
+def get_amqp_message(message: bytes):
     """
     Get the amqp message from the model_binding_data content
     and create the message.
@@ -63,7 +63,7 @@ def get_decoded_message(content: bytes):
             lock_token = get_lock_token(content, index)
             delivery_anno_dict = {_X_OPT_LOCK_TOKEN: lock_token}
 
-            decoded_message = get_amqp_message(content, index)
+            decoded_message = get_amqp_message(content)
             decoded_message.delivery_annotations = delivery_anno_dict
             return decoded_message
         except Exception as e:
