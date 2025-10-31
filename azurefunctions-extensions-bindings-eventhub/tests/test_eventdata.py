@@ -147,3 +147,27 @@ class TestEventData(unittest.TestCase):
             e.exception.args[0],
             "Unexpected type of data received for the 'eventhub' binding: 'str'",
         )
+
+    def test_properties_populated(self):
+        sample_mbd = MockMBD(
+            version="1.0",
+            source="AzureEventHubsEventData",
+            content_type="application/octet-stream",
+            content=EVENTHUB_SAMPLE_CONTENT
+        )
+
+        datum: Datum = Datum(value=sample_mbd, type="model_binding_data")
+        result: EventData = EventDataConverter.decode(
+            data=datum, trigger_metadata=None, pytype=EventData
+        )
+
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, EventDataSdk)
+
+        self.assertIsNotNone(result.body)
+        self.assertIsNotNone(result.body_type)
+        self.assertEqual(result.message, "message1")
+        self.assertEqual(result.sequence_number, 4)
+        self.assertIsNotNone(result.properties)
+        self.assertIsNotNone(result.raw_amqp_message)
+        self.assertIsNotNone(result.system_properties)
