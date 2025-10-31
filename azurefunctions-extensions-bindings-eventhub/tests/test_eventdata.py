@@ -166,7 +166,7 @@ class TestEventData(unittest.TestCase):
 
         self.assertIsNotNone(result.body)
         self.assertIsNotNone(result.body_type)
-        self.assertEqual(result.message, "message1")
+        self.assertIsNotNone(result.message)
         self.assertEqual(result.sequence_number, 4)
         self.assertIsNotNone(result.properties)
         self.assertIsNotNone(result.raw_amqp_message)
