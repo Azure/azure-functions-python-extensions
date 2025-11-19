@@ -14,7 +14,7 @@ import azurefunctions.extensions.bindings.servicebus as servicebus
 app = func.FunctionApp(http_auth_level=func.AuthLevel.FUNCTION)
 
 """
-FOLDER: servicebus_samples
+FOLDER: servicebus_samples_settlement
 DESCRIPTION:
     These samples demonstrate how to complete a message using the
     optional ServiceBusMessageActions argument.
