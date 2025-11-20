@@ -28,6 +28,10 @@ USAGE:
     For running the ServiceBus queue trigger function:
         1) QUEUE_NAME - the name of the ServiceBus queue
         2) SERVICEBUS_CONNECTION - the connection string for the ServiceBus entity
+        3) SERVICEBUS_CONNECTION__fullyQualifiedNamespace - the fully qualified
+            namespace for the ServiceBus entity. Add this variable if you want
+            to use Managed Identity authentication instead of connection string
+            with shared access key.
 """
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.FUNCTION)
@@ -35,7 +39,7 @@ app = func.FunctionApp(http_auth_level=func.AuthLevel.FUNCTION)
 MAX_RETRIES = 3
 
 @app.service_bus_queue_trigger(arg_name="received_message",
-                               queue_name="mysbqueue",
+                               queue_name="QUEUE_NAME",
                                connection="SERVICEBUS_CONNECTION",
                                auto_complete_messages=False)
 async def servicebus_queue_trigger(received_message: servicebus.ServiceBusReceivedMessage, message_actions: servicebus.ServiceBusMessageActions):
@@ -65,6 +69,7 @@ async def servicebus_queue_trigger(received_message: servicebus.ServiceBusReceiv
         # Determine Service Bus client: connection string or Managed Identity
         conn = os.getenv("SERVICEBUS_CONNECTION")
         fqns = os.getenv("SERVICEBUS_CONNECTION__fullyQualifiedNamespace")
+        queue_name = os.getenv("QUEUE_NAME")
 
         # ----- Create client -----
         if conn and "SharedAccessKey" in conn:
@@ -82,7 +87,7 @@ async def servicebus_queue_trigger(received_message: servicebus.ServiceBusReceiv
             )
 
         # Sender for the queue
-        sender = sb_client.get_queue_sender(queue_name="mysbqueue")
+        sender = sb_client.get_queue_sender(queue_name=queue_name)
 
         async with sb_client, sender:
             # NEW retry count

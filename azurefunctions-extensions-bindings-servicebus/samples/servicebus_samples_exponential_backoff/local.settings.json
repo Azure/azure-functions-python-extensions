@@ -4,6 +4,7 @@
     "FUNCTIONS_WORKER_RUNTIME": "python",
     "AzureWebJobsStorage": "UseDevelopmentStorage=true",
     "QUEUE_NAME": "",
-    "SERVICEBUS_CONNECTION": ""
+    "SERVICEBUS_CONNECTION": "",
+    "SERVICEBUS_CONNECTION__fullyQualifiedNamespace": ""
   }
 }
