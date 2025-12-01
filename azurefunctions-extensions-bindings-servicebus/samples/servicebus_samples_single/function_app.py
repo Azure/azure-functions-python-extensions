@@ -14,7 +14,7 @@ import azurefunctions.extensions.bindings.servicebus as servicebus
 app = func.FunctionApp(http_auth_level=func.AuthLevel.FUNCTION)
 
 """
-FOLDER: servicebus_samples
+FOLDER: servicebus_samples_single
 DESCRIPTION:
     These samples demonstrate how to obtain a ServiceBusReceivedMessage
     from a ServiceBus Trigger.
