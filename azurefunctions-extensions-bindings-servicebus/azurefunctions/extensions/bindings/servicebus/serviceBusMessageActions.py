@@ -12,6 +12,7 @@ from ..protos.settlement_pb2 import (
     CompleteRequest,
     DeadletterRequest,
     DeferRequest,
+    GetSessionStateRequest,
     ReleaseSessionRequest,
     RenewMessageLockRequest,
     RenewSessionLockRequest,
@@ -135,6 +136,21 @@ class ServiceBusMessageActions(GrpcClientType):
         except Exception as e:
             raise SettlementError("renew_message_lock",
                                   f"Failed to renew lock for {locktoken}", e)
+
+    def get_session_state(self, session_id: str) -> None:
+        try:
+            request = GetSessionStateRequest()
+            request.sessionId = session_id
+            response = self._client.GetSessionState(request)
+
+        except Exception as e:
+            raise SettlementError("get_session_state",
+                                  f"Failed to get state for session {session_id}", e)
+
+        if not response or not response.sessionState:
+            raise RuntimeError("No response or sessionState returned "
+                               "from getSessionState")
+        return response.sessionState
 
     def set_session_state(self, session_id: str, session_state: bytes) -> None:
         try:
