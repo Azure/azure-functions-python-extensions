@@ -32,6 +32,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
+    'azure-cosmos==4.14.2',
     'pytest',
     'pytest-cov',
     'coverage',
