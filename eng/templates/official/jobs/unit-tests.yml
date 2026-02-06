@@ -80,8 +80,14 @@ jobs:
           python -m pip install -U -e .[dev]
         displayName: 'Install CosmosDB Dependencies'
       - bash: |
-          docker pull mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-preview
-          docker run --detach --publish 8081:8081 --publish 1234:1234 mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-preview
+          docker pull mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:latest
+          docker run \
+          --publish 8081:8081 \
+          --publish 10250-10255:10250-10255 \
+          --name linux-emulator \
+          --detach \
+          mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:latest
+
           docker ps
         displayName: "Start CosmosDB Emulator"
       - bash: |

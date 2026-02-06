@@ -7,7 +7,7 @@ jobs:
     image: 1es-ubuntu-22.04
     os: linux
   steps:
-  - powershell: |
+  - pwsh: |
       $githubToken = "$(GithubPat)"
       $newLibraryVersion = "$(NewLibraryVersion)"
       $extensionName= "$(ExtensionName)"
@@ -56,7 +56,7 @@ jobs:
   dependsOn: ['CheckReleaseBranch']
   displayName: 'Create Release Tag'
   steps:
-  - powershell: |
+  - pwsh: |
       $githubToken = "$(GithubPat)"
       $newLibraryVersion = "$(NewLibraryVersion)"
       $githubToken = "$(GithubPat)"
@@ -86,7 +86,7 @@ jobs:
           exit -1
       }
     displayName: 'Tag and push x.y.z'
-  - powershell: |
+  - pwsh: |
       $githubUser = "$(GithubUser)"
       $githubToken = "$(GithubPat)"
       $newLibraryVersion = "$(NewLibraryVersion)"
@@ -131,7 +131,7 @@ jobs:
   dependsOn: ['CheckGitHubRelease']
   displayName: 'Create PR in Worker Repo'
   steps:
-  - powershell: |
+  - pwsh: |
       $githubUser = "$(GithubUser)"
       $githubToken = "$(GithubPat)"
       $newLibraryVersion = "$(NewLibraryVersion)"
@@ -214,7 +214,7 @@ jobs:
     displayName: 'Use Python 3.11'
     inputs:
       versionSpec: 3.11
-  - powershell: |
+  - pwsh: |
       $newLibraryVersion = "$(NewLibraryVersion)"
       $pypiToken = "$(PypiToken)"
       $extensionName= "$(ExtensionName)"
