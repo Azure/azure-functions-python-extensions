@@ -100,6 +100,8 @@ jobs:
         displayName: 'Install EventHub Dependencies'
       - bash: |
           python -m pytest -q --instafail azurefunctions-extensions-bindings-eventhub/tests/
+        env:
+          CosmosDBConnection: $(CosmosDBConnection)
         displayName: "Running EventHub $(PYTHON_VERSION) Python Extension Tests"
 
   - job: "FastApiTests"
