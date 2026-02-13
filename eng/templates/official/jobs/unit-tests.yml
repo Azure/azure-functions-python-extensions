@@ -81,6 +81,8 @@ jobs:
         displayName: 'Install CosmosDB Dependencies'
       - bash: |
           python -m pytest -q --instafail azurefunctions-extensions-bindings-cosmosdb/tests/
+        env:
+          CosmosDBConnection: $(CosmosDBConnection)
         displayName: "Running Cosmos DB $(PYTHON_VERSION) Python Extension Tests"
 
   - job: "EventHubTests"
@@ -100,8 +102,6 @@ jobs:
         displayName: 'Install EventHub Dependencies'
       - bash: |
           python -m pytest -q --instafail azurefunctions-extensions-bindings-eventhub/tests/
-        env:
-          CosmosDBConnection: $(CosmosDBConnection)
         displayName: "Running EventHub $(PYTHON_VERSION) Python Extension Tests"
 
   - job: "FastApiTests"
