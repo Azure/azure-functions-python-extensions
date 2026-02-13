@@ -2,7 +2,6 @@
 #  Licensed under the MIT License.
 
 import json
-import os
 import unittest
 from enum import Enum
 from typing import Optional
@@ -109,7 +108,7 @@ class TestCosmosClient(unittest.TestCase):
         mock_client_instance = MagicMock(spec=CosmosClientSdk)
         mock_cosmos_sdk.from_connection_string.return_value = mock_client_instance
         mock_cosmos_sdk.return_value = mock_client_instance
-        
+
         content = {
             "DatabaseName": "test-db",
             "ContainerName": "test-items",

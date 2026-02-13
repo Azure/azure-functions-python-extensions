@@ -2,7 +2,6 @@
 #  Licensed under the MIT License.
 
 import json
-import os
 import unittest
 from enum import Enum
 from typing import Optional
@@ -108,10 +107,10 @@ class TestDatabaseProxy(unittest.TestCase):
         # Setup mock
         mock_client_instance = MagicMock()
         mock_database = MagicMock(spec=DatabaseProxySdk)
-        
+
         mock_cosmos_sdk.from_connection_string.return_value = mock_client_instance
         mock_client_instance.get_database_client.return_value = mock_database
-        
+
         content = {
             "DatabaseName": "test-db",
             "ContainerName": "test-items",
