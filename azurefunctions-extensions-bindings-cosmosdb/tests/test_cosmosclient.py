@@ -2,9 +2,11 @@
 #  Licensed under the MIT License.
 
 import json
+import os
 import unittest
 from enum import Enum
 from typing import Optional
+from unittest.mock import patch, MagicMock
 
 from azure.cosmos import CosmosClient as CosmosClientSdk
 from azurefunctions.extensions.base import Datum
@@ -101,7 +103,13 @@ class TestCosmosClient(unittest.TestCase):
                 data=datum, trigger_metadata=None, pytype=CosmosClient
             )
 
-    def test_input_populated(self):
+    @patch('azurefunctions.extensions.bindings.cosmosdb.utils.CosmosClientSdk')
+    def test_input_populated(self, mock_cosmos_sdk):
+        # Setup mock
+        mock_client_instance = MagicMock(spec=CosmosClientSdk)
+        mock_cosmos_sdk.from_connection_string.return_value = mock_client_instance
+        mock_cosmos_sdk.return_value = mock_client_instance
+        
         content = {
             "DatabaseName": "test-db",
             "ContainerName": "test-items",

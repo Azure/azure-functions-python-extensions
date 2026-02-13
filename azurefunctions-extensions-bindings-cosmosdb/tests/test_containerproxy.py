@@ -2,9 +2,11 @@
 #  Licensed under the MIT License.
 
 import json
+import os
 import unittest
 from enum import Enum
 from typing import Optional
+from unittest.mock import patch, MagicMock
 
 from azure.cosmos import ContainerProxy as ContainerProxySdk
 from azurefunctions.extensions.base import Datum
@@ -101,7 +103,17 @@ class TestContainerProxy(unittest.TestCase):
                 data=datum, trigger_metadata=None, pytype=ContainerProxy
             )
 
-    def test_input_populated(self):
+    @patch('azurefunctions.extensions.bindings.cosmosdb.utils.CosmosClientSdk')
+    def test_input_populated(self, mock_cosmos_sdk):
+        # Setup mock
+        mock_client_instance = MagicMock()
+        mock_database = MagicMock()
+        mock_container = MagicMock(spec=ContainerProxySdk)
+        
+        mock_cosmos_sdk.from_connection_string.return_value = mock_client_instance
+        mock_client_instance.get_database_client.return_value = mock_database
+        mock_database.get_container_client.return_value = mock_container
+        
         content = {
             "DatabaseName": "test-db",
             "ContainerName": "test-items",

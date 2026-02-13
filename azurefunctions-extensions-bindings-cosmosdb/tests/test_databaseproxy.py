@@ -2,9 +2,11 @@
 #  Licensed under the MIT License.
 
 import json
+import os
 import unittest
 from enum import Enum
 from typing import Optional
+from unittest.mock import patch, MagicMock
 
 from azure.cosmos import DatabaseProxy as DatabaseProxySdk
 from azurefunctions.extensions.base import Datum
@@ -101,7 +103,15 @@ class TestDatabaseProxy(unittest.TestCase):
                 data=datum, trigger_metadata=None, pytype=DatabaseProxy
             )
 
-    def test_input_populated(self):
+    @patch('azurefunctions.extensions.bindings.cosmosdb.utils.CosmosClientSdk')
+    def test_input_populated(self, mock_cosmos_sdk):
+        # Setup mock
+        mock_client_instance = MagicMock()
+        mock_database = MagicMock(spec=DatabaseProxySdk)
+        
+        mock_cosmos_sdk.from_connection_string.return_value = mock_client_instance
+        mock_client_instance.get_database_client.return_value = mock_database
+        
         content = {
             "DatabaseName": "test-db",
             "ContainerName": "test-items",
