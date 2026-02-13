@@ -83,6 +83,7 @@ jobs:
           python -m pytest -q --instafail azurefunctions-extensions-bindings-cosmosdb/tests/
         env:
           CosmosDBConnection: $(CosmosDBConnection)
+          input__accountEndpoint: $(input__accountEndpoint)
         displayName: "Running Cosmos DB $(PYTHON_VERSION) Python Extension Tests"
 
   - job: "EventHubTests"
