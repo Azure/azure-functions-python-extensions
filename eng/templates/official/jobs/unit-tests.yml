@@ -91,6 +91,22 @@ jobs:
           docker ps
         displayName: "Start CosmosDB Emulator"
       - bash: |
+          echo "Waiting for CosmosDB Emulator to be ready..."
+          max_attempts=60
+          attempt=0
+          until curl -k -s https://localhost:8081/_explorer/emulator.pem > /dev/null || [ $attempt -eq $max_attempts ]; do
+            attempt=$((attempt + 1))
+            echo "Attempt $attempt/$max_attempts: Emulator not ready yet, waiting..."
+            sleep 5
+          done
+          if [ $attempt -eq $max_attempts ]; then
+            echo "CosmosDB Emulator failed to start within expected time"
+            docker logs linux-emulator
+            exit 1
+          fi
+          echo "CosmosDB Emulator is ready!"
+        displayName: "Wait for CosmosDB Emulator to be ready"
+      - bash: |
           python -m pytest -q --instafail azurefunctions-extensions-bindings-cosmosdb/tests/
         env:
           CosmosDBConnection: $(CosmosDBConnection)
