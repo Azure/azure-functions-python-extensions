@@ -52,6 +52,7 @@ class TestServiceBusMessageActions(unittest.TestCase):
         self.mock_client.Deadletter = MagicMock()
         self.mock_client.Defer = MagicMock()
         self.mock_client.RenewMessageLock = MagicMock()
+        self.mock_client.GetSessionState = MagicMock()
         self.mock_client.SetSessionState = MagicMock()
         self.mock_client.ReleaseSession = MagicMock()
         self.mock_client.RenewSessionLock = MagicMock()
@@ -162,6 +163,20 @@ class TestServiceBusMessageActions(unittest.TestCase):
         self.assertIsInstance(called_req, pb2.RenewMessageLockRequest)
         self.assertEqual(called_req.locktoken, "lock123")
 
+    def test_get_session_state(self):
+        # Mock gRPC response
+        resp = pb2.GetSessionStateResponse()
+        resp.sessionState = b"test_state_data"
+        self.mock_client.GetSessionState.return_value = resp
+
+        result = self.actions.get_session_state("sid")
+
+        self.mock_client.GetSessionState.assert_called_once()
+        called_req = self.mock_client.GetSessionState.call_args[0][0]
+        self.assertIsInstance(called_req, pb2.GetSessionStateRequest)
+        self.assertEqual(called_req.sessionId, "sid")
+        self.assertEqual(result, b"test_state_data")
+
     def test_set_session_state(self):
         self.actions.set_session_state("sid", b"state")
 
@@ -256,6 +271,15 @@ class TestServiceBusMessageActions(unittest.TestCase):
 
         self.assertIn("renew_message_lock", str(cm.exception))
         self.assertIn("lt5", str(cm.exception))
+
+    def test_get_session_state_raises_SettlementError(self):
+        self.mock_client.GetSessionState.side_effect = grpc.RpcError("error")
+
+        with self.assertRaises(SettlementError) as cm:
+            self.actions.get_session_state("sid_test")
+
+        self.assertIn("get_session_state", str(cm.exception))
+        self.assertIn("sid_test", str(cm.exception))
 
     def test_set_session_state_raises_SettlementError(self):
         self.mock_client.SetSessionState.side_effect = grpc.RpcError("nope")

@@ -5,6 +5,7 @@ import json
 import unittest
 from enum import Enum
 from typing import Optional
+from unittest.mock import patch, MagicMock
 
 from azure.cosmos import CosmosClient as CosmosClientSdk
 from azurefunctions.extensions.base import Datum
@@ -101,7 +102,13 @@ class TestCosmosClient(unittest.TestCase):
                 data=datum, trigger_metadata=None, pytype=CosmosClient
             )
 
-    def test_input_populated(self):
+    @patch('azurefunctions.extensions.bindings.cosmosdb.utils.CosmosClientSdk')
+    def test_input_populated(self, mock_cosmos_sdk):
+        # Setup mock
+        mock_client_instance = MagicMock(spec=CosmosClientSdk)
+        mock_cosmos_sdk.from_connection_string.return_value = mock_client_instance
+        mock_cosmos_sdk.return_value = mock_client_instance
+
         content = {
             "DatabaseName": "test-db",
             "ContainerName": "test-items",
@@ -178,33 +185,40 @@ class TestCosmosClient(unittest.TestCase):
             "Please provide a connection string or account endpoint.",
         )
 
-    # TODO: Fix CI for this test
-    # def test_input_populated_managed_identity_input(self):
-    #     content = {
-    #         "DatabaseName": "test-db",
-    #         "ContainerName": "test-items",
-    #         "Connection": "input",
-    #     }
+    @patch('azurefunctions.extensions.bindings.cosmosdb.utils.CosmosClientSdk')
+    @patch('azurefunctions.extensions.bindings.cosmosdb.utils.DefaultAzureCredential')
+    def test_input_populated_managed_identity_input(self, mock_credential,
+                                                    mock_cosmos_sdk):
+        # Setup mock
+        mock_client_instance = MagicMock(spec=CosmosClientSdk)
+        mock_cosmos_sdk.return_value = mock_client_instance
+        mock_credential.return_value = MagicMock()
 
-    #     sample_mbd = MockMBD(
-    #         version="1.0",
-    #         source="CosmosDB",
-    #         content_type="application/json",
-    #         content=json.dumps(content),
-    #     )
+        content = {
+            "DatabaseName": "test-db",
+            "ContainerName": "test-items",
+            "Connection": "input",
+        }
 
-    #     datum: Datum = Datum(value=sample_mbd, type="model_binding_data")
-    #     result: CosmosClient = CosmosClientConverter.decode(
-    #         data=datum, trigger_metadata=None, pytype=CosmosClient
-    #     )
+        sample_mbd = MockMBD(
+            version="1.0",
+            source="CosmosDB",
+            content_type="application/json",
+            content=json.dumps(content),
+        )
 
-    #     self.assertIsNotNone(result)
-    #     self.assertIsInstance(result, CosmosClientSdk)
+        datum: Datum = Datum(value=sample_mbd, type="model_binding_data")
+        result: CosmosClient = CosmosClientConverter.decode(
+            data=datum, trigger_metadata=None, pytype=CosmosClient
+        )
 
-    #     sdk_result = CosmosClient(data=datum.value).get_sdk_type()
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, CosmosClientSdk)
 
-    #     self.assertIsNotNone(sdk_result)
-    #     self.assertIsInstance(sdk_result, CosmosClientSdk)
+        sdk_result = CosmosClient(data=datum.value).get_sdk_type()
+
+        self.assertIsNotNone(sdk_result)
+        self.assertIsInstance(sdk_result, CosmosClientSdk)
 
     def test_input_invalid_pytype(self):
         content = {
