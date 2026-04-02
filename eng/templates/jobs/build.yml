@@ -30,7 +30,7 @@ jobs:
       - task: PipAuthenticate@1
         displayName: 'Pip Authenticate'
         inputs:
-          artifactFeeds: PythonExtensions_PublicPackages
+          artifactFeeds: public/PythonExtensions_PublicPackages
       - bash: |
           python --version
         displayName: 'Check python version'
