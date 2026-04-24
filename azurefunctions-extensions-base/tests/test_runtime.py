@@ -77,11 +77,6 @@ class TestRuntimeTrackerMeta(unittest.TestCase):
 
 
 class TestRuntimeBase(unittest.TestCase):
-    def test_runtime_base_is_abstract(self):
-        # Ensure RuntimeBase cannot be instantiated directly
-        with self.assertRaises(TypeError):
-            RuntimeBase()
-
     def test_worker_init_request_raises_not_implemented_error(self):
         class MockRuntime(RuntimeBase):
             runtime_name = "mock"

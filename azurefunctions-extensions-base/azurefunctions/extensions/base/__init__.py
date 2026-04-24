@@ -45,7 +45,7 @@ __all__ = [
     "WebApp",
     "RequestSynchronizer",
     "RuntimeTrackerMeta",
-    "RuntimeBase", 
+    "RuntimeBase",
     "RuntimeFeatureChecker",
 ]
 
