@@ -12,6 +12,7 @@ class TestRuntimeTrackerMeta(unittest.TestCase):
         # Reset the _module and _runtime_name attributes after each test
         RuntimeTrackerMeta._module = None
         RuntimeTrackerMeta._runtime_name = None
+        RuntimeTrackerMeta._package_name = None
         self.assertFalse(RuntimeFeatureChecker.runtime_loaded())
 
     def test_classes_imported_from_same_module(self):
@@ -74,6 +75,49 @@ class TestRuntimeTrackerMeta(unittest.TestCase):
         self.assertEqual(RuntimeTrackerMeta.get_module(), __name__)
         self.assertEqual(RuntimeTrackerMeta.get_runtime_name(), "fastapi")
         self.assertTrue(RuntimeTrackerMeta.module_imported())
+
+    def test_package_name_with_runtime_suffix(self):
+        class TestRuntime(metaclass=RuntimeTrackerMeta):
+            __module__ = "azurefunctions.extensions.http.fastapi.runtime"
+            runtime_name = "fastapi"
+
+        self.assertEqual(
+            RuntimeTrackerMeta.get_package_name(),
+            "azurefunctions.extensions.http.fastapi",
+        )
+        self.assertEqual(
+            RuntimeTrackerMeta.get_module(),
+            "azurefunctions.extensions.http.fastapi.runtime",
+        )
+
+    def test_package_name_without_runtime_suffix(self):
+        class TestRuntime(metaclass=RuntimeTrackerMeta):
+            __module__ = "azurefunctions.extensions.http"
+            runtime_name = "test"
+
+        self.assertEqual(RuntimeTrackerMeta.get_package_name(), "azurefunctions")
+        self.assertEqual(RuntimeTrackerMeta.get_module(), "azurefunctions.extensions.http")
+
+    def test_package_name_simple_module(self):
+        class TestRuntime(metaclass=RuntimeTrackerMeta):
+            __module__ = "simplemodule"
+            runtime_name = "simple"
+
+        self.assertEqual(RuntimeTrackerMeta.get_package_name(), "simplemodule")
+        self.assertEqual(RuntimeTrackerMeta.get_module(), "simplemodule")
+
+    def test_package_name_multiple_runtime_occurrences(self):
+        class TestRuntime(metaclass=RuntimeTrackerMeta):
+            __module__ = "package.runtime.submodule.runtime"
+            runtime_name = "test"
+
+        # Should split on the first '.runtime' occurrence
+        self.assertEqual(RuntimeTrackerMeta.get_package_name(), "package")
+        self.assertEqual(RuntimeTrackerMeta.get_module(), "package.runtime.submodule.runtime")
+
+    def test_package_name_not_set_before_import(self):
+        # Before any runtime is imported, package_name should be None
+        self.assertIsNone(RuntimeTrackerMeta.get_package_name())
 
 
 class TestRuntimeBase(unittest.TestCase):
