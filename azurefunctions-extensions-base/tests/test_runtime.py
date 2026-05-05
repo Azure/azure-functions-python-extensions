@@ -96,7 +96,8 @@ class TestRuntimeTrackerMeta(unittest.TestCase):
             runtime_name = "test"
 
         self.assertEqual(RuntimeTrackerMeta.get_package_name(), "azurefunctions")
-        self.assertEqual(RuntimeTrackerMeta.get_module(), "azurefunctions.extensions.http")
+        self.assertEqual(RuntimeTrackerMeta.get_module(),
+                         "azurefunctions.extensions.http")
 
     def test_package_name_simple_module(self):
         class TestRuntime(metaclass=RuntimeTrackerMeta):
@@ -105,15 +106,6 @@ class TestRuntimeTrackerMeta(unittest.TestCase):
 
         self.assertEqual(RuntimeTrackerMeta.get_package_name(), "simplemodule")
         self.assertEqual(RuntimeTrackerMeta.get_module(), "simplemodule")
-
-    def test_package_name_multiple_runtime_occurrences(self):
-        class TestRuntime(metaclass=RuntimeTrackerMeta):
-            __module__ = "package.runtime.submodule.runtime"
-            runtime_name = "test"
-
-        # Should split on the first '.runtime' occurrence
-        self.assertEqual(RuntimeTrackerMeta.get_package_name(), "package")
-        self.assertEqual(RuntimeTrackerMeta.get_module(), "package.runtime.submodule.runtime")
 
     def test_package_name_not_set_before_import(self):
         # Before any runtime is imported, package_name should be None

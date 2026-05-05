@@ -59,7 +59,7 @@ class RuntimeTrackerMeta(type):
     def get_runtime_name(cls):
         """Get the registered runtime name"""
         return cls._runtime_name
-    
+
     @classmethod
     def get_package_name(cls):
         """Get the runtime package name (without .runtime suffix)"""
