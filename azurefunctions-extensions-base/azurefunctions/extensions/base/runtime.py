@@ -71,7 +71,7 @@ class RuntimeBase(metaclass=RuntimeTrackerMeta):
     3. Implement all required event handler methods
 
     Example:
-        from runtimes.base import RuntimeBase
+        from azurefunctions.extensions.base import RuntimeBase
 
         class Runtime(RuntimeBase):
             runtime_name = "fastapi"
