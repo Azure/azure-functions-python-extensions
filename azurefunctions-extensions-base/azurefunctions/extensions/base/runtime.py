@@ -26,6 +26,7 @@ class RuntimeTrackerMeta(type):
     """
     _module = None
     _runtime_name = None
+    _package_name = None
 
     def __new__(cls, name, bases, dct, **kwargs):
         new_class = super().__new__(cls, name, bases, dct)
@@ -37,6 +38,10 @@ class RuntimeTrackerMeta(type):
             if cls._module is None:
                 cls._module = new_module
                 cls._runtime_name = runtime_name
+                if '.runtime' in new_module:
+                    cls._package_name = new_module.rsplit('.runtime', 1)[0]
+                else:
+                    cls._package_name = new_module.split('.')[0]
             elif cls._module != new_module:
                 raise Exception(
                     f"Only one runtime package shall be imported at a time. "
@@ -54,6 +59,11 @@ class RuntimeTrackerMeta(type):
     def get_runtime_name(cls):
         """Get the registered runtime name"""
         return cls._runtime_name
+    
+    @classmethod
+    def get_package_name(cls):
+        """Get the runtime package name (without .runtime suffix)"""
+        return cls._package_name
 
     @classmethod
     def module_imported(cls):
