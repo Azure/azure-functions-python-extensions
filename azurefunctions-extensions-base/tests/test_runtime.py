@@ -6,6 +6,7 @@ from azurefunctions.extensions.base.runtime import (
     RuntimeBase,
     RuntimeFeatureChecker,
     RuntimeTrackerMeta,
+    VersionNamespace,
 )
 
 
@@ -250,6 +251,10 @@ class TestRuntimeBase(unittest.TestCase):
             runtime_name = "test_runtime"
             _invocation_id_cv = contextvars.ContextVar("invocation_id")
 
+            @property
+            def VERSION(self):
+                return "1.0.0"
+
             async def worker_init_request(self, request):
                 return "worker_init_response"
 
@@ -280,6 +285,7 @@ class TestRuntimeBase(unittest.TestCase):
 
         runtime = TestRuntime()
         self.assertEqual(runtime.runtime_name, "test_runtime")
+        self.assertEqual(runtime.VERSION, "1.0.0")
 
         import asyncio
 
@@ -301,9 +307,95 @@ class TestRuntimeBase(unittest.TestCase):
             "function_environment_reload_response",
         )
 
+    def test_version_property_raises_not_implemented_error(self):
+        class MockRuntime(RuntimeBase):
+            runtime_name = "mock"
+
+            async def worker_init_request(self, request):
+                pass
+
+            async def functions_metadata_request(self, request):
+                pass
+
+            async def function_load_request(self, request):
+                pass
+
+            async def invocation_request(self, request):
+                pass
+
+            async def function_environment_reload_request(self, request):
+                pass
+
+            def start_threadpool_executor(self):
+                pass
+
+            def stop_threadpool_executor(self):
+                pass
+
+            def get_threadpool_executor(self):
+                pass
+
+            @property
+            def invocation_id_cv(self):
+                pass
+
+            @property
+            def VERSION(self):
+                return super().VERSION
+
+        mock_runtime = MockRuntime()
+
+        with self.assertRaises(NotImplementedError):
+            _ = mock_runtime.VERSION
+
+    def test_version_property_returns_string(self):
+        """Test that VERSION property works correctly when implemented"""
+        class TestRuntime(RuntimeBase):
+            runtime_name = "test"
+
+            @property
+            def VERSION(self):
+                return "2.5.3"
+
+            async def worker_init_request(self, request):
+                pass
+
+            async def functions_metadata_request(self, request):
+                pass
+
+            async def function_load_request(self, request):
+                pass
+
+            async def invocation_request(self, request):
+                pass
+
+            async def function_environment_reload_request(self, request):
+                pass
+
+            def start_threadpool_executor(self):
+                pass
+
+            def stop_threadpool_executor(self):
+                pass
+
+            def get_threadpool_executor(self):
+                return None
+
+            @property
+            def invocation_id_cv(self):
+                return contextvars.ContextVar("test_invocation_id")
+
+        runtime = TestRuntime()
+        self.assertEqual(runtime.VERSION, "2.5.3")
+        self.assertIsInstance(runtime.VERSION, str)
+
     def test_start_threadpool_executor_raises_not_implemented_error(self):
         class MockRuntime(RuntimeBase):
             runtime_name = "mock"
+
+            @property
+            def VERSION(self):
+                return "1.0.0"
 
             async def worker_init_request(self, request):
                 pass
@@ -342,6 +434,10 @@ class TestRuntimeBase(unittest.TestCase):
         class MockRuntime(RuntimeBase):
             runtime_name = "mock"
 
+            @property
+            def VERSION(self):
+                return "1.0.0"
+
             async def worker_init_request(self, request):
                 pass
 
@@ -379,6 +475,10 @@ class TestRuntimeBase(unittest.TestCase):
         class MockRuntime(RuntimeBase):
             runtime_name = "mock"
 
+            @property
+            def VERSION(self):
+                return "1.0.0"
+
             async def worker_init_request(self, request):
                 pass
 
@@ -415,6 +515,10 @@ class TestRuntimeBase(unittest.TestCase):
     def test_invocation_id_cv_property_raises_not_implemented_error(self):
         class MockRuntime(RuntimeBase):
             runtime_name = "mock"
+
+            @property
+            def VERSION(self):
+                return "1.0.0"
 
             async def worker_init_request(self, request):
                 pass
@@ -456,6 +560,10 @@ class TestRuntimeBase(unittest.TestCase):
         class TestRuntime(RuntimeBase):
             runtime_name = "test"
             _executor = None
+
+            @property
+            def VERSION(self):
+                return "1.0.0"
 
             async def worker_init_request(self, request):
                 pass
@@ -503,6 +611,10 @@ class TestRuntimeBase(unittest.TestCase):
         class TestRuntime(RuntimeBase):
             runtime_name = "test"
             _invocation_id_cv = contextvars.ContextVar("invocation_id", default=None)
+
+            @property
+            def VERSION(self):
+                return "1.0.0"
 
             async def worker_init_request(self, request):
                 pass
@@ -584,3 +696,40 @@ class TestRuntimeFeatureChecker(unittest.TestCase):
         # The runtime should still be loaded with the same name
         self.assertTrue(RuntimeFeatureChecker.runtime_loaded())
         self.assertEqual(RuntimeFeatureChecker.get_runtime_name(), "runtime1")
+
+
+class TestVersionNamespace(unittest.TestCase):
+    def test_version_namespace_initialization(self):
+        """Test that VersionNamespace stores the version string correctly"""
+        version_ns = VersionNamespace("1.2.3")
+        self.assertEqual(version_ns.VERSION, "1.2.3")
+
+    def test_version_namespace_with_different_versions(self):
+        """Test VersionNamespace with various version formats"""
+        test_versions = [
+            "1.0.0",
+            "2.5.3-beta",
+            "3.0.0-rc1",
+            "0.1.0-dev",
+            "1.0.0+build.123",
+        ]
+
+        for version in test_versions:
+            version_ns = VersionNamespace(version)
+            self.assertEqual(version_ns.VERSION, version)
+
+    def test_version_namespace_version_attribute_accessible(self):
+        """Test that VERSION attribute is accessible as an attribute"""
+        version_ns = VersionNamespace("4.5.6")
+        self.assertTrue(hasattr(version_ns, "VERSION"))
+        self.assertEqual(getattr(version_ns, "VERSION"), "4.5.6")
+
+    def test_version_namespace_use_case(self):
+        """Test the typical use case for runtime packages"""
+        # Simulating runtime package's __init__.py usage
+        VERSION = "2.0.0"
+        version = VersionNamespace(VERSION)
+
+        # Simulating dispatcher access: _library_worker.version.VERSION
+        self.assertEqual(version.VERSION, "2.0.0")
+        self.assertEqual(version.VERSION, VERSION)

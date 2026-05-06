@@ -7,6 +7,9 @@ This module provides the core abstractions for runtime packages:
 - RuntimeTrackerMeta: Metaclass that auto-registers runtimes at import time
 - RuntimeBase: Abstract base class that all runtimes must extend
 - RuntimeFeatureChecker: Utility to check if a runtime is loaded
+- VersionNamespace: Helper for exposing VERSION in the expected format
+
+This module should be packaged as azurefunctions.extensions.base
 """
 
 import contextvars
@@ -82,20 +85,58 @@ class RuntimeBase(metaclass=RuntimeTrackerMeta):
     1. Import this base class
     2. Create a subclass with runtime_name defined
     3. Implement all required event handler methods
+    4. Expose VERSION via a 'version' namespace in the package __init__.py
 
-    Example:
+    Example runtime package structure:
+        # azure_functions_fastapi/runtime.py
         from azurefunctions.extensions.base import RuntimeBase
 
         class Runtime(RuntimeBase):
             runtime_name = "fastapi"
 
+            @property
+            def VERSION(self):
+                from . import VERSION
+                return VERSION
+
             async def worker_init_request(self, request):
                 # Implementation
                 pass
+
+            # ... other methods
+
+        # azure_functions_fastapi/__init__.py
+        from azurefunctions.extensions.base import VersionNamespace
+        from .runtime import Runtime
+
+        VERSION = "1.0.0"
+        version = VersionNamespace(VERSION)  # For _library_worker.version.VERSION
+
+        # Export public API
+        __all__ = ['Runtime', 'VERSION', 'version', ...]
     """
 
     # Runtime identification (must be set by subclass)
     runtime_name = None
+
+    @property
+    @abstractmethod
+    def VERSION(self) -> str:
+        """
+        Get the runtime version string.
+
+        This version is logged during worker initialization and environment
+        reload for debugging and diagnostics purposes. It should match the
+        version in the runtime package's version.py file.
+
+        The runtime package must also expose this as _library_worker.version.VERSION
+        for compatibility with the proxy worker's logging. Use VersionNamespace
+        helper class in the package's __init__.py.
+
+        Returns:
+            Version string (e.g., "1.0.0")
+        """
+        raise NotImplementedError()
 
     @abstractmethod
     async def worker_init_request(self, request):
@@ -213,6 +254,23 @@ class RuntimeBase(metaclass=RuntimeTrackerMeta):
             ContextVar for storing invocation IDs
         """
         raise NotImplementedError()
+
+
+class VersionNamespace:
+    """
+    Helper class to create a version namespace for runtime packages.
+
+    The dispatcher accesses _library_worker.version.VERSION, so runtime
+    packages must expose a 'version' attribute with a 'VERSION' attribute.
+
+    Usage in runtime package's __init__.py:
+        from azurefunctions.extensions.base import VersionNamespace
+
+        VERSION = "1.0.0"
+        version = VersionNamespace(VERSION)
+    """
+    def __init__(self, version_string: str):
+        self.VERSION = version_string
 
 
 class RuntimeFeatureChecker:
