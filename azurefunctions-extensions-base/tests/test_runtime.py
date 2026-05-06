@@ -1,4 +1,6 @@
+import contextvars
 import unittest
+from concurrent.futures import ThreadPoolExecutor
 
 from azurefunctions.extensions.base.runtime import (
     RuntimeBase,
@@ -246,6 +248,7 @@ class TestRuntimeBase(unittest.TestCase):
     def test_runtime_implementation(self):
         class TestRuntime(RuntimeBase):
             runtime_name = "test_runtime"
+            _invocation_id_cv = contextvars.ContextVar("invocation_id")
 
             async def worker_init_request(self, request):
                 return "worker_init_response"
@@ -261,6 +264,19 @@ class TestRuntimeBase(unittest.TestCase):
 
             async def function_environment_reload_request(self, request):
                 return "function_environment_reload_response"
+
+            def start_threadpool_executor(self):
+                pass
+
+            def stop_threadpool_executor(self):
+                pass
+
+            def get_threadpool_executor(self):
+                return None
+
+            @property
+            def invocation_id_cv(self):
+                return self._invocation_id_cv
 
         runtime = TestRuntime()
         self.assertEqual(runtime.runtime_name, "test_runtime")
@@ -284,6 +300,246 @@ class TestRuntimeBase(unittest.TestCase):
             asyncio.run(runtime.function_environment_reload_request(None)),
             "function_environment_reload_response",
         )
+
+    def test_start_threadpool_executor_raises_not_implemented_error(self):
+        class MockRuntime(RuntimeBase):
+            runtime_name = "mock"
+
+            async def worker_init_request(self, request):
+                pass
+
+            async def functions_metadata_request(self, request):
+                pass
+
+            async def function_load_request(self, request):
+                pass
+
+            async def invocation_request(self, request):
+                pass
+
+            async def function_environment_reload_request(self, request):
+                pass
+
+            def stop_threadpool_executor(self):
+                pass
+
+            def get_threadpool_executor(self):
+                pass
+
+            @property
+            def invocation_id_cv(self):
+                pass
+
+            def start_threadpool_executor(self):
+                super().start_threadpool_executor()
+
+        mock_runtime = MockRuntime()
+
+        with self.assertRaises(NotImplementedError):
+            mock_runtime.start_threadpool_executor()
+
+    def test_stop_threadpool_executor_raises_not_implemented_error(self):
+        class MockRuntime(RuntimeBase):
+            runtime_name = "mock"
+
+            async def worker_init_request(self, request):
+                pass
+
+            async def functions_metadata_request(self, request):
+                pass
+
+            async def function_load_request(self, request):
+                pass
+
+            async def invocation_request(self, request):
+                pass
+
+            async def function_environment_reload_request(self, request):
+                pass
+
+            def start_threadpool_executor(self):
+                pass
+
+            def get_threadpool_executor(self):
+                pass
+
+            @property
+            def invocation_id_cv(self):
+                pass
+
+            def stop_threadpool_executor(self):
+                super().stop_threadpool_executor()
+
+        mock_runtime = MockRuntime()
+
+        with self.assertRaises(NotImplementedError):
+            mock_runtime.stop_threadpool_executor()
+
+    def test_get_threadpool_executor_raises_not_implemented_error(self):
+        class MockRuntime(RuntimeBase):
+            runtime_name = "mock"
+
+            async def worker_init_request(self, request):
+                pass
+
+            async def functions_metadata_request(self, request):
+                pass
+
+            async def function_load_request(self, request):
+                pass
+
+            async def invocation_request(self, request):
+                pass
+
+            async def function_environment_reload_request(self, request):
+                pass
+
+            def start_threadpool_executor(self):
+                pass
+
+            def stop_threadpool_executor(self):
+                pass
+
+            @property
+            def invocation_id_cv(self):
+                pass
+
+            def get_threadpool_executor(self):
+                return super().get_threadpool_executor()
+
+        mock_runtime = MockRuntime()
+
+        with self.assertRaises(NotImplementedError):
+            mock_runtime.get_threadpool_executor()
+
+    def test_invocation_id_cv_property_raises_not_implemented_error(self):
+        class MockRuntime(RuntimeBase):
+            runtime_name = "mock"
+
+            async def worker_init_request(self, request):
+                pass
+
+            async def functions_metadata_request(self, request):
+                pass
+
+            async def function_load_request(self, request):
+                pass
+
+            async def invocation_request(self, request):
+                pass
+
+            async def function_environment_reload_request(self, request):
+                pass
+
+            def start_threadpool_executor(self):
+                pass
+
+            def stop_threadpool_executor(self):
+                pass
+
+            def get_threadpool_executor(self):
+                pass
+
+            @property
+            def invocation_id_cv(self):
+                return super().invocation_id_cv
+
+        mock_runtime = MockRuntime()
+
+        with self.assertRaises(NotImplementedError):
+            _ = mock_runtime.invocation_id_cv
+
+    def test_threadpool_executor_integration(self):
+        """Test that threadpool executor methods work correctly when implemented"""
+        executor = ThreadPoolExecutor(max_workers=2)
+
+        class TestRuntime(RuntimeBase):
+            runtime_name = "test"
+            _executor = None
+
+            async def worker_init_request(self, request):
+                pass
+
+            async def functions_metadata_request(self, request):
+                pass
+
+            async def function_load_request(self, request):
+                pass
+
+            async def invocation_request(self, request):
+                pass
+
+            async def function_environment_reload_request(self, request):
+                pass
+
+            def start_threadpool_executor(self):
+                self._executor = executor
+
+            def stop_threadpool_executor(self):
+                if self._executor:
+                    self._executor.shutdown(wait=True)
+                    self._executor = None
+
+            def get_threadpool_executor(self):
+                return self._executor
+
+            @property
+            def invocation_id_cv(self):
+                return contextvars.ContextVar("test_invocation_id")
+
+        runtime = TestRuntime()
+        self.assertIsNone(runtime.get_threadpool_executor())
+
+        runtime.start_threadpool_executor()
+        self.assertIsNotNone(runtime.get_threadpool_executor())
+        self.assertEqual(runtime.get_threadpool_executor(), executor)
+
+        runtime.stop_threadpool_executor()
+        self.assertIsNone(runtime.get_threadpool_executor())
+
+    def test_invocation_id_cv_context_var(self):
+        """Test that invocation_id_cv returns a ContextVar"""
+
+        class TestRuntime(RuntimeBase):
+            runtime_name = "test"
+            _invocation_id_cv = contextvars.ContextVar("invocation_id", default=None)
+
+            async def worker_init_request(self, request):
+                pass
+
+            async def functions_metadata_request(self, request):
+                pass
+
+            async def function_load_request(self, request):
+                pass
+
+            async def invocation_request(self, request):
+                pass
+
+            async def function_environment_reload_request(self, request):
+                pass
+
+            def start_threadpool_executor(self):
+                pass
+
+            def stop_threadpool_executor(self):
+                pass
+
+            def get_threadpool_executor(self):
+                return None
+
+            @property
+            def invocation_id_cv(self):
+                return self._invocation_id_cv
+
+        runtime = TestRuntime()
+        cv = runtime.invocation_id_cv
+
+        self.assertIsInstance(cv, contextvars.ContextVar)
+        self.assertEqual(cv.get(), None)
+
+        cv.set("test-invocation-123")
+        self.assertEqual(cv.get(), "test-invocation-123")
 
 
 class TestRuntimeFeatureChecker(unittest.TestCase):

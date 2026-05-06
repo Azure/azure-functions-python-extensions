@@ -9,7 +9,10 @@ This module provides the core abstractions for runtime packages:
 - RuntimeFeatureChecker: Utility to check if a runtime is loaded
 """
 
+import contextvars
 from abc import abstractmethod
+from concurrent.futures import ThreadPoolExecutor
+from typing import Optional
 
 base_runtime_module = __name__
 
@@ -156,6 +159,58 @@ class RuntimeBase(metaclass=RuntimeTrackerMeta):
 
         Returns:
             FunctionEnvironmentReloadResponse protobuf message
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
+    def start_threadpool_executor(self):
+        """
+        Initialize and start the threadpool executor.
+
+        This is called during worker initialization to set up the thread pool
+        for executing synchronous functions. The implementation should respect
+        PYTHON_THREADPOOL_THREAD_COUNT setting if applicable.
+
+        For async-only runtimes, this can be a no-op.
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
+    def stop_threadpool_executor(self):
+        """
+        Stop and cleanup the threadpool executor.
+
+        This is called during worker shutdown to gracefully terminate the
+        thread pool. The implementation should wait for pending tasks to
+        complete.
+
+        For async-only runtimes, this can be a no-op.
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
+    def get_threadpool_executor(self) -> Optional[ThreadPoolExecutor]:
+        """
+        Get the current threadpool executor instance.
+
+        Returns:
+            ThreadPoolExecutor instance if available, None otherwise.
+            For async-only runtimes, this should return None.
+        """
+        raise NotImplementedError()
+
+    @property
+    @abstractmethod
+    def invocation_id_cv(self) -> contextvars.ContextVar:
+        """
+        Get the invocation ID context variable.
+
+        This ContextVar is used to track the current invocation ID across
+        different execution contexts (threads, async tasks). It's essential
+        for correlating logs and telemetry with specific function invocations.
+
+        Returns:
+            ContextVar for storing invocation IDs
         """
         raise NotImplementedError()
 
