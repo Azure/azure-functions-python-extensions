@@ -53,7 +53,13 @@ class GrpcClientFactory:
         ]
 
         try:
-            channel = grpc.insecure_channel(address, options=options)
+            if root_certificates is None:
+                channel = grpc.insecure_channel(address, options=options)
+            else:
+                credentials = grpc.ssl_channel_credentials(
+                    root_certificates=root_certificates)
+                channel = grpc.secure_channel(
+                    address, credentials, options=options)
         except Exception as e:
             raise GrpcChannelError(f"Failed to create gRPC channel. URL: {address},"
                                    f" Options: {options}, Error: {e}")
