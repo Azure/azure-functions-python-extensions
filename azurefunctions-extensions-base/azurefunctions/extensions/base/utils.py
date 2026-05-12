@@ -185,10 +185,18 @@ class Binding(ABC):
         # 1. check if the binding is a supported type (blob, blobTrigger)
         # 2. check if the binding is an input binding
         # 3. check if the defined type is an SdkType
+        # 4. check if the SdkType supports deferred binding
+        is_supported_type = meta._ConverterMeta.check_supported_type(pytype)
+        sdk_type_class = meta._ConverterMeta.get_sdk_type_class(pytype)
+        supports_deferred = (
+            sdk_type_class is not None
+            and sdk_type_class.supports_deferred_binding()
+        )
         if (
             binding.type in meta._ConverterMeta._bindings
             and binding.direction == 0
-            and meta._ConverterMeta.check_supported_type(pytype)
+            and is_supported_type
+            and supports_deferred
         ):
             binding._dict["properties"] = {"SupportsDeferredBinding": True}
             binding_info = {binding.name: {pytype: "True"}}
