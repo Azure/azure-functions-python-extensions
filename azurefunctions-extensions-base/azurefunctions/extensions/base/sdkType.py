@@ -11,10 +11,10 @@ class SdkType:
     @classmethod
     def supports_deferred_binding(cls) -> bool:
         """Returns whether this SDK type supports deferred binding.
-        
+
         Override this method in subclasses to return False if the extension
         should not use deferred binding (SupportsDeferredBinding flag = False).
-        
+
         Returns:
             True by default. Override to return False to disable deferred binding.
         """

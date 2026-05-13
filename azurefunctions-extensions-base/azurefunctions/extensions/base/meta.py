@@ -128,13 +128,13 @@ class _ConverterMeta(abc.ABCMeta):
     @classmethod
     def get_sdk_type_class(cls, annotation: type) -> Optional[type]:
         """Extract the SdkType class from an annotation.
-        
+
         Handles both direct SdkType annotations and iterable types
         like List[SdkType].
-        
+
         Args:
             annotation: The type annotation to extract from.
-            
+
         Returns:
             The SdkType class if found, None otherwise.
         """
