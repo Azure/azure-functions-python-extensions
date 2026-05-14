@@ -125,6 +125,40 @@ class _ConverterMeta(abc.ABCMeta):
         return (isinstance(inner_type, type)
                 and issubclass(inner_type, sdkType.SdkType))
 
+    @classmethod
+    def get_sdk_type_class(cls, annotation: type) -> Optional[type]:
+        """Extract the SdkType class from an annotation.
+
+        Handles both direct SdkType annotations and iterable types
+        like List[SdkType].
+
+        Args:
+            annotation: The type annotation to extract from.
+
+        Returns:
+            The SdkType class if found, None otherwise.
+        """
+        if annotation is None:
+            return None
+
+        # Direct SdkType subclass
+        if (isinstance(annotation, type)
+                and issubclass(annotation, sdkType.SdkType)):
+            return annotation
+
+        # Check for iterable with SdkType inner type
+        base_type = get_origin(annotation)
+        if (base_type is not None
+                and issubclass(base_type, collections.abc.Iterable)):
+            inner_types = get_args(annotation)
+            if inner_types and len(inner_types) == 1:
+                inner_type = inner_types[0]
+                if (isinstance(inner_type, type)
+                        and issubclass(inner_type, sdkType.SdkType)):
+                    return inner_type
+
+        return None
+
     def has_trigger_support(cls) -> bool:
         return cls._trigger is not None  # type: ignore
 
