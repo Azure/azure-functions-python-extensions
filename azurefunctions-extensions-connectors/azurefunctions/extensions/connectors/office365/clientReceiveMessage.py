@@ -1,7 +1,7 @@
 #  Copyright (c) Microsoft Corporation. All rights reserved.
 #  Licensed under the MIT License.
 
-from typing import List
+from typing import List, Union
 
 from azure.connectors.office365 import ClientReceiveMessage as AzureClientReceiveMessage
 from azurefunctions.extensions.base import Datum, SdkType
@@ -16,11 +16,13 @@ class ClientReceiveMessage(SdkType, AzureClientReceiveMessage):
         """Office365 connector does not support deferred binding."""
         return False
 
-    def get_sdk_type(self):
+    def get_sdk_type(
+        self
+    ) -> Union[AzureClientReceiveMessage, List[AzureClientReceiveMessage]]:
         """
         Uses the from_json method to parse the JSON payload into a list of
         ClientReceiveMessage objects.
-        
+
         Returns:
             Single ClientReceiveMessage object parsed from the JSON payload OR
             List of ClientReceiveMessage objects parsed from the JSON payload.
@@ -33,7 +35,7 @@ class ClientReceiveMessage(SdkType, AzureClientReceiveMessage):
                 f"Unable to create {self.__class__.__name__} SDK type. "
                 f"No data provided."
             )
-        
+
         try:
             # Use the Azure SDK's from_json method to parse the payload
             messages = AzureClientReceiveMessage.from_json(self._json_payload)

@@ -169,3 +169,26 @@ jobs:
       - bash: |
           python -m pytest -q --instafail azurefunctions-extensions-bindings-servicebus/tests/
         displayName: "Running ServiceBus $(PYTHON_VERSION) Python Extension Tests"
+
+  - job: "ConnectorsTests"
+    displayName: "Connectors Extension Tests"
+    dependsOn: []
+    strategy:
+      matrix: ${{ parameters.python_versions }}
+    condition: always()
+    steps:
+      - task: UsePythonVersion@0
+        inputs:
+          versionSpec: $(PYTHON_VERSION)
+      - task: PipAuthenticate@1
+        displayName: 'Pip Authenticate'
+        inputs:
+          artifactFeeds: ${{ parameters.ArtifactFeed }}
+      - bash: |
+          python -m pip install --upgrade pip
+          cd azurefunctions-extensions-connectors
+          python -m pip install -U -e .[dev]
+        displayName: 'Install Connectors Dependencies'
+      - bash: |
+          python -m pytest -q --instafail azurefunctions-extensions-connectors/tests/
+        displayName: "Running Connectors $(PYTHON_VERSION) Python Extension Tests"
