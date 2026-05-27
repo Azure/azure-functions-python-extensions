@@ -47,17 +47,8 @@ class ClientReceiveMessageConverter(
     def decode(cls, data: Datum, *, trigger_metadata, pytype) -> Optional[Any]:
         """
         Office365 Connector allows for batches. This means the cardinality
-        can be one or many.
-        When the cardinality is one:
-            - The data is of type "model_binding_data" - each message is an
-              independent function invocation
-            - Return a single ClientReceiveMessage object
-        When the cardinality is many:
-            - The data is of type "collection_model_binding_data" - all
-              messages are sent in a single function invocation
-            - collection_model_binding_data has 1 or more model_binding_data
-              objects
-            - Return a list of ClientReceiveMessage objects
+        can be one or many. This functionality is handled by the Connector
+        SDK.
         """
         if data is None or data.type is None:
             return None
