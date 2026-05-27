@@ -21,14 +21,14 @@ DESCRIPTION:
 
 
 @app.connector_trigger(arg_name="message")
-def office365_trigger_single(message: office365.ClientReceiveMessage):
+def office365_trigger_single(message: List[office365.ClientReceiveMessage]):
     """
     Single message processing - splitOn enabled
     Each message triggers an independent function invocation.
     """
     logging.info(
         f"Python Office365 Connector trigger function processed a message\n"
-        f"Message: {message}"
+        f"Message: {message[0]}"
     )
 
 

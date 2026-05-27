@@ -1,7 +1,7 @@
 #  Copyright (c) Microsoft Corporation. All rights reserved.
 #  Licensed under the MIT License.
 
-from typing import List, Union
+from typing import List
 
 from azure.connectors.office365 import ClientReceiveMessage as AzureClientReceiveMessage
 from azurefunctions.extensions.base import Datum, SdkType
@@ -18,17 +18,13 @@ class ClientReceiveMessage(SdkType, AzureClientReceiveMessage):
 
     def get_sdk_type(
         self
-    ) -> Union[AzureClientReceiveMessage, List[AzureClientReceiveMessage]]:
+    ) -> List[AzureClientReceiveMessage]:
         """
         Uses the from_json method to parse the JSON payload into a list of
         ClientReceiveMessage objects.
 
         Returns:
-            Single ClientReceiveMessage object parsed from the JSON payload OR
             List of ClientReceiveMessage objects parsed from the JSON payload.
-
-            Whether it's a single object or a list depends on the structure
-            of the JSON payload and is handled by the SDK.
         """
         if not self._json_payload:
             raise ValueError(
