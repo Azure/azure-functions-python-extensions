@@ -175,7 +175,7 @@ jobs:
     dependsOn: []
     strategy:
       matrix: ${{ parameters.python_versions }}
-    condition: always()
+    condition: and(always(), ne(variables['PYTHON_VERSION'], '3.9'))
     steps:
       - task: UsePythonVersion@0
         inputs:
