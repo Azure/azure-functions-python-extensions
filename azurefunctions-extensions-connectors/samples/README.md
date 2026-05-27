@@ -1,6 +1,6 @@
 # Office365 Connector Samples
 
-This folder contains samples demonstrating how to use the `azurefunctions-extensions-connectors-office365` extension.
+This folder contains samples demonstrating how to use the `azurefunctions-extensions-connectors` extension for Office365.
 
 ## Samples
 
@@ -8,16 +8,16 @@ This folder contains samples demonstrating how to use the `azurefunctions-extens
 Demonstrates how to work with ClientReceiveMessage objects from Office365 Connector Triggers.
 
 **Features:**
-- Single message processing (cardinality = one)
-- Batch message processing (cardinality = many)
+- Single message processing - splitOn enabled
+- Batch message processing - splitOn disabled
 
 **Setup:**
-1. Set the `OFFICE365_CONNECTION` environment variable in `local.settings.json`
-2. Install dependencies: `pip install -r requirements.txt`
-3. Run the function app: `func start`
+1. Create an Office365 connector using the `connection-setup` skill
+2. Register the Office365 trigger using the `trigger-registration` skill
+3. Install dependencies: `pip install -r requirements.txt`
+4. Run the function app: `func start`
 
 ## Prerequisites
 
 - Python 3.13 or later
 - Azure Functions Core Tools
-- Office365 account with connector configuration
