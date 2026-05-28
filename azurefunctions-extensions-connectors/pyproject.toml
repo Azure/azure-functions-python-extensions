@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "azurefunctions-extensions-connectors"
-dynamic = ["version"]
+version = "1.0.0b2"
 requires-python = ">=3.10"
 authors = [{ name = "Azure Functions team at Microsoft Corp.", email = "azurefunctions@microsoft.com"}]
 description = "Office365 Connector Python worker extension for Azure Functions."

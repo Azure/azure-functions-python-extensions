@@ -2,11 +2,19 @@
 #  Licensed under the MIT License.
 
 from .clientReceiveMessage import ClientReceiveMessage
-from .clientReceiveMessageConverter import ClientReceiveMessageConverter
+from .graphClientReceiveMessage import GraphClientReceiveMessage
+from .graphCalendarEventListWithActionType import (
+    GraphCalendarEventListWithActionType
+)
+from .graphCalendarEventClientReceive import (
+    GraphCalendarEventClientReceive
+)
+from ..connectorConverter import ConnectorConverter
 
 __all__ = [
     "ClientReceiveMessage",
-    "ClientReceiveMessageConverter",
+    "GraphClientReceiveMessage",
+    "GraphCalendarEventListWithActionType",
+    "GraphCalendarEventClientReceive",
+    "ConnectorConverter",
 ]
-
-__version__ = '1.0.0b2'
