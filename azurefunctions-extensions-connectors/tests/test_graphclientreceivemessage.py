@@ -5,20 +5,20 @@ import unittest
 
 from azurefunctions.extensions.base import Datum
 from azurefunctions.extensions.connectors.office365 import (
-    ClientReceiveMessage
+    GraphClientReceiveMessage
 )
 
 
-class TestClientReceiveMessage(unittest.TestCase):
-    """Tests for the ClientReceiveMessage SDK type wrapper."""
+class TestGraphClientReceiveMessage(unittest.TestCase):
+    """Tests for the GraphClientReceiveMessage SDK type wrapper."""
 
     def test_supports_deferred_binding_false(self):
-        """Test that ClientReceiveMessage does not support deferred binding"""
-        self.assertFalse(ClientReceiveMessage.supports_deferred_binding())
+        """Test that GraphClientReceiveMessage does not support deferred binding"""
+        self.assertFalse(GraphClientReceiveMessage.supports_deferred_binding())
 
     def test_get_sdk_type_raises_on_none_data(self):
         """Test that get_sdk_type raises ValueError when data is None"""
-        msg = ClientReceiveMessage(data=None)
+        msg = GraphClientReceiveMessage(data=None)
         with self.assertRaises(ValueError) as context:
             msg.get_sdk_type()
         self.assertIn("No data provided", str(context.exception))
@@ -26,7 +26,7 @@ class TestClientReceiveMessage(unittest.TestCase):
     def test_init_stores_json_payload(self):
         """Test that __init__ stores the data as _json_payload"""
         test_data = Datum(value='{"test": "data"}', type='json')
-        msg = ClientReceiveMessage(data=test_data)
+        msg = GraphClientReceiveMessage(data=test_data)
         self.assertEqual(msg._json_payload, test_data)
 
 

@@ -41,7 +41,7 @@ dev = [
     ]
 
 [tool.setuptools.dynamic]
-version = {attr = "azurefunctions.extensions.connectors.office365.__version__"}
+version = {attr = "azurefunctions.extensions.connectors.__version__"}
 
 [tool.setuptools.packages.find]
 exclude = [
