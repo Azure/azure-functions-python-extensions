@@ -77,7 +77,7 @@ class {NewTypeName}(SdkType, Azure{NewTypeName}):
 
 3. Add `elif` branch in `decode()` method:
    ```python
-   elif pytype == {NewTypeName}:
+   elif sdk_type == {NewTypeName}:
        return {NewTypeName}(data=data).get_sdk_type()
    ```
 
