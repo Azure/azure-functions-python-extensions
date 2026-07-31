@@ -204,6 +204,7 @@ jobs:
     displayName: 'Pip Authenticate'
     inputs:
       artifactFeeds: internal/PythonExtensions_Internal_PublicPackages
+      onlyAddExtraIndex: false
   - task: DownloadPipelineArtifact@2
     displayName: 'Download Python Extension release/.x.y.z Artifact'
     inputs:

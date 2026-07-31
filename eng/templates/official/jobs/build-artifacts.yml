@@ -37,6 +37,7 @@ jobs:
         displayName: 'Pip Authenticate'
         inputs:
           artifactFeeds: internal/PythonExtensions_Internal_PublicPackages
+          onlyAddExtraIndex: false
       - task: UsePythonVersion@0
         inputs:
           versionSpec: '3.11'
