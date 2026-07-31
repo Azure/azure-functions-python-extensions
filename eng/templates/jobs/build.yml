@@ -27,13 +27,14 @@ jobs:
           EXTENSION_NAME: 'Connectors'
 
     steps:
-      - task: UsePythonVersion@0
-        inputs:
-          versionSpec: '3.11'
       - task: PipAuthenticate@1
         displayName: 'Pip Authenticate'
         inputs:
-          artifactFeeds: public/PythonExtensions_PublicPackages
+          artifactFeeds: public/upstream-public
+          onlyAddExtraIndex: false
+      - task: UsePythonVersion@0
+        inputs:
+          versionSpec: '3.11'
       - bash: |
           python --version
         displayName: 'Check python version'

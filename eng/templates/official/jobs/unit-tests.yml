@@ -2,9 +2,6 @@ parameters:
   - name: PoolName
     type: string
     default: ''
-  - name: ArtifactFeed
-    type: string
-    default: ''
   - name: python_versions
     type: object
     default:
@@ -28,13 +25,14 @@ jobs:
       matrix: ${{ parameters.python_versions }}
     condition: always()
     steps:
-      - task: UsePythonVersion@0
-        inputs:
-          versionSpec: $(PYTHON_VERSION)
       - task: PipAuthenticate@1
         displayName: 'Pip Authenticate'
         inputs:
-          artifactFeeds: ${{ parameters.ArtifactFeed }}
+          artifactFeeds: public/upstream-public
+          onlyAddExtraIndex: false
+      - task: UsePythonVersion@0
+        inputs:
+          versionSpec: $(PYTHON_VERSION)
       - bash: |
           python -m pip install --upgrade pip
           cd azurefunctions-extensions-base
@@ -51,13 +49,14 @@ jobs:
       matrix: ${{ parameters.python_versions }}
     condition: always()
     steps:
-      - task: UsePythonVersion@0
-        inputs:
-          versionSpec: $(PYTHON_VERSION)
       - task: PipAuthenticate@1
         displayName: 'Pip Authenticate'
         inputs:
-          artifactFeeds: ${{ parameters.ArtifactFeed }}
+          artifactFeeds: public/upstream-public
+          onlyAddExtraIndex: false
+      - task: UsePythonVersion@0
+        inputs:
+          versionSpec: $(PYTHON_VERSION)
       - bash: |
           python -m pip install --upgrade pip
           cd azurefunctions-extensions-bindings-blob
@@ -82,13 +81,14 @@ jobs:
       matrix: ${{ parameters.python_versions }}
     condition: always()
     steps:
-      - task: UsePythonVersion@0
-        inputs:
-          versionSpec: $(PYTHON_VERSION)
       - task: PipAuthenticate@1
         displayName: 'Pip Authenticate'
         inputs:
-          artifactFeeds: ${{ parameters.ArtifactFeed }}
+          artifactFeeds: public/upstream-public
+          onlyAddExtraIndex: false
+      - task: UsePythonVersion@0
+        inputs:
+          versionSpec: $(PYTHON_VERSION)
       - bash: |
           python -m pip install --upgrade pip
           cd azurefunctions-extensions-bindings-cosmosdb
@@ -108,13 +108,14 @@ jobs:
       matrix: ${{ parameters.python_versions }}
     condition: always()
     steps:
-      - task: UsePythonVersion@0
-        inputs:
-          versionSpec: $(PYTHON_VERSION)
       - task: PipAuthenticate@1
         displayName: 'Pip Authenticate'
         inputs:
-          artifactFeeds: ${{ parameters.ArtifactFeed }}
+          artifactFeeds: public/upstream-public
+          onlyAddExtraIndex: false
+      - task: UsePythonVersion@0
+        inputs:
+          versionSpec: $(PYTHON_VERSION)
       - bash: |
           python -m pip install --upgrade pip
           cd azurefunctions-extensions-bindings-eventhub
@@ -131,13 +132,14 @@ jobs:
       matrix: ${{ parameters.python_versions }}
     condition: always()
     steps:
-      - task: UsePythonVersion@0
-        inputs:
-          versionSpec: $(PYTHON_VERSION)
       - task: PipAuthenticate@1
         displayName: 'Pip Authenticate'
         inputs:
-          artifactFeeds: ${{ parameters.ArtifactFeed }}
+          artifactFeeds: public/upstream-public
+          onlyAddExtraIndex: false
+      - task: UsePythonVersion@0
+        inputs:
+          versionSpec: $(PYTHON_VERSION)
       - bash: |
           python -m pip install --upgrade pip
           cd azurefunctions-extensions-http-fastapi
@@ -154,13 +156,14 @@ jobs:
       matrix: ${{ parameters.python_versions }}
     condition: always()
     steps:
-      - task: UsePythonVersion@0
-        inputs:
-          versionSpec: $(PYTHON_VERSION)
       - task: PipAuthenticate@1
         displayName: 'Pip Authenticate'
         inputs:
-          artifactFeeds: ${{ parameters.ArtifactFeed }}
+          artifactFeeds: public/upstream-public
+          onlyAddExtraIndex: false
+      - task: UsePythonVersion@0
+        inputs:
+          versionSpec: $(PYTHON_VERSION)
       - bash: |
           python -m pip install --upgrade pip
           cd azurefunctions-extensions-bindings-servicebus
@@ -177,13 +180,14 @@ jobs:
       matrix: ${{ parameters.python_versions }}
     condition: always()
     steps:
-      - task: UsePythonVersion@0
-        inputs:
-          versionSpec: $(PYTHON_VERSION)
       - task: PipAuthenticate@1
         displayName: 'Pip Authenticate'
         inputs:
-          artifactFeeds: ${{ parameters.ArtifactFeed }}
+          artifactFeeds: public/upstream-public
+          onlyAddExtraIndex: false
+      - task: UsePythonVersion@0
+        inputs:
+          versionSpec: $(PYTHON_VERSION)
       - bash: |
           python -m pip install --upgrade pip
           cd azurefunctions-extensions-connectors

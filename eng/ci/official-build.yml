@@ -49,4 +49,3 @@ extends:
           - template: /eng/templates/official/jobs/unit-tests.yml@self
             parameters:
               PoolName: 1es-pool-azfunc
-              ArtifactFeed: internal/PythonExtensions_Internal_PublicPackages
