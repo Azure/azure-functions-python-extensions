@@ -210,14 +210,15 @@ jobs:
       buildVersionToDownload: latestFromBranch
       branchName: refs/heads/dev
       targetPath: PythonExtensionArtifact
+  - task: PipAuthenticate@1
+    displayName: 'Pip Authenticate'
+    inputs:
+      artifactFeeds: public/upstream-public
+      onlyAddExtraIndex: false
   - task: UsePythonVersion@0
     displayName: 'Use Python 3.11'
     inputs:
       versionSpec: 3.11
-  - task: PipAuthenticate@1
-    displayName: 'Pip Authenticate'
-    inputs:
-      artifactFeeds: internal/PythonExtensions_Internal_PublicPackages
   - pwsh: |
       $newLibraryVersion = "$(NewLibraryVersion)"
       $pypiToken = "$(PypiToken)"
