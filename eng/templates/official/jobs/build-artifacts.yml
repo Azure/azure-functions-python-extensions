@@ -33,13 +33,13 @@ jobs:
           artifactName: "$(EXTENSION_DIRECTORY)"
 
     steps:
-      - task: UsePythonVersion@0
-        inputs:
-          versionSpec: '3.11'
       - task: PipAuthenticate@1
         displayName: 'Pip Authenticate'
         inputs:
           artifactFeeds: internal/PythonExtensions_Internal_PublicPackages
+      - task: UsePythonVersion@0
+        inputs:
+          versionSpec: '3.11'
       - bash: |
           python --version
         displayName: 'Check python version'
