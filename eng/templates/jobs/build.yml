@@ -46,5 +46,5 @@ jobs:
       - bash: |
           pip install pip-audit
           cd $(EXTENSION_DIRECTORY)
-          pip-audit .
+          pip-audit --vulnerability-service osv .
         displayName: 'Run vulnerability scan'
