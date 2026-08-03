@@ -1,0 +1,123 @@
+parameters:
+  - name: extensionVersion
+    type: string
+  - name: extensionName
+    type: string
+    displayName: 'PyPI project and repository directory name'
+  - name: extensionDirectory
+    type: string
+    displayName: 'Package path under the extension project directory'
+  - name: versionPattern
+    type: string
+    default: "__version__ = ['\"]([0-9])+\\.([0-9])+.*['\"]"
+    displayName: 'Regex pattern used to locate the version assignment'
+  - name: versionReplacement
+    type: string
+    default: "__version__ = '{{VERSION}}'"
+    displayName: 'Replacement pattern; {{VERSION}} is replaced by the release version'
+  - name: createPullRequest
+    type: boolean
+    default: true
+  - name: baseBranch
+    type: string
+    default: 'dev'
+  - name: githubOrg
+    type: string
+    default: 'Azure'
+  - name: githubRepo
+    type: string
+    default: 'azure-functions-python-extensions'
+
+jobs:
+  - job: CreateReleaseBranch
+    displayName: 'Create Release Branch'
+    pool:
+      name: 1es-pool-azfunc
+      image: 1es-ubuntu-22.04
+      os: linux
+    steps:
+      - pwsh: |
+          $githubUser = "$(GithubUser)"
+          $githubToken = "$(GithubPat)"
+          $extensionVersion = "${{ parameters.extensionVersion }}"
+          $extensionName = "${{ parameters.extensionName }}"
+
+          # Accept stable versions and common PEP 440 or SemVer prerelease forms.
+          $versionValidation = '^\d+\.\d+\.\d+((a|b|rc)\d+|\.dev\d+|\.post\d+|-[0-9A-Za-z]+(\.[0-9A-Za-z]+)*)?$'
+          if ($extensionVersion -notmatch $versionValidation) {
+              Write-Host "ExtensionVersion '$extensionVersion' is malformed. Expected major.minor.patch with an optional prerelease suffix."
+              exit 1
+          }
+
+          $releaseBranch = "$extensionName/release/$extensionVersion"
+          git check-ref-format --branch $releaseBranch 2>&1 | Out-Null
+          if ($LASTEXITCODE -ne 0) {
+              Write-Host "The derived branch name '$releaseBranch' is not a valid Git ref name."
+              exit 1
+          }
+
+          git config --global user.name "AzureFunctions"
+          git config --global user.email "azurefunctions@microsoft.com"
+          $credential = [System.Convert]::ToBase64String(
+              [System.Text.Encoding]::ASCII.GetBytes("${githubUser}:${githubToken}"))
+
+          git checkout -b "$releaseBranch"
+
+          $versionFilePath = Join-Path $extensionName "${{ parameters.extensionDirectory }}/__init__.py"
+          $versionPattern = $env:VERSION_PATTERN
+          $versionReplacementTemplate = $env:VERSION_REPLACEMENT
+          $versionReplacement = $versionReplacementTemplate -replace '\{\{VERSION\}\}', $extensionVersion
+
+          Write-Host "Changing version in $versionFilePath to $extensionVersion"
+          ((Get-Content $versionFilePath) -replace $versionPattern, $versionReplacement -join "`n") + "`n" |
+              Set-Content -NoNewline $versionFilePath
+          git add $versionFilePath
+          git commit -m "build: update $extensionName version to $extensionVersion"
+
+          git remote set-url origin "https://${githubUser}:${githubToken}@github.com/${{ parameters.githubOrg }}/${{ parameters.githubRepo }}.git"
+          git push --set-upstream origin "$releaseBranch"
+
+          if ([System.Convert]::ToBoolean("${{ parameters.createPullRequest }}")) {
+              $prBody = @{
+                  head = "$releaseBranch"
+                  base = "${{ parameters.baseBranch }}"
+                  title = "build: update $extensionName version to $extensionVersion"
+                  body = "Release $extensionName $extensionVersion"
+                  draft = $true
+                  maintainer_can_modify = $true
+              } | ConvertTo-Json -Compress
+
+              $headers = @{
+                  "Authorization" = "Basic $credential"
+                  "Content-Type" = "application/json"
+                  "Accept" = "application/vnd.github.v3+json"
+                  "User-Agent" = "AzureDevOpsPipeline"
+              }
+              $response = Invoke-WebRequest -Headers $headers -Method Post -Body $prBody `
+                  -Uri "https://api.github.com/repos/${{ parameters.githubOrg }}/${{ parameters.githubRepo }}/pulls"
+
+              if ($response.StatusCode -ne 201) {
+                  Write-Host "##[warning]Failed to create release branch PR. HTTP $($response.StatusCode)"
+              } else {
+                  $draftUrl = ($response.Content | ConvertFrom-Json).html_url
+                  Write-Host "Release branch PR created: $draftUrl"
+              }
+          }
+        displayName: 'Push extension release branch'
+        env:
+          VERSION_PATTERN: ${{ parameters.versionPattern }}
+          VERSION_REPLACEMENT: ${{ parameters.versionReplacement }}
+
+  - job: CheckReleaseBranch
+    dependsOn: CreateReleaseBranch
+    displayName: '(Manual) Check Release Branch'
+    pool: server
+    steps:
+      - task: ManualValidation@1
+        displayName: '(Optional) Modify release branch'
+        inputs:
+          notifyUsers: ''
+          instructions: |
+            1. Check that https://github.com/${{ parameters.githubOrg }}/${{ parameters.githubRepo }}/tree/${{ parameters.extensionName }}/release/${{ parameters.extensionVersion }} builds and passes all unit tests.
+            2. Modify the release branch if needed.
+            3. Ensure the branch contains all changes required for the release.

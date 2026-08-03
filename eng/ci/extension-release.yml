@@ -1,5 +1,23 @@
 pr: none
 
+parameters:
+  - name: ExtensionName
+    displayName: 'Extension project to release'
+    type: string
+    default: 'azurefunctions-extensions-base'
+    values:
+      - azurefunctions-extensions-base
+      - azurefunctions-extensions-bindings-blob
+      - azurefunctions-extensions-bindings-cosmosdb
+      - azurefunctions-extensions-bindings-eventhub
+      - azurefunctions-extensions-bindings-servicebus
+      - azurefunctions-extensions-connectors
+      - azurefunctions-extensions-http-fastapi
+  - name: NewLibraryVersion
+    displayName: 'Extension version to release (for example, 1.2.0)'
+    type: string
+    default: ''
+
 resources:
   repositories:
     - repository: 1es
@@ -14,6 +32,27 @@ resources:
 variables:
   - name: codeql.excludePathPatterns
     value: deps/,build/
+  - ${{ if eq(parameters.ExtensionName, 'azurefunctions-extensions-base') }}:
+      - name: ExtensionDirectory
+        value: 'azurefunctions/extensions/base'
+  - ${{ if eq(parameters.ExtensionName, 'azurefunctions-extensions-bindings-blob') }}:
+      - name: ExtensionDirectory
+        value: 'azurefunctions/extensions/bindings/blob'
+  - ${{ if eq(parameters.ExtensionName, 'azurefunctions-extensions-bindings-cosmosdb') }}:
+      - name: ExtensionDirectory
+        value: 'azurefunctions/extensions/bindings/cosmosdb'
+  - ${{ if eq(parameters.ExtensionName, 'azurefunctions-extensions-bindings-eventhub') }}:
+      - name: ExtensionDirectory
+        value: 'azurefunctions/extensions/bindings/eventhub'
+  - ${{ if eq(parameters.ExtensionName, 'azurefunctions-extensions-bindings-servicebus') }}:
+      - name: ExtensionDirectory
+        value: 'azurefunctions/extensions/bindings/servicebus'
+  - ${{ if eq(parameters.ExtensionName, 'azurefunctions-extensions-connectors') }}:
+      - name: ExtensionDirectory
+        value: 'azurefunctions/extensions/connectors'
+  - ${{ if eq(parameters.ExtensionName, 'azurefunctions-extensions-http-fastapi') }}:
+      - name: ExtensionDirectory
+        value: 'azurefunctions/extensions/http/fastapi'
 
 extends:
   template: v1/1ES.Official.PipelineTemplate.yml@1es
@@ -24,6 +63,34 @@ extends:
       os: windows
 
     stages:
-      - stage: Release
+      - stage: BumpVersion
+        displayName: 'Bump Extension Version'
+        dependsOn: []
         jobs:
-          - template: /eng/templates/official/jobs/publish-release.yml@self
+          - template: /eng/templates/official/release/bump-version.yml@self
+            parameters:
+              extensionVersion: ${{ parameters.NewLibraryVersion }}
+              extensionName: ${{ parameters.ExtensionName }}
+              extensionDirectory: ${{ variables.ExtensionDirectory }}
+              createPullRequest: true
+              baseBranch: dev
+
+      - stage: Build
+        displayName: 'Build Extension Artifacts'
+        dependsOn: BumpVersion
+        jobs:
+          - template: /eng/templates/official/release/build-artifacts.yml@self
+            parameters:
+              extensionVersion: ${{ parameters.NewLibraryVersion }}
+              extensionName: ${{ parameters.ExtensionName }}
+              artifactName: ${{ parameters.ExtensionName }}
+
+      - stage: Release
+        displayName: 'Release Extension'
+        dependsOn: Build
+        jobs:
+          - template: /eng/templates/official/release/publish-release.yml@self
+            parameters:
+              extensionVersion: ${{ parameters.NewLibraryVersion }}
+              extensionName: ${{ parameters.ExtensionName }}
+              artifactName: ${{ parameters.ExtensionName }}
