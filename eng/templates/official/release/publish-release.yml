@@ -1,0 +1,309 @@
+parameters:
+  - name: extensionVersion
+    type: string
+  - name: extensionName
+    type: string
+    displayName: 'PyPI project and repository directory name'
+  - name: artifactName
+    type: string
+    displayName: 'Pipeline artifact produced by the build stage'
+  - name: githubOrg
+    type: string
+    default: 'Azure'
+  - name: githubRepo
+    type: string
+    default: 'azure-functions-python-extensions'
+  - name: esrpMainPublisher
+    type: string
+    default: 'azure-functions'
+    displayName: 'ESRP onboarding publisher name'
+
+jobs:
+  - job: CreateReleaseTag
+    displayName: 'Create Release Tag'
+    steps:
+      - pwsh: |
+          $githubUser = "$(GithubUser)"
+          $githubToken = "$(GithubPat)"
+          $extensionVersion = "${{ parameters.extensionVersion }}"
+          $extensionName = "${{ parameters.extensionName }}"
+          $releaseBranch = "$extensionName/release/$extensionVersion"
+          $releaseTag = "$extensionName/$extensionVersion"
+
+          git config --global user.name "AzureFunctions"
+          git config --global user.email "azurefunctions@microsoft.com"
+          git clone "https://${githubUser}:${githubToken}@github.com/${{ parameters.githubOrg }}/${{ parameters.githubRepo }}"
+          Set-Location "${{ parameters.githubRepo }}"
+          git checkout "origin/$releaseBranch"
+
+          Write-Host "Creating release tag $releaseTag"
+          git tag -a "$releaseTag" -m "$extensionVersion"
+          git push origin "$releaseTag"
+        displayName: 'Tag and push extension version'
+
+      - download: current
+        artifact: ${{ parameters.artifactName }}
+        displayName: 'Download build artifacts'
+
+      - pwsh: |
+          $ErrorActionPreference = 'Stop'
+          $ProgressPreference = 'SilentlyContinue'
+
+          $githubUser = "$(GithubUser)"
+          $githubToken = "$(GithubPat)"
+          $extensionVersion = "${{ parameters.extensionVersion }}"
+          $extensionName = "${{ parameters.extensionName }}"
+          $releaseTag = "$extensionName/$extensionVersion"
+
+          $credential = [System.Convert]::ToBase64String(
+              [System.Text.Encoding]::ASCII.GetBytes("${githubUser}:${githubToken}"))
+          $apiHeaders = @{
+              "Accept" = "application/vnd.github+json"
+              "Authorization" = "Basic $credential"
+              "X-GitHub-Api-Version" = "2022-11-28"
+              "Content-Type" = "application/json"
+          }
+
+          $distFolder = Join-Path '$(Pipeline.Workspace)' (Join-Path "${{ parameters.artifactName }}" 'dist')
+          if (-not (Test-Path -LiteralPath $distFolder)) {
+              throw "Distribution folder not found: $distFolder"
+          }
+
+          $assetsToUpload = @(
+              Get-ChildItem -LiteralPath $distFolder -File |
+                  Where-Object { $_.Name -like '*.whl' -or $_.Name -like '*.tar.gz' } |
+                  Sort-Object Name
+          )
+          if ($assetsToUpload.Count -eq 0) {
+              throw "No .whl or .tar.gz files found in $distFolder"
+          }
+
+          $body = @{
+              tag_name = "$releaseTag"
+              name = "$extensionName $extensionVersion"
+              body = "- Fill in Release Note Here"
+              draft = $true
+          } | ConvertTo-Json -Compress
+          $createResponse = Invoke-WebRequest -Headers $apiHeaders -Method Post -Body $body `
+              -Uri "https://api.github.com/repos/${{ parameters.githubOrg }}/${{ parameters.githubRepo }}/releases"
+          if ($createResponse.StatusCode -ne 201) {
+              throw "Failed to create release. HTTP $($createResponse.StatusCode)"
+          }
+
+          $release = $createResponse.Content | ConvertFrom-Json
+          $uploadUrlBase = $release.upload_url -replace '\{\?name,label\}$', ''
+          $uploadHeaders = @{
+              "Accept" = "application/vnd.github+json"
+              "Authorization" = "Basic $credential"
+              "X-GitHub-Api-Version" = "2022-11-28"
+          }
+
+          try {
+              foreach ($asset in $assetsToUpload) {
+                  $assetUploadUrl = '{0}?name={1}' -f $uploadUrlBase, [System.Uri]::EscapeDataString($asset.Name)
+                  Write-Host "Uploading $($asset.Name)..."
+                  try {
+                      $uploadResponse = Invoke-WebRequest -Headers $uploadHeaders -Method Post `
+                          -Uri $assetUploadUrl -ContentType 'application/octet-stream' -InFile $asset.FullName
+                  } catch {
+                      $status = $null
+                      if ($_.Exception.Response) {
+                          $status = [int]$_.Exception.Response.StatusCode
+                      }
+                      if ($status -eq 422) {
+                          throw "Asset '$($asset.Name)' already exists on release $releaseTag."
+                      }
+                      throw "Upload failed for $($asset.Name): HTTP $status - $($_.Exception.Message)"
+                  }
+
+                  if ($uploadResponse.StatusCode -ne 201) {
+                      throw "Upload failed for $($asset.Name). HTTP $($uploadResponse.StatusCode)"
+                  }
+              }
+          } catch {
+              $uploadError = $_
+              if ($release -and $release.id) {
+                  $releaseDeleteUri = "https://api.github.com/repos/${{ parameters.githubOrg }}/${{ parameters.githubRepo }}/releases/$($release.id)"
+                  try {
+                      Invoke-WebRequest -Headers $apiHeaders -Method Delete -Uri $releaseDeleteUri | Out-Null
+                  } catch {
+                      Write-Host "##[warning]Failed to delete incomplete draft release $($release.id)."
+                  }
+              }
+              throw $uploadError
+          }
+
+          Write-Host "Draft release created with assets: $($release.html_url)"
+        displayName: 'Create GitHub release draft and attach assets'
+
+  - job: CheckGitHubRelease
+    dependsOn: CreateReleaseTag
+    displayName: '(Manual) Check GitHub release note'
+    pool: server
+    steps:
+      - task: ManualValidation@1
+        displayName: 'Write GitHub release note'
+        inputs:
+          notifyUsers: ''
+          instructions: 'Please finish the release note at https://github.com/${{ parameters.githubOrg }}/${{ parameters.githubRepo }}/releases'
+
+  - job: CreateWorkerPR
+    dependsOn: CheckGitHubRelease
+    displayName: 'Create PR in Worker Repo'
+    steps:
+      - pwsh: |
+          $githubUser = "$(GithubUser)"
+          $githubToken = "$(GithubPat)"
+          $extensionVersion = "${{ parameters.extensionVersion }}"
+          $extensionName = "${{ parameters.extensionName }}"
+          $newBranch = "extensions/$extensionName/$extensionVersion"
+
+          git config --global user.name "AzureFunctions"
+          git config --global user.email "azurefunctions@microsoft.com"
+          $credential = [System.Convert]::ToBase64String(
+              [System.Text.Encoding]::ASCII.GetBytes("${githubUser}:${githubToken}"))
+
+          git clone "https://${githubUser}:${githubToken}@github.com/Azure/azure-functions-python-worker"
+          Set-Location 'azure-functions-python-worker'
+          git checkout -b "$newBranch" 'origin/dev'
+
+          $escapedExtensionName = [regex]::Escape($extensionName)
+          $dependencyPattern = '"' + $escapedExtensionName + '==[^";]+'
+          $dependencyReplacement = '"' + $extensionName + '==' + $extensionVersion
+          $pyprojectContent = Get-Content 'workers/pyproject.toml' -Raw
+          $updatedContent = $pyprojectContent -replace $dependencyPattern, $dependencyReplacement
+          if ($updatedContent -eq $pyprojectContent) {
+              throw "Could not find an exact $extensionName dependency to update in workers/pyproject.toml"
+          }
+          $updatedContent | Set-Content -NoNewline 'workers/pyproject.toml'
+
+          git add 'workers/pyproject.toml'
+          git commit -m "build: update $extensionName version to $extensionVersion"
+          git push origin $newBranch
+
+          $prBody = @{
+              head = "$newBranch"
+              base = 'dev'
+              body = "Python Extension [$extensionName] Version [$extensionVersion](https://github.com/${{ parameters.githubOrg }}/${{ parameters.githubRepo }}/releases/tag/$extensionName/$extensionVersion)"
+              draft = $true
+              maintainer_can_modify = $true
+              title = "build: update $extensionName version to $extensionVersion"
+          } | ConvertTo-Json -Compress
+          $headers = @{
+              "Authorization" = "Basic $credential"
+              "Content-Type" = "application/json"
+              "Accept" = "application/vnd.github.v3+json"
+              "User-Agent" = "AzureDevOpsPipeline"
+          }
+          $response = Invoke-WebRequest -Headers $headers -Method Post -Body $prBody `
+              -Uri 'https://api.github.com/repos/Azure/azure-functions-python-worker/pulls'
+          if ($response.StatusCode -ne 201) {
+              throw "Failed to create PR in Azure Functions Python Worker. HTTP $($response.StatusCode)"
+          }
+
+          $draftUrl = ($response.Content | ConvertFrom-Json).html_url
+          Write-Host "Worker PR draft created: $draftUrl"
+        displayName: 'Create PR in Worker Repo'
+
+  - job: FinishWorkerPr
+    dependsOn: CreateWorkerPR
+    displayName: '(Manual) Finish Worker PR'
+    pool: server
+    steps:
+      - task: ManualValidation@1
+        displayName: 'Wait For Python Worker Build'
+        inputs:
+          notifyUsers: ''
+          instructions: |
+            1. Wait for all checks to pass at https://github.com/Azure/azure-functions-python-worker/pulls.
+            2. Merge the PR into the worker dev branch.
+
+  - job: ESRPRelease
+    dependsOn: FinishWorkerPr
+    displayName: 'Publish package to PyPI with ESRP'
+    templateContext:
+      type: releaseJob
+      isProduction: true
+      inputs:
+        - input: pipelineArtifact
+          artifactName: ${{ parameters.artifactName }}
+          targetPath: $(Pipeline.Workspace)/${{ parameters.artifactName }}
+    pool:
+      name: 1es-pool-azfunc
+      image: 1es-ubuntu-22.04
+      os: linux
+    steps:
+      - checkout: none
+      - pwsh: |
+          $ErrorActionPreference = 'Stop'
+          $distFolder = '$(Pipeline.Workspace)/${{ parameters.artifactName }}/dist'
+          $extensionName = '${{ parameters.extensionName }}'
+          $extensionVersion = '${{ parameters.extensionVersion }}'
+
+          if (-not (Test-Path -LiteralPath $distFolder -PathType Container)) {
+              throw "Distribution folder not found: $distFolder"
+          }
+
+          $wheels = @(Get-ChildItem -LiteralPath $distFolder -File -Filter '*.whl')
+          $sourceDistributions = @(Get-ChildItem -LiteralPath $distFolder -File -Filter '*.tar.gz')
+          $unsupportedFiles = @(
+              Get-ChildItem -LiteralPath $distFolder -File |
+                  Where-Object { $_.Name -notlike '*.whl' -and $_.Name -notlike '*.tar.gz' }
+          )
+
+          if ($wheels.Count -ne 1 -or $sourceDistributions.Count -ne 1) {
+              throw "Expected one wheel and one source distribution in $distFolder; found $($wheels.Count) wheel(s) and $($sourceDistributions.Count) source distribution(s)."
+          }
+          if ($unsupportedFiles.Count -ne 0) {
+              throw "Unexpected files found in the ESRP package folder: $($unsupportedFiles.Name -join ', ')"
+          }
+
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $archive = [System.IO.Compression.ZipFile]::OpenRead($wheels[0].FullName)
+          try {
+              $metadataEntry = $archive.Entries |
+                  Where-Object { $_.FullName -like '*.dist-info/METADATA' } |
+                  Select-Object -First 1
+              if (-not $metadataEntry) {
+                  throw "Wheel metadata was not found in $($wheels[0].Name)."
+              }
+
+              $reader = [System.IO.StreamReader]::new($metadataEntry.Open())
+              try {
+                  $metadata = $reader.ReadToEnd()
+              } finally {
+                  $reader.Dispose()
+              }
+          } finally {
+              $archive.Dispose()
+          }
+
+          $packageName = [regex]::Match($metadata, '(?m)^Name:\s*(.+)\r?$').Groups[1].Value.Trim()
+          $packageVersion = [regex]::Match($metadata, '(?m)^Version:\s*(.+)\r?$').Groups[1].Value.Trim()
+          if ($packageName -ne $extensionName -or $packageVersion -ne $extensionVersion) {
+              throw "Artifact metadata mismatch. Expected $extensionName $extensionVersion; found $packageName $packageVersion."
+          }
+
+          Write-Host "Validated ESRP release contents for $packageName ${packageVersion}:"
+          Write-Host "  - $($wheels[0].Name)"
+          Write-Host "  - $($sourceDistributions[0].Name)"
+        displayName: 'Validate ESRP package contents'
+
+      - task: SFP.release-tasks.custom-build-release-task.EsrpRelease@9
+        displayName: 'ESRP Release ${{ parameters.extensionName }}'
+        inputs:
+          connectedservicename: 'azfunc-internal-esrp-prod'
+          usemanagedidentity: true
+          keyvaultname: 'kv-azfunc-esrp-prod'
+          signcertname: 'esrp-signing'
+          clientid: 'a31bf239-3e15-498e-a335-f6ec0c9d9ccf'
+          intent: 'PackageDistribution'
+          contenttype: 'PyPi'
+          contentsource: 'Folder'
+          folderlocation: '$(Pipeline.Workspace)/${{ parameters.artifactName }}/dist'
+          waitforreleasecompletion: true
+          owners: $(Build.RequestedForEmail)
+          approvers: $(Build.RequestedForEmail)
+          serviceendpointurl: 'https://api.esrp.microsoft.com'
+          mainpublisher: '${{ parameters.esrpMainPublisher }}'
+          domaintenantid: '33e01921-4d64-4f8c-a055-5bdaffd5e33d'
