@@ -38,9 +38,19 @@ extends:
       name: 1es-pool-azfunc
       image: 1es-windows-2022
       os: windows
+    sdl:
+      componentgovernance:
+        alertWarningLevel: Medium
+        failOnAlert: true
+        verbosity: Normal
 
     stages:
+      - stage: ScanDependencies
+        displayName: 'Scan dependencies'
+        jobs:
+          - template: /eng/templates/jobs/component-governance.yml@self
       - stage: Build
+        dependsOn: []
         jobs:
           - template: /eng/templates/official/jobs/build-artifacts.yml@self
       - stage: RunUnitTests

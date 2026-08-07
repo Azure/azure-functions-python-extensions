@@ -1,0 +1,41 @@
+jobs:
+  - job: "ComponentGovernance"
+    displayName: 'Generate Component Governance manifests'
+    steps:
+      - task: UsePythonVersion@0
+        inputs:
+          versionSpec: '3.11'
+      - bash: |
+          python - <<'PY'
+          from pathlib import Path
+          import tomllib
+
+          pyproject_paths = sorted(Path(".").glob("*/pyproject.toml"))
+          if not pyproject_paths:
+              raise RuntimeError("No pyproject.toml files found")
+
+          for pyproject_path in pyproject_paths:
+              pyproject = tomllib.loads(pyproject_path.read_text(encoding="utf-8"))
+              optional_dependencies = pyproject["project"].get("optional-dependencies", {})
+              requirements = [
+                  *pyproject["build-system"].get("requires", []),
+                  *pyproject["project"].get("dependencies", []),
+                  *(
+                      dependency
+                      for group in optional_dependencies.values()
+                      for dependency in group
+                  ),
+              ]
+              requirements = list(dict.fromkeys(requirements))
+              requirements_path = pyproject_path.with_name("requirements.txt")
+              requirements_path.write_text(
+                  "\n".join(requirements) + "\n",
+                  encoding="utf-8",
+              )
+              print(
+                  f"Generated {requirements_path} with "
+                  f"{len(requirements)} direct dependencies"
+              )
+          PY
+        displayName: 'Generate Component Governance requirements'
+        workingDirectory: $(Build.SourcesDirectory)
