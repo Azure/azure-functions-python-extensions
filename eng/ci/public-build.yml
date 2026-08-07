@@ -44,12 +44,7 @@ extends:
       skipBuildTagsForGitHubPullRequests: ${{ variables['System.PullRequest.IsFork'] }}
 
     stages:
-      - stage: ScanDependencies
-        displayName: 'Scan dependencies'
-        jobs:
-          - template: /eng/templates/jobs/component-governance.yml@self
       - stage: Build
-        dependsOn: []
         jobs:
           - template: /eng/templates/jobs/build.yml@self
       - stage: RunUnitTests

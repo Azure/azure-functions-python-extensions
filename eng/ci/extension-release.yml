@@ -29,11 +29,6 @@ extends:
         verbosity: Normal
 
     stages:
-      - stage: ScanDependencies
-        displayName: 'Scan dependencies'
-        jobs:
-          - template: /eng/templates/jobs/component-governance.yml@self
       - stage: Release
-        dependsOn: ScanDependencies
         jobs:
           - template: /eng/templates/official/jobs/publish-release.yml@self

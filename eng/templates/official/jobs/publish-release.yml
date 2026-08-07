@@ -219,6 +219,9 @@ jobs:
     displayName: 'Use Python 3.11'
     inputs:
       versionSpec: 3.11
+  - template: /eng/templates/steps/component-governance.yml@self
+    parameters:
+      projectDirectory: $(ExtensionName)
   - pwsh: |
       $newLibraryVersion = "$(NewLibraryVersion)"
       $pypiToken = "$(PypiToken)"

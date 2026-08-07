@@ -45,12 +45,7 @@ extends:
         verbosity: Normal
 
     stages:
-      - stage: ScanDependencies
-        displayName: 'Scan dependencies'
-        jobs:
-          - template: /eng/templates/jobs/component-governance.yml@self
       - stage: Build
-        dependsOn: []
         jobs:
           - template: /eng/templates/official/jobs/build-artifacts.yml@self
       - stage: RunUnitTests
