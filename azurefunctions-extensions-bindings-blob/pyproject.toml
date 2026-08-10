@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "azurefunctions-extensions-bindings-blob"
 dynamic = ["version"]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 authors = [{ name = "Azure Functions team at Microsoft Corp.", email = "azurefunctions@microsoft.com"}]
 description = "Blob Python worker extension for Azure Functions."
 readme = "README.md"
@@ -34,7 +34,7 @@ dependencies = [
 dev = [
     'flake8',
     'mypy',
-    'pytest',
+    'pytest>=9.0.3',
     'pytest-cov',
     'coverage',
     'pytest-instafail',
