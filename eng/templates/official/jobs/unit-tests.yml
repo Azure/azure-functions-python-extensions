@@ -5,9 +5,6 @@ parameters:
   - name: python_versions
     type: object
     default:
-      # 3.8 is EOL. Don't run tests for it
-      python39:
-        PYTHON_VERSION: '3.9'
       python310:
         PYTHON_VERSION: '3.10'
       python311:
@@ -214,8 +211,6 @@ jobs:
           cd azurefunctions-extensions-connectors
           python -m pip install -U -e .[dev]
         displayName: 'Install Connectors Dependencies'
-        condition: ne(variables['PYTHON_VERSION'], '3.9')
       - bash: |
           python -m pytest -q --instafail azurefunctions-extensions-connectors/tests/
         displayName: "Running Connectors $(PYTHON_VERSION) Python Extension Tests"
-        condition: ne(variables['PYTHON_VERSION'], '3.9')
