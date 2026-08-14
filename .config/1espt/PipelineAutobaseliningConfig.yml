@@ -7,9 +7,10 @@ pipelines:
         credscan:
           lastModifiedDate: 2024-09-16
         eslint:
-          lastModifiedDate: 2024-09-16
+          lastModifiedDate: 2026-08-14
         armory:
-          lastModifiedDate: 2024-09-16
+          lastModifiedDate: 2026-08-14
+    usedNonDefaultBranch: true
   817:
     usedNonDefaultBranch: true
     retail:
