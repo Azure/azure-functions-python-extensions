@@ -26,7 +26,7 @@ examples on how to use the Azure ServiceBus client library, please see [Azure Se
 
 
 ## Prerequisites
-* Python 3.9 or later is required to use this package. For more details, please read our page on [Python Functions version support policy](https://learn.microsoft.com/en-us/azure/azure-functions/functions-versions?tabs=isolated-process%2Cv4&pivots=programming-language-python#languages).
+* Python 3.9 through 3.13 is required to use these samples. Python 3.14 is not currently supported because `uamqp` does not publish Python 3.14 wheels. For more details, please read our page on [Python Functions version support policy](https://learn.microsoft.com/en-us/azure/azure-functions/functions-versions?tabs=isolated-process%2Cv4&pivots=programming-language-python#languages).
 
 ## Setup
 
