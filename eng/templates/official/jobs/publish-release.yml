@@ -196,52 +196,12 @@ jobs:
         2. Merge the PR into worker dev branch
     condition: always()
 
-- job: "PyPIPackage"
-  dependsOn: ['FinishWorkerPr']
-  displayName: 'PyPI Package'
-  steps:
-  - task: DownloadPipelineArtifact@2
-    displayName: 'Download Python Extension release/.x.y.z Artifact'
-    inputs:
-      buildType: specific
-      project: '3f99e810-c336-441f-8892-84983093ad7f'
-      definition: 798
-      specificBuildWithTriggering: true
-      buildVersionToDownload: latestFromBranch
-      branchName: refs/heads/dev
-      targetPath: PythonExtensionArtifact
-  - task: PipAuthenticate@1
-    displayName: 'Pip Authenticate'
-    inputs:
-      artifactFeeds: public/upstream-public
-      onlyAddExtraIndex: false
-  - task: UsePythonVersion@0
-    displayName: 'Use Python 3.11'
-    inputs:
-      versionSpec: 3.11
-  - pwsh: |
-      $newLibraryVersion = "$(NewLibraryVersion)"
-      $pypiToken = "$(PypiToken)"
-      $extensionName= "$(ExtensionName)"
-      $extensionDirectory = "$(ExtensionDirectory)"
-      
-      # Setup local Python environment
-      Write-Host "Setup local Python environment"
-      python -m pip install -U pip
-      pip install twine
-  
-      # Build wheels and project
-      Write-Host "Build Wheels and Upload to https://upload.pypi.org/project/$extensionName/$newLibraryVersion/"
-      twine upload --repository-url https://upload.pypi.org/legacy/ --username "__token__" --password "$pypiToken" PythonExtensionArtifact/$extensionName/$extensionName/dist/*
-      Start-Sleep -Seconds 3
-  
-      # Checking if the new version is uploaded
-      Write-Host "Check if new version is uploaded"
-      $response = Invoke-WebRequest -Headers @{"Cache-Control"="no-cache"} -Method Get -Uri "https://pypi.org/project/$extensionName/$newLibraryVersion/"
-  
-      # Return Value
-      if ($response.StatusCode -ne 200) {
-          Write-Host "Failed to verify https://pypi.org/project/$extensionName/$newLibraryVersion/"
-          exit -1
-      }
-    displayName: 'Publish package to pypi.org'
+- template: /eng/templates/official/jobs/release-pypi-package.yml@self
+  parameters:
+    artifact:
+      name: $(ExtensionDirectory)
+      pipeline: officialBuild
+    packagePath: $(ExtensionDirectory)/$(ExtensionDirectory)
+    dependsOn:
+      - FinishWorkerPr
+    approvers: '$(EsrpManualApprovers)'
