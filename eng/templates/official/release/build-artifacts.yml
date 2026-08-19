@@ -1,0 +1,54 @@
+parameters:
+  - name: extensionVersion
+    type: string
+  - name: extensionName
+    type: string
+    displayName: 'PyPI project and repository directory name'
+  - name: artifactName
+    type: string
+    displayName: 'Pipeline artifact name produced by this job'
+  - name: pythonVersion
+    type: string
+    default: '3.11'
+  - name: githubOrg
+    type: string
+    default: 'Azure'
+  - name: githubRepo
+    type: string
+    default: 'azure-functions-python-extensions'
+
+jobs:
+  - job: Build
+    displayName: 'Build ${{ parameters.extensionName }}'
+    pool:
+      name: 1es-pool-azfunc
+      image: 1es-ubuntu-22.04
+      os: linux
+    templateContext:
+      outputParentDirectory: $(Build.ArtifactStagingDirectory)
+      outputs:
+        - output: pipelineArtifact
+          targetPath: $(Build.SourcesDirectory)/${{ parameters.extensionName }}
+          artifactName: ${{ parameters.artifactName }}
+    steps:
+      - checkout: none
+      - bash: |
+          git clone --branch "${{ parameters.extensionName }}/release/${{ parameters.extensionVersion }}" --single-branch \
+            "https://$(GithubUser):$(GithubPat)@github.com/${{ parameters.githubOrg }}/${{ parameters.githubRepo }}.git" .
+        displayName: 'Checkout extension release branch'
+      - task: UsePythonVersion@0
+        inputs:
+          versionSpec: '${{ parameters.pythonVersion }}'
+      - task: PipAuthenticate@1
+        displayName: 'Pip Authenticate'
+        inputs:
+          artifactFeeds: public/upstream-public
+          onlyAddExtraIndex: false
+      - bash: |
+          python --version
+          python -m pip install -U pip
+          python -m pip install build twine
+          cd "${{ parameters.extensionName }}"
+          python -m build
+          python -m twine check dist/*
+        displayName: 'Build ${{ parameters.extensionName }}'
