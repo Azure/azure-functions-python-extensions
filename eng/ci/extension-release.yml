@@ -10,8 +10,15 @@ resources:
       type: git
       name: engineering
       ref: refs/tags/release
+  pipelines:
+    - pipeline: officialBuild
+      project: internal
+      source: azure-functions-python-extensions.official
+      branch: dev
+      trigger: none
 
 variables:
+  - group: azure-functions-python-release
   - name: codeql.excludePathPatterns
     value: deps/,build/
 
