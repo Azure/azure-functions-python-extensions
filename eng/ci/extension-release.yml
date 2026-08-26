@@ -13,7 +13,7 @@ resources:
   pipelines:
     - pipeline: officialBuild
       project: internal
-      source: azure-functions-python-extensions.official
+      source: python-extensions.official
       branch: dev
       trigger: none
 
