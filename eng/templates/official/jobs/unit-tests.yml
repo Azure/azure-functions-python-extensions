@@ -5,9 +5,6 @@ parameters:
   - name: python_versions
     type: object
     default:
-      # 3.8 is EOL. Don't run tests for it
-      python39:
-        PYTHON_VERSION: '3.9'
       python310:
         PYTHON_VERSION: '3.10'
       python311:
@@ -16,6 +13,8 @@ parameters:
         PYTHON_VERSION: '3.12'
       python313:
         PYTHON_VERSION: '3.13'
+      python314:
+        PYTHON_VERSION: '3.14'
 
 jobs:
   - job: "BaseTests"
