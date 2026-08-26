@@ -152,8 +152,15 @@ jobs:
     displayName: "ServiceBus Extension Tests"
     dependsOn: []
     strategy:
-      matrix: ${{ parameters.python_versions }}
-    condition: ne(variables['PYTHON_VERSION'], '3.14')
+      matrix:
+        python310:
+          PYTHON_VERSION: '3.10'
+        python311:
+          PYTHON_VERSION: '3.11'
+        python312:
+          PYTHON_VERSION: '3.12'
+        python313:
+          PYTHON_VERSION: '3.13'
     steps:
       - task: PipAuthenticate@1
         displayName: 'Pip Authenticate'
