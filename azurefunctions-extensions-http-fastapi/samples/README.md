@@ -22,7 +22,7 @@ information on FastAPI, please see the [FastApi documentation](https://fastapi.t
 * [fastapi_samples_streaming_download](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-http-fastapi/samples/fastapi_samples_streaming_download) - An example on how to send your HTTP response via streaming to the caller.
 
 ## Prerequisites
-* Python 3.8 or later is required to use this package. For more details, please read our page on [Python Functions version support policy](https://learn.microsoft.com/azure/azure-functions/functions-versions?tabs=isolated-process%2Cv4&pivots=programming-language-python#languages).
+* A supported Python version is required. For more details, see the [Python Functions version support policy](https://learn.microsoft.com/azure/azure-functions/functions-versions?tabs=isolated-process%2Cv4&pivots=programming-language-python#languages).
 
 ## Setup
 

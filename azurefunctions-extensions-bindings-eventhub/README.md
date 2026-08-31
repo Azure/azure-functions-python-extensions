@@ -18,7 +18,7 @@ The supported EventHub SDK types include:
 ## Getting started
 
 ### Prerequisites
-* Python 3.9 or later is required to use this package. For more details, please read our page on [Python Functions version support policy](https://learn.microsoft.com/azure/azure-functions/functions-versions?tabs=isolated-process%2Cv4&pivots=programming-language-python#languages).
+* A supported Python version is required. For more details, see the [Python Functions version support policy](https://learn.microsoft.com/azure/azure-functions/functions-versions?tabs=isolated-process%2Cv4&pivots=programming-language-python#languages).
 
 * You must have an [Azure subscription](https://azure.microsoft.com/free/), an
 [Azure Event Hubs namespace, and an event hub](https://learn.microsoft.com/azure/event-hubs/event-hubs-create) to use this package.
