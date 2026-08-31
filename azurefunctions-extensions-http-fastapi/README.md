@@ -3,18 +3,18 @@ This library contains HttpV2 extensions for FastApi Request/Response types to us
 
 [Source code](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-http-fastapi)
 | [Package (PyPi)](https://pypi.org/project/azurefunctions-extensions-http-fastapi/)
-| [Developer Reference](https://learn.microsoft.com/en-us/azure/azure-functions/functions-reference-python?tabs=get-started%2Casgi%2Capplication-level&pivots=python-mode-decorators#http-streams-preview)
+| [Developer Reference](https://learn.microsoft.com/azure/azure-functions/functions-bindings-http-webhook-trigger?tabs=python-v2&pivots=programming-language-python#http-streams-1)
 | [Samples](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-http-fastapi/samples)
 
 
 ## Getting started
 
 ### Prerequisites
-* Python 3.8 or later is required to use this package. For more details, please read our page on [Python Functions version support policy](https://learn.microsoft.com/en-us/azure/azure-functions/functions-versions?tabs=isolated-process%2Cv4&pivots=programming-language-python#languages).
+* Python 3.8 or later is required to use this package. For more details, please read our page on [Python Functions version support policy](https://learn.microsoft.com/azure/azure-functions/functions-versions?tabs=isolated-process%2Cv4&pivots=programming-language-python#languages).
 
 
 ### Instructions
-1. Follow the guide to [create an app](https://learn.microsoft.com/en-us/azure/azure-functions/create-first-function-cli-python?tabs=windows%2Cbash%2Cazure-cli%2Cbrowser). If you're testing the function locally, make sure to update to the latest version of Core Tools.
+1. Follow the guide to [create an app](https://learn.microsoft.com/azure/azure-functions/create-first-function-cli-python?tabs=windows%2Cbash%2Cazure-cli%2Cbrowser). If you're testing the function locally, make sure to update to the latest version of Core Tools.
 2. Ensure your app is using programming model v2 and contains an HttpTrigger function.
 3. Add ```azurefunctions-extensions-http-fastapi``` to your requirements.txt
 4. Import Request and different types of responses from ```azurefunctions.extensions.http.fastapi``` in your HttpTrigger functions.
@@ -70,7 +70,7 @@ Several samples are available in this GitHub repository. These samples provide e
 * [fastapi_samples_streaming_download](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-http-fastapi/samples/fastapi_samples_streaming_download) - An example on how to send your HTTP response via streaming to the caller.
 
 ## Contributing
-This project welcomes contributions and suggestions.  Most contributions require you to agree to a Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us the rights to use your contribution. For details, visit https://cla.microsoft.com.
+This project welcomes contributions and suggestions.  Most contributions require you to agree to a Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us the rights to use your contribution. For details, visit https://cla.opensource.microsoft.com.
 
 When you submit a pull request, a CLA-bot will automatically determine whether you need to provide a CLA and decorate the PR appropriately (e.g., label, comment). Simply follow the instructions provided by the bot. You will only need to do this once across all repos using our CLA.
 

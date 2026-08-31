@@ -1,4 +1,4 @@
-# Azure Functions Extensions Connectors Office365 library for Python
+# Azure Functions Extensions Connectors library for Python
 
 This library allows Office365 Connector Triggers in Python Function Apps to recognize and bind to client types from the Azure Connectors SDK.
 
@@ -6,17 +6,15 @@ Office365 client types can be generated from:
 
 * Office365 Connector Triggers
 
-[Source code](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-connectors-office365)
-| [Package (PyPi)](https://pypi.org/project/azurefunctions-extensions-connectors-office365/)
-| API reference documentation
-| Product documentation
-| [Samples](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-connectors-office365/samples)
+[Source code](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-connectors)
+| [Package (PyPI)](https://pypi.org/project/azurefunctions-extensions-connectors/)
+| [Samples](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-connectors/samples)
 
 
 ## Getting started
 
 ### Prerequisites
-* Python 3.9 or later is required to use this package. For more details, please read our page on [Python Functions version support policy](https://learn.microsoft.com/en-us/azure/azure-functions/functions-versions?tabs=isolated-process%2Cv4&pivots=programming-language-python#languages).
+* Python 3.10 or later is required to use this package. For more details, please read our page on [Python Functions version support policy](https://learn.microsoft.com/azure/azure-functions/functions-versions?tabs=isolated-process%2Cv4&pivots=programming-language-python#languages).
 
 * You must have an [Azure subscription](https://azure.microsoft.com/free/) and an Office365 account to use this package.
 
@@ -24,7 +22,7 @@ Office365 client types can be generated from:
 Install the Azure Functions Extensions Connectors Office365 library for Python with pip:
 
 ```bash
-pip install azurefunctions-extensions-connectors-office365
+pip install azurefunctions-extensions-connectors
 ```
 
 ### Bind to the SDK-type
@@ -92,10 +90,10 @@ logging.basicConfig(level=logging.INFO)
 ## Next steps
 
 ### More sample code
-Get started with our [Office365 Connector samples](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-connectors-office365/samples).
+Get started with our [Office365 Connector samples](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-connectors/samples).
 
 ## Contributing
-This project welcomes contributions and suggestions. Most contributions require you to agree to a Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us the rights to use your contribution. For details, visit https://cla.microsoft.com.
+This project welcomes contributions and suggestions. Most contributions require you to agree to a Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us the rights to use your contribution. For details, visit https://cla.opensource.microsoft.com.
 
 When you submit a pull request, a CLA-bot will automatically determine whether you need to provide a CLA and decorate the PR appropriately (e.g., label, comment). Simply follow the instructions provided by the bot. You will only need to do this once across all repos using our CLA.
 

@@ -21,13 +21,14 @@ examples on how to use the Azure EventHub library, please see [Azure EventHub sa
     * From EventHubTrigger
 
 ## Prerequisites
-* Python 3.9 or later is required to use this package. For more details, please read our page on [Python Functions version support policy](https://learn.microsoft.com/en-us/azure/azure-functions/functions-versions?tabs=isolated-process%2Cv4&pivots=programming-language-python#languages).
-* You must have an [Azure subscription](https://azure.microsoft.com/free/) and an
-[Azure storage account](https://docs.microsoft.com/azure/storage/common/storage-account-overview) to use this package.
+* Python 3.9 or later is required to use this package. For more details, please read our page on [Python Functions version support policy](https://learn.microsoft.com/azure/azure-functions/functions-versions?tabs=isolated-process%2Cv4&pivots=programming-language-python#languages).
+* You must have an [Azure subscription](https://azure.microsoft.com/free/), an
+[Azure Event Hubs namespace, and an event hub](https://learn.microsoft.com/azure/event-hubs/event-hubs-create) to use these samples.
+* You must run [Azurite](https://learn.microsoft.com/azure/storage/common/storage-use-azurite) or configure an Azure storage account for the Functions host.
 
 ## Setup
 
-1. Install [Core Tools](https://learn.microsoft.com/en-us/azure/azure-functions/functions-run-local?tabs=windows%2Cisolated-process%2Cnode-v4%2Cpython-v2%2Chttp-trigger%2Ccontainer-apps&pivots=programming-language-python)
+1. Install [Core Tools](https://learn.microsoft.com/azure/azure-functions/functions-run-local?tabs=windows%2Cisolated-process%2Cnode-v4%2Cpython-v2%2Chttp-trigger%2Ccontainer-apps&pivots=programming-language-python)
 2. Install the Azure Functions Extension EventHub library for Python with [pip](https://pypi.org/project/pip/):
 
 ```bash
@@ -53,6 +54,6 @@ func start
 
 ## Next steps
 
-Visit the [SDK-type bindings in Python reference documentation](https://learn.microsoft.com/en-us/azure/azure-functions/functions-reference-python?tabs=get-started%2Casgi%2Capplication-level&pivots=python-mode-decorators#sdk-type-bindings-preview) to learn more about how to use SDK-type bindings in a Python Function App and the
-[API reference documentation](https://learn.microsoft.com/en-us/python/api/azure-eventhub/azure.eventhub?view=azure-python) to learn more about
+Visit the [SDK-type bindings in Python reference documentation](https://learn.microsoft.com/azure/azure-functions/functions-reference-python?pivots=python-mode-decorators#sdk-type-bindings) to learn more about how to use SDK-type bindings in a Python Function App and the
+[API reference documentation](https://learn.microsoft.com/python/api/azure-eventhub/azure.eventhub?view=azure-python) to learn more about
 what you can do with the Azure EventHub library.
