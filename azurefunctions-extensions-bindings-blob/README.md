@@ -17,10 +17,10 @@ Blob client types can be generated from:
 ## Getting started
 
 ### Prerequisites
-* Python 3.9 or later is required to use this package. For more details, please read our page on [Python Functions version support policy](https://learn.microsoft.com/en-us/azure/azure-functions/functions-versions?tabs=isolated-process%2Cv4&pivots=programming-language-python#languages).
+* A supported Python version is required. For more details, see the [Python Functions version support policy](https://learn.microsoft.com/azure/azure-functions/functions-versions?tabs=isolated-process%2Cv4&pivots=programming-language-python#languages).
 
 * You must have an [Azure subscription](https://azure.microsoft.com/free/) and an
-[Azure storage account](https://docs.microsoft.com/azure/storage/common/storage-account-overview) to use this package.
+[Azure storage account](https://learn.microsoft.com/azure/storage/common/storage-account-overview) to use this package.
 
 ### Install the package
 Install the Azure Functions Extensions Bindings Blob library for Python with pip:
@@ -31,9 +31,9 @@ pip install azurefunctions-extensions-bindings-blob
 
 ### Create a storage account
 If you wish to create a new storage account, you can use the
-[Azure Portal](https://docs.microsoft.com/azure/storage/common/storage-quickstart-create-account?tabs=azure-portal),
-[Azure PowerShell](https://docs.microsoft.com/azure/storage/common/storage-quickstart-create-account?tabs=azure-powershell),
-or [Azure CLI](https://docs.microsoft.com/azure/storage/common/storage-quickstart-create-account?tabs=azure-cli):
+[Azure portal](https://learn.microsoft.com/azure/storage/common/storage-account-create?tabs=azure-portal),
+[Azure PowerShell](https://learn.microsoft.com/azure/storage/common/storage-account-create?tabs=azure-powershell),
+or [Azure CLI](https://learn.microsoft.com/azure/storage/common/storage-account-create?tabs=azure-cli):
 
 ```bash
 # Create a new resource group to hold the storage account -
@@ -104,11 +104,11 @@ Several samples are available in this GitHub repository. These samples provide e
     * From BlobInput
 
 ### Additional documentation
-For more information on the Azure Storage Blob SDK, see the [Azure Blob storage documentation](https://docs.microsoft.com/azure/storage/blobs/) on docs.microsoft.com
+For more information on the Azure Storage Blob SDK, see the [Azure Blob storage documentation](https://learn.microsoft.com/azure/storage/blobs/)
 and the [Azure Storage Blobs README](https://github.com/Azure/azure-sdk-for-python/tree/main/sdk/storage/azure-storage-blob).
 
 ## Contributing
-This project welcomes contributions and suggestions.  Most contributions require you to agree to a Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us the rights to use your contribution. For details, visit https://cla.microsoft.com.
+This project welcomes contributions and suggestions.  Most contributions require you to agree to a Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us the rights to use your contribution. For details, visit https://cla.opensource.microsoft.com.
 
 When you submit a pull request, a CLA-bot will automatically determine whether you need to provide a CLA and decorate the PR appropriately (e.g., label, comment). Simply follow the instructions provided by the bot. You will only need to do this once across all repos using our CLA.
 

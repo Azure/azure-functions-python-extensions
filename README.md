@@ -2,7 +2,7 @@
 
 This repository is for the active development of the Azure Functions extensions for the Python worker. 
 For consumers of these extensions we recommend 
-visiting our [public developer docs](https://docs.microsoft.com/python/azure/).
+visiting the [Python developer reference for Azure Functions](https://learn.microsoft.com/azure/azure-functions/functions-reference-python).
 
 ## Getting started
 
@@ -12,15 +12,21 @@ in the library's project folder.
 
 ### Prerequisites
 
-The libraries are supported on Function Apps using Python 3.9 or later. For more details, please read our page on 
-[Python Functions version support policy](https://learn.microsoft.com/en-us/azure/azure-functions/functions-versions?tabs=isolated-process%2Cv4&pivots=programming-language-python#languages).
+A supported Python version is required - see 
+[Python Functions version support policy](https://learn.microsoft.com/azure/azure-functions/functions-versions?tabs=isolated-process%2Cv4&pivots=programming-language-python#languages) for more information.
 
-## SDK Support
-* Azure Storage Blob
+## Available extensions
+* [Base extension](azurefunctions-extensions-base/README.md)
+* [Azure Blob Storage bindings](azurefunctions-extensions-bindings-blob/README.md)
+* [Azure Cosmos DB bindings](azurefunctions-extensions-bindings-cosmosdb/README.md)
+* [Azure Event Hubs bindings](azurefunctions-extensions-bindings-eventhub/README.md)
+* [Azure Service Bus bindings](azurefunctions-extensions-bindings-servicebus/README.md)
+* [Connector bindings](azurefunctions-extensions-connectors/README.md)
+* [FastAPI HTTP streaming](azurefunctions-extensions-http-fastapi/README.md)
 
 ## Need help?
 
-* For detailed documentation visit our [Azure Functions Extensions for Python documentation]()
+* Read the [Python developer reference for Azure Functions](https://learn.microsoft.com/azure/azure-functions/functions-reference-python)
 * File an issue via [GitHub Issues](https://github.com/Azure/azure-functions-python-extensions/issues)
 * Check [previous questions](https://stackoverflow.com/questions/tagged/azure+python) or ask new ones on StackOverflow using `azure` and `python` tags.
 
@@ -46,6 +52,6 @@ contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additio
 
 This project may contain trademarks or logos for projects, products, or services. Authorized use of Microsoft 
 trademarks or logos is subject to and must follow 
-[Microsoft's Trademark & Brand Guidelines](https://www.microsoft.com/en-us/legal/intellectualproperty/trademarks/usage/general).
+[Microsoft's Trademark & Brand Guidelines](https://www.microsoft.com/legal/intellectualproperty/trademarks/usage/general).
 Use of Microsoft trademarks or logos in modified versions of this project must not cause confusion or imply Microsoft sponsorship.
 Any use of third-party trademarks or logos are subject to those third-party's policies.
