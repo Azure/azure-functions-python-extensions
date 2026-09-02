@@ -7,17 +7,17 @@ import math
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, Dict, List, Literal, TypeVar, Union, cast
 
-import azure.durable_functions as df
 import azure.functions as func
-from azure.durable_functions.models.Task import TaskBase
 
 from .bindings import _configured_state, _durable_agent
 from .providers import InvocationMetadata
 
 if TYPE_CHECKING:
+    import azure.durable_functions as df
     from azure.durable_functions import (
         DurableOrchestrationContext as _DurableContextBase,
     )
+    from azure.durable_functions.models.Task import TaskBase
 else:
 
     class _DurableContextBase:
@@ -127,7 +127,9 @@ class DurableAgentContext(_DurableContextBase):  # type: ignore[misc]
         }
         if retry_options is None:
             return self._context.call_activity(_INTERNAL_AGENT_ACTIVITY_NAME, payload)
-        if not isinstance(retry_options, df.RetryOptions):
+        from azure.durable_functions import RetryOptions
+
+        if not isinstance(retry_options, RetryOptions):
             raise TypeError("call_agent retry_options must be RetryOptions or None")
         return self._context.call_activity_with_retry(
             _INTERNAL_AGENT_ACTIVITY_NAME,
@@ -137,6 +139,8 @@ class DurableAgentContext(_DurableContextBase):  # type: ignore[misc]
 
 
 def configure_durable_app(app: func.FunctionApp) -> None:
+    import azure.durable_functions as df
+
     state = _configured_state(app)
     with state.lock:
         if state.durable_activity_registered:

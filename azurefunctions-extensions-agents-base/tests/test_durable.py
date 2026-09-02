@@ -53,13 +53,11 @@ def test_call_agent_schedules_canonical_payload():
     ]
 
 
-def test_call_agent_schedules_retry_with_same_canonical_payload(monkeypatch):
-    class RetryOptions:
-        pass
+def test_call_agent_schedules_retry_with_same_canonical_payload():
+    from azure.durable_functions import RetryOptions
 
     context = _Context()
-    retry_options = RetryOptions()
-    monkeypatch.setattr(durable.df, "RetryOptions", RetryOptions)
+    retry_options = RetryOptions(1000, 3)
     proxy = DurableAgentContext(context)
 
     task = proxy.call_agent(

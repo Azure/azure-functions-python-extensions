@@ -2,14 +2,21 @@ import subprocess
 import sys
 
 
-def test_base_import_does_not_import_durable():
+def test_durable_module_import_does_not_require_durable():
     result = subprocess.run(
         [
             sys.executable,
             "-c",
             (
-                "import sys; "
-                "import azurefunctions.extensions.agents.base; "
+                "import importlib.abc\n"
+                "import sys\n"
+                "class BlockDurable(importlib.abc.MetaPathFinder):\n"
+                " def find_spec(self, fullname, path, target=None):\n"
+                "  if fullname == 'azure.durable_functions' or "
+                "fullname.startswith('azure.durable_functions.'):\n"
+                "   raise ModuleNotFoundError(name=fullname)\n"
+                "sys.meta_path.insert(0, BlockDurable())\n"
+                "import azurefunctions.extensions.agents.base.durable\n"
                 "assert 'azure.durable_functions' not in sys.modules"
             ),
         ],
