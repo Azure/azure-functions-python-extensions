@@ -4,6 +4,8 @@
 import unittest
 from typing import List
 
+from azurefunctions.extensions.base import Datum
+from azurefunctions.extensions.connectors._sdk_type import ConnectorSdkType
 from azurefunctions.extensions.connectors.office365 import (
     ClientReceiveMessage,
     GraphClientReceiveMessage,
@@ -11,6 +13,17 @@ from azurefunctions.extensions.connectors.office365 import (
     GraphCalendarEventClientReceive,
     ConnectorConverter
 )
+
+
+def deserialize_future_connector(data: Datum) -> str:
+    """Deserialize a stand-in future connector payload."""
+    return data.value
+
+
+class FutureConnectorSdkType(ConnectorSdkType[str]):
+    """Represent a future connector without central converter registration."""
+
+    _deserialize = staticmethod(deserialize_future_connector)
 
 
 class TestConnectorConverter(unittest.TestCase):
@@ -147,6 +160,18 @@ class TestConnectorConverter(unittest.TestCase):
             pytype=str
         )
         self.assertIsNone(result)
+
+    def test_decode_connector_sdk_type_without_registration(self):
+        """Test that future connector types need no converter registration."""
+        data = Datum(value="future-connector-value", type="json")
+
+        result = ConnectorConverter.decode(
+            data=data,
+            trigger_metadata=None,
+            pytype=FutureConnectorSdkType,
+        )
+
+        self.assertEqual(result, "future-connector-value")
 
 
 if __name__ == "__main__":
