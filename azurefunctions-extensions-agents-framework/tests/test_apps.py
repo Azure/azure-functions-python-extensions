@@ -4,7 +4,7 @@ from unittest.mock import Mock
 
 import azure.functions as func
 
-from azurefunctions.extensions.agents_framework import AiApp, DurableAiApp
+from azurefunctions.extensions.agents.framework import AiApp, DurableAiApp
 
 
 def test_typed_ai_app_pins_framework_provider(monkeypatch):

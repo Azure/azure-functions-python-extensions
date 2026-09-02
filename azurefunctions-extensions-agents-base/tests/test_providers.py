@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from azurefunctions.extensions.agents_base import providers
+from azurefunctions.extensions.agents.base import providers
 
 
 class _Provider:

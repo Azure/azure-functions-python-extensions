@@ -22,7 +22,7 @@ client and Agent context are created and closed for every Function invocation.
 ```python
 import azure.functions as func
 from agent_framework import Agent
-from azurefunctions.extensions.agents_framework import AiApp
+from azurefunctions.extensions.agents.framework import AiApp
 
 
 def create_chat_client():

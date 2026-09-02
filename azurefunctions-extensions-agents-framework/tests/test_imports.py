@@ -9,7 +9,7 @@ def test_framework_import_does_not_import_durable():
             "-c",
             (
                 "import sys; "
-                "import azurefunctions.extensions.agents_framework; "
+                "import azurefunctions.extensions.agents.framework; "
                 "assert 'azure.durable_functions' not in sys.modules"
             ),
         ],

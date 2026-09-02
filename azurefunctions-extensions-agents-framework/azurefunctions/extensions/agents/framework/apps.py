@@ -13,7 +13,7 @@ from agent_framework import (
     ToolTypes,
 )
 
-from azurefunctions.extensions.agents_base import markdown_agent as base_markdown_agent
+from azurefunctions.extensions.agents.base import markdown_agent as base_markdown_agent
 
 from .provider import AGENT_FRAMEWORK_PROVIDER_ID, ClientFactory
 

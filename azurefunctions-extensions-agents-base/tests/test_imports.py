@@ -9,7 +9,7 @@ def test_base_import_does_not_import_durable():
             "-c",
             (
                 "import sys; "
-                "import azurefunctions.extensions.agents_base; "
+                "import azurefunctions.extensions.agents.base; "
                 "assert 'azure.durable_functions' not in sys.modules"
             ),
         ],

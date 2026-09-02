@@ -7,8 +7,8 @@ from types import SimpleNamespace
 import pytest
 from agent_framework import Agent
 
-from azurefunctions.extensions.agents_base import InvocationMetadata
-from azurefunctions.extensions.agents_framework import provider
+from azurefunctions.extensions.agents.base import InvocationMetadata
+from azurefunctions.extensions.agents.framework import provider
 
 
 class _Agent:

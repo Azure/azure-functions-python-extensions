@@ -9,7 +9,7 @@ from typing import Any, AsyncIterator, get_origin
 
 from agent_framework import Agent, BaseChatClient
 
-from azurefunctions.extensions.agents_base import InvocationMetadata
+from azurefunctions.extensions.agents.base import InvocationMetadata
 
 AGENT_FRAMEWORK_PROVIDER_ID = "agent_framework"
 ClientFactory = Callable[[], BaseChatClient[Any]]

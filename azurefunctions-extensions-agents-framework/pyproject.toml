@@ -45,16 +45,16 @@ dev = [
 ]
 
 [project.entry-points."azurefunctions.extensions.agents.providers"]
-agent_framework = "azurefunctions.extensions.agents_framework.provider:create_provider"
+agent_framework = "azurefunctions.extensions.agents.framework.provider:create_provider"
 
 [tool.setuptools.dynamic]
-version = { attr = "azurefunctions.extensions.agents_framework.__version__" }
+version = { attr = "azurefunctions.extensions.agents.framework.__version__" }
 
 [tool.setuptools.packages.find]
-include = ["azurefunctions.extensions.agents_framework*"]
+include = ["azurefunctions.extensions.agents.framework*"]
 
 [tool.setuptools.package-data]
-"azurefunctions.extensions.agents_framework" = ["py.typed"]
+"azurefunctions.extensions.agents.framework" = ["py.typed"]
 
 [[tool.mypy.overrides]]
 module = ["azure", "azure.*"]

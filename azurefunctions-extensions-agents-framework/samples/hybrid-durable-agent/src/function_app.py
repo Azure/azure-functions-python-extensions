@@ -5,7 +5,7 @@ from typing import Any, cast
 import azure.durable_functions as df
 import azure.functions as func
 from agent_framework import Agent
-from azurefunctions.extensions.agents_framework import DurableAiApp
+from azurefunctions.extensions.agents.framework import DurableAiApp
 from order_processing import prepare_order_for_agent
 
 

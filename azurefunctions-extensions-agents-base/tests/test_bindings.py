@@ -9,7 +9,7 @@ from contextlib import asynccontextmanager
 import azure.functions as func
 import pytest
 
-from azurefunctions.extensions.agents_base import bindings, providers
+from azurefunctions.extensions.agents.base import bindings, providers
 
 
 class _CompiledAgent:

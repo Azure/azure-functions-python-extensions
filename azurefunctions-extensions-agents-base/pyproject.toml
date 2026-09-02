@@ -44,13 +44,13 @@ dev = [
 ]
 
 [tool.setuptools.dynamic]
-version = { attr = "azurefunctions.extensions.agents_base.__version__" }
+version = { attr = "azurefunctions.extensions.agents.base.__version__" }
 
 [tool.setuptools.packages.find]
-include = ["azurefunctions.extensions.agents_base*"]
+include = ["azurefunctions.extensions.agents.base*"]
 
 [tool.setuptools.package-data]
-"azurefunctions.extensions.agents_base" = ["py.typed"]
+"azurefunctions.extensions.agents.base" = ["py.typed"]
 
 [[tool.mypy.overrides]]
 module = ["azure.durable_functions", "azure.durable_functions.*"]

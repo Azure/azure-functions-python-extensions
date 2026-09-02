@@ -8,8 +8,8 @@ from types import SimpleNamespace
 import azure.functions as func
 import pytest
 
-from azurefunctions.extensions.agents_base import bindings, durable
-from azurefunctions.extensions.agents_base.durable import (
+from azurefunctions.extensions.agents.base import bindings, durable
+from azurefunctions.extensions.agents.base.durable import (
     DurableAgentContext,
     _canonicalize_json_value,
     _normalize_agent_prompt,
