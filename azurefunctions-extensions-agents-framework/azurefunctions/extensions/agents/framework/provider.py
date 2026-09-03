@@ -85,6 +85,8 @@ class AgentFrameworkProvider:
                 "Unsupported Microsoft Agent Framework option(s): " + ", ".join(unknown)
             )
         client_factory = options.get("client_factory")
+        if client_factory is None:
+            raise TypeError("client_factory option is required")
         if not callable(client_factory):
             raise TypeError("client_factory must be callable")
         if annotation is not inspect.Signature.empty:
