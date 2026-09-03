@@ -4,7 +4,12 @@ from unittest.mock import Mock
 
 import azure.functions as func
 
-from azurefunctions.extensions.agents.framework import AiApp, DurableAiApp
+from azurefunctions.extensions.agents.framework import (
+    AiApp,
+    DurableAiApp,
+    markdown_agent,
+)
+from azurefunctions.extensions.agents.framework import apps
 
 
 def test_typed_ai_app_pins_framework_provider(monkeypatch):
@@ -44,6 +49,30 @@ def test_typed_markdown_agent_forwards_supported_overrides(monkeypatch):
         app_root=None,
         client_factory=factory,
         tools=["lookup"],
+    )
+
+
+def test_typed_decorator_preserves_app_provider_defaults(monkeypatch):
+    base_decorator = Mock(return_value=object())
+    monkeypatch.setattr(apps, "base_markdown_agent", base_decorator)
+    app = func.FunctionApp()
+    factory = lambda: object()
+
+    result = markdown_agent(
+        app,
+        arg_name="agent",
+        agent_name="orders",
+        client_factory=factory,
+    )
+
+    assert result is base_decorator.return_value
+    base_decorator.assert_called_once_with(
+        app,
+        provider="agent_framework",
+        arg_name="agent",
+        agent_name="orders",
+        app_root=None,
+        client_factory=factory,
     )
 
 

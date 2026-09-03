@@ -75,7 +75,7 @@ def markdown_agent(
     default_options: Any | None = None,
     context_providers: Sequence[ContextProvider] | None = None,
     middleware: Sequence[MiddlewareTypes] | None = None,
-    require_per_service_call_history_persistence: bool = False,
+    require_per_service_call_history_persistence: bool | None = None,
     compaction_strategy: CompactionStrategy | None = None,
     tokenizer: TokenizerProtocol | None = None,
     additional_properties: MutableMapping[str, Any] | None = None,

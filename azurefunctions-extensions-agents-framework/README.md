@@ -26,9 +26,9 @@ from azurefunctions.extensions.agents.framework import AiApp
 
 
 def create_chat_client():
-	from agent_framework.openai import OpenAIChatClient
+    from agent_framework.openai import OpenAIChatClient
 
-	return OpenAIChatClient()
+    return OpenAIChatClient()
 
 
 app = AiApp(client_factory=create_chat_client)
@@ -37,8 +37,8 @@ app = AiApp(client_factory=create_chat_client)
 @app.route(route="orders", methods=["POST"])
 @app.markdown_agent(arg_name="agent", agent_name="orders")
 async def process_order(req: func.HttpRequest, agent: Agent):
-	response = await agent.run(req.get_body().decode())
-	return response.text
+    response = await agent.run(req.get_body().decode())
+    return response.text
 ```
 
 Place the complete instructions at `orders.agent.md` or
@@ -52,13 +52,13 @@ app = func.FunctionApp()
 
 
 @app.markdown_agent(
-	provider="agent_framework",
-	arg_name="agent",
-	agent_name="orders",
-	client_factory=create_chat_client,
+    provider="agent_framework",
+    arg_name="agent",
+    agent_name="orders",
+    client_factory=create_chat_client,
 )
 async def process_order(req: func.HttpRequest, agent: Agent):
-	...
+    ...
 ```
 
 Typed constructors and decorators expose the MAF Agent options supported by

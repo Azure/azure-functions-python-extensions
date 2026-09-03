@@ -26,6 +26,7 @@ jobs:
           PYTHON_VERSION: '3.13'
         python314:
           PYTHON_VERSION: '3.14'
+    condition: always()
     steps:
       - task: PipAuthenticate@1
         displayName: 'Pip Authenticate'
@@ -53,6 +54,7 @@ jobs:
           PYTHON_VERSION: '3.13'
         python314:
           PYTHON_VERSION: '3.14'
+    condition: always()
     steps:
       - task: PipAuthenticate@1
         displayName: 'Pip Authenticate'
