@@ -44,7 +44,7 @@ def test_typed_markdown_agent_forwards_supported_overrides(monkeypatch):
 
     assert result is parent_decorator.return_value
     parent_decorator.assert_called_once_with(
-        provider=None,
+        provider="agent_framework",
         arg_name="agent",
         agent_name="orders",
         app_root=None,
@@ -96,6 +96,30 @@ def test_typed_decorator_preserves_app_provider_defaults(monkeypatch):
         agent_name="orders",
         app_root=None,
         client_factory=factory,
+    )
+
+
+def test_typed_decorator_can_select_another_provider(monkeypatch):
+    base_decorator = Mock(return_value=object())
+    monkeypatch.setattr(apps, "base_markdown_agent", base_decorator)
+    app = func.FunctionApp()
+
+    result = markdown_agent(
+        app,
+        provider="langgraph",
+        arg_name="agent",
+        agent_name="researcher",
+        recursion_limit=10,
+    )
+
+    assert result is base_decorator.return_value
+    base_decorator.assert_called_once_with(
+        app,
+        provider="langgraph",
+        arg_name="agent",
+        agent_name="researcher",
+        app_root=None,
+        recursion_limit=10,
     )
 
 

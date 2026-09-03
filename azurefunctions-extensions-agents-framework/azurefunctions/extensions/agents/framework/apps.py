@@ -66,7 +66,8 @@ def markdown_agent(
     *,
     arg_name: str,
     agent_name: str,
-    client_factory: ClientFactory,
+    provider: str = AGENT_FRAMEWORK_PROVIDER_ID,
+    client_factory: ClientFactory | None = None,
     app_root: str | os.PathLike[str] | None = None,
     tools: (
         ToolTypes | Callable[..., Any] | Sequence[ToolTypes | Callable[..., Any]] | None
@@ -79,28 +80,31 @@ def markdown_agent(
     compaction_strategy: CompactionStrategy | None = None,
     tokenizer: TokenizerProtocol | None = None,
     additional_properties: MutableMapping[str, Any] | None = None,
+    **provider_options: Any,
 ) -> Callable[[_F], _F]:
-    options = _provider_options(
-        client_factory=client_factory,
-        tools=tools,
-        description=description,
-        default_options=default_options,
-        context_providers=context_providers,
-        middleware=middleware,
-        require_per_service_call_history_persistence=(
-            require_per_service_call_history_persistence
-        ),
-        compaction_strategy=compaction_strategy,
-        tokenizer=tokenizer,
-        additional_properties=additional_properties,
-    )
     return base_markdown_agent(
         app,
-        provider=AGENT_FRAMEWORK_PROVIDER_ID,
+        provider=provider,
         arg_name=arg_name,
         agent_name=agent_name,
         app_root=app_root,
-        **options,
+        **{
+            **_provider_options(
+                client_factory=client_factory,
+                tools=tools,
+                description=description,
+                default_options=default_options,
+                context_providers=context_providers,
+                middleware=middleware,
+                require_per_service_call_history_persistence=(
+                    require_per_service_call_history_persistence
+                ),
+                compaction_strategy=compaction_strategy,
+                tokenizer=tokenizer,
+                additional_properties=additional_properties,
+            ),
+            **provider_options,
+        },
     )
 
 
@@ -153,7 +157,7 @@ class AiApp(func.AiApp):
         *,
         arg_name: str,
         agent_name: str,
-        provider: str | None = None,
+        provider: str = AGENT_FRAMEWORK_PROVIDER_ID,
         client_factory: ClientFactory | None = None,
         app_root: str | os.PathLike[str] | None = None,
         tools: (

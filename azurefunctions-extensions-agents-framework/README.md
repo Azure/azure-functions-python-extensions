@@ -41,6 +41,34 @@ async def process_order(req: func.HttpRequest, agent: Agent):
     return response.text
 ```
 
+Provider IDs are the entry-point names published by provider packages. Each
+provider package documents its ID; this package exports
+`AGENT_FRAMEWORK_PROVIDER_ID` for code that needs to select it explicitly. A
+closed SDK enum is not used because third-party packages may add provider IDs
+without an Azure Functions SDK release.
+
+The standalone typed decorator also defaults to the Agent Framework provider:
+
+```python
+from azurefunctions.extensions.agents.framework import markdown_agent
+
+app = func.FunctionApp()
+
+
+@markdown_agent(
+    app,
+    arg_name="agent",
+    agent_name="orders",
+    client_factory=create_chat_client,
+)
+async def process_order(req: func.HttpRequest, agent: Agent):
+    ...
+```
+
+Its optional `provider` parameter can select another installed provider for one
+binding. Pass that provider's options as keyword arguments; provider-specific
+packages remain the source of truth for their IDs and supported options.
+
 Place the complete instructions at `orders.agent.md` or
 `agents/orders.agent.md`. The file is raw UTF-8 text; no front matter or runtime
 configuration is interpreted.
@@ -48,11 +76,13 @@ configuration is interpreted.
 The generic core form is also supported:
 
 ```python
+from azurefunctions.extensions.agents.framework import AGENT_FRAMEWORK_PROVIDER_ID
+
 app = func.FunctionApp()
 
 
 @app.markdown_agent(
-    provider="agent_framework",
+    provider=AGENT_FRAMEWORK_PROVIDER_ID,
     arg_name="agent",
     agent_name="orders",
     client_factory=create_chat_client,
