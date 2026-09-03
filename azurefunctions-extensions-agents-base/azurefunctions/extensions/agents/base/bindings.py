@@ -215,7 +215,8 @@ def _resolve_instructions(app_root: Path, agent_name: str) -> str:
         raise ValueError(
             f"Agent file {str(source)!r} resolves outside app root {str(app_root)!r}"
         )
-    return source.read_text(encoding="utf-8")
+    with source.open("r", encoding="utf-8", newline="") as handle:
+        return handle.read()
 
 
 def _worker_signature(handler: Callable[..., Any], arg_name: str) -> inspect.Signature:
