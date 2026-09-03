@@ -67,6 +67,21 @@ middleware, per-service-call history persistence, compaction strategy,
 tokenizer, and additional properties. The extension owns the Agent client,
 name, and instructions.
 
+`AiApp` makes `agent_framework` the default provider, but one app may use other
+installed providers too. Select another provider on an individual binding and
+pass its options directly:
+
+```python
+@app.markdown_agent(
+    provider="langgraph",
+    arg_name="agent",
+    agent_name="researcher",
+    recursion_limit=10,
+)
+async def research(agent: object):
+    ...
+```
+
 ## Durable Agents
 
 Durable orchestration support is optional:
@@ -80,3 +95,23 @@ synchronous generator orchestrator. Agent execution is isolated in an activity
 so replay performs no nondeterministic work. Importing the package remains safe
 without Durable installed; constructing `DurableAiApp` reports the exact extra
 to install when it is absent.
+
+To call another provider from the same orchestrator, configure it during app
+startup and select it on the call:
+
+```python
+app.configure_agent_provider(
+    provider="langgraph",
+    client_factory=create_langgraph_client,
+)
+
+
+@app.orchestration_trigger(context_name="context")
+def orchestrator(context):
+    result = yield context.call_agent(
+        "researcher",
+        context.get_input(),
+        provider="langgraph",
+    )
+    return result
+```

@@ -153,6 +153,7 @@ class AiApp(func.AiApp):
         *,
         arg_name: str,
         agent_name: str,
+        provider: str | None = None,
         client_factory: ClientFactory | None = None,
         app_root: str | os.PathLike[str] | None = None,
         tools: (
@@ -169,25 +170,30 @@ class AiApp(func.AiApp):
         compaction_strategy: CompactionStrategy | None = None,
         tokenizer: TokenizerProtocol | None = None,
         additional_properties: MutableMapping[str, Any] | None = None,
+        **provider_options: Any,
     ) -> Callable[[_F], _F]:
         return super().markdown_agent(
+            provider=provider,
             arg_name=arg_name,
             agent_name=agent_name,
             app_root=app_root,
-            **_provider_options(
-                client_factory=client_factory,
-                tools=tools,
-                description=description,
-                default_options=default_options,
-                context_providers=context_providers,
-                middleware=middleware,
-                require_per_service_call_history_persistence=(
-                    require_per_service_call_history_persistence
+            **{
+                **_provider_options(
+                    client_factory=client_factory,
+                    tools=tools,
+                    description=description,
+                    default_options=default_options,
+                    context_providers=context_providers,
+                    middleware=middleware,
+                    require_per_service_call_history_persistence=(
+                        require_per_service_call_history_persistence
+                    ),
+                    compaction_strategy=compaction_strategy,
+                    tokenizer=tokenizer,
+                    additional_properties=additional_properties,
                 ),
-                compaction_strategy=compaction_strategy,
-                tokenizer=tokenizer,
-                additional_properties=additional_properties,
-            ),
+                **provider_options,
+            },
         )
 
 

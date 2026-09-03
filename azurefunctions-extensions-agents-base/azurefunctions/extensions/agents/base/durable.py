@@ -29,7 +29,7 @@ JSONValue = Union[JSONPrimitive, List["JSONValue"], Dict[str, "JSONValue"]]
 _F = TypeVar("_F", bound=Callable[..., Any])
 
 _INTERNAL_AGENT_ACTIVITY_NAME = "azurefunctions_agents_run_markdown_agent"
-_ACTIVITY_PAYLOAD_VERSION: Literal[1] = 1
+_ACTIVITY_PAYLOAD_VERSION: Literal[2] = 2
 
 
 def _validate_json_value(value: object) -> None:
@@ -66,6 +66,7 @@ def _parse_activity_input(value: object) -> dict[str, Any]:
         raise TypeError("Markdown Agent activity input must be a JSON object")
     expected_fields = {
         "schema_version",
+        "provider_id",
         "agent_name",
         "input",
         "durable_instance_id",
@@ -75,9 +76,14 @@ def _parse_activity_input(value: object) -> dict[str, Any]:
             "Markdown Agent activity input must contain exactly: "
             + ", ".join(sorted(expected_fields))
         )
-    if type(value["schema_version"]) is not int or value["schema_version"] != 1:
+    if type(value["schema_version"]) is not int or value["schema_version"] != 2:
         raise ValueError(
-            "Unsupported Markdown Agent activity payload schema_version; expected 1"
+            "Unsupported Markdown Agent activity payload schema_version; expected 2"
+        )
+    provider_id = value["provider_id"]
+    if not isinstance(provider_id, str) or not provider_id.strip():
+        raise ValueError(
+            "Markdown Agent activity provider_id must be a non-empty string"
         )
     agent_name = value["agent_name"]
     if not isinstance(agent_name, str) or not agent_name.strip():
@@ -90,7 +96,8 @@ def _parse_activity_input(value: object) -> dict[str, Any]:
             "Markdown Agent activity durable_instance_id must be a non-empty string"
         )
     return {
-        "schema_version": 1,
+        "schema_version": 2,
+        "provider_id": provider_id,
         "agent_name": agent_name,
         "input": _canonicalize_json_value(value["input"]),
         "durable_instance_id": durable_instance_id,
@@ -104,8 +111,13 @@ def _normalize_agent_prompt(value: JSONValue) -> str:
 
 
 class DurableAgentContext(_DurableContextBase):  # type: ignore[misc]
-    def __init__(self, context: df.DurableOrchestrationContext) -> None:
+    def __init__(
+        self,
+        context: df.DurableOrchestrationContext,
+        default_provider_id: str,
+    ) -> None:
         self._context = context
+        self._default_provider_id = default_provider_id
 
     def __getattr__(self, name: str) -> Any:
         return getattr(self._context, name)
@@ -115,12 +127,17 @@ class DurableAgentContext(_DurableContextBase):  # type: ignore[misc]
         agent_name: str,
         input_: JSONValue,
         *,
+        provider: str | None = None,
         retry_options: df.RetryOptions | None = None,
     ) -> TaskBase:
         if not isinstance(agent_name, str) or not agent_name.strip():
             raise ValueError("call_agent agent_name must be a non-empty string")
+        provider_id = self._default_provider_id if provider is None else provider
+        if not isinstance(provider_id, str) or not provider_id.strip():
+            raise ValueError("call_agent provider must be a non-empty string or None")
         payload = {
             "schema_version": _ACTIVITY_PAYLOAD_VERSION,
+            "provider_id": provider_id,
             "agent_name": agent_name,
             "input": _canonicalize_json_value(input_),
             "durable_instance_id": str(self._context.instance_id),
@@ -143,6 +160,10 @@ def configure_durable_app(app: func.FunctionApp) -> None:
 
     state = _configured_state(app)
     with state.lock:
+        if state.default_provider_id is None:
+            raise RuntimeError(
+                "Durable Agent support requires a default Agent provider"
+            )
         if state.durable_activity_registered:
             return
         blueprint = df.Blueprint()
@@ -153,7 +174,11 @@ def configure_durable_app(app: func.FunctionApp) -> None:
             context: func.Context,
         ) -> str:
             parsed = _parse_activity_input(payload)
-            compiled = _durable_agent(app, parsed["agent_name"])
+            compiled = _durable_agent(
+                app,
+                parsed["provider_id"],
+                parsed["agent_name"],
+            )
             invocation = InvocationMetadata(
                 function_name=(
                     str(context.function_name or "") or _INTERNAL_AGENT_ACTIVITY_NAME
@@ -179,6 +204,10 @@ def durable_orchestration_trigger(
     input_type: type | None = None,
 ) -> Callable[[_F], Any]:
     configure_durable_app(app)
+    state = _configured_state(app)
+    default_provider_id = state.default_provider_id
+    if default_provider_id is None:
+        raise RuntimeError("Durable Agent support requires a default Agent provider")
     sdk_parameters = inspect.signature(sdk_decorator).parameters
     if input_type is None:
         decorator = sdk_decorator(
@@ -223,7 +252,10 @@ def durable_orchestration_trigger(
                 df.DurableOrchestrationContext,
                 bound.arguments[context_name],
             )
-            bound.arguments[context_name] = DurableAgentContext(context)
+            bound.arguments[context_name] = DurableAgentContext(
+                context,
+                default_provider_id,
+            )
             return (yield from handler(*bound.args, **bound.kwargs))
 
         proxy_orchestrator.__signature__ = signature  # type: ignore[attr-defined]
