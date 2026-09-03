@@ -38,7 +38,7 @@ async def start_order_orchestration(
     return func.HttpResponse(
         body=json.dumps(management),
         status_code=202,
-        media_type="application/json",
+        mimetype="application/json",
         headers={
             "Location": management["statusQueryGetUri"],
             "Retry-After": "10",
