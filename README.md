@@ -17,6 +17,8 @@ A supported Python version is required - see
 
 ## Available extensions
 * [Base extension](azurefunctions-extensions-base/README.md)
+* [Agent provider base](azurefunctions-extensions-agents-base/README.md)
+* [Microsoft Agent Framework](azurefunctions-extensions-agents-framework/README.md)
 * [Azure Blob Storage bindings](azurefunctions-extensions-bindings-blob/README.md)
 * [Azure Cosmos DB bindings](azurefunctions-extensions-bindings-cosmosdb/README.md)
 * [Azure Event Hubs bindings](azurefunctions-extensions-bindings-eventhub/README.md)

@@ -17,6 +17,63 @@ parameters:
         PYTHON_VERSION: '3.14'
 
 jobs:
+  - job: "AgentsBaseTests"
+    displayName: "Agents Base Extension Tests"
+    dependsOn: []
+    strategy:
+      matrix:
+        python313:
+          PYTHON_VERSION: '3.13'
+        python314:
+          PYTHON_VERSION: '3.14'
+    condition: always()
+    steps:
+      - task: PipAuthenticate@1
+        displayName: 'Pip Authenticate'
+        inputs:
+          artifactFeeds: public/upstream-public
+          onlyAddExtraIndex: false
+      - task: UsePythonVersion@0
+        inputs:
+          versionSpec: $(PYTHON_VERSION)
+      - bash: |
+          python -m pip install --upgrade pip
+          cd azurefunctions-extensions-agents-base
+          python -m pip install -U -e .[dev]
+        displayName: 'Install Agents Base Dependencies'
+      - bash: |
+          python -m pytest -q --instafail azurefunctions-extensions-agents-base/tests/
+        displayName: "Run Agents Base Tests for Python $(PYTHON_VERSION)"
+
+  - job: "AgentsFrameworkTests"
+    displayName: "Agents Framework Extension Tests"
+    dependsOn: []
+    strategy:
+      matrix:
+        python313:
+          PYTHON_VERSION: '3.13'
+        python314:
+          PYTHON_VERSION: '3.14'
+    condition: always()
+    steps:
+      - task: PipAuthenticate@1
+        displayName: 'Pip Authenticate'
+        inputs:
+          artifactFeeds: public/upstream-public
+          onlyAddExtraIndex: false
+      - task: UsePythonVersion@0
+        inputs:
+          versionSpec: $(PYTHON_VERSION)
+      - bash: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ./azurefunctions-extensions-agents-base
+          cd azurefunctions-extensions-agents-framework
+          python -m pip install -U -e .[dev]
+        displayName: 'Install Agents Framework Dependencies'
+      - bash: |
+          python -m pytest -q --instafail azurefunctions-extensions-agents-framework/tests/
+        displayName: "Run Agents Framework Tests for Python $(PYTHON_VERSION)"
+
   - job: "BaseTests"
     displayName: "Base Extension Tests"
     dependsOn: []

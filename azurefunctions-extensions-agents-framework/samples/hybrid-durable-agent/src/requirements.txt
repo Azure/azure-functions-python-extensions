@@ -1,0 +1,4 @@
+-e ../../..[durable]
+agent-framework-foundry==1.13.0
+azure-identity
+pydantic

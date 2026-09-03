@@ -7,6 +7,12 @@ jobs:
         base_extension:
           EXTENSION_DIRECTORY: 'azurefunctions-extensions-base'
           EXTENSION_NAME: 'Base'
+        agents_base_extension:
+          EXTENSION_DIRECTORY: 'azurefunctions-extensions-agents-base'
+          EXTENSION_NAME: 'Agents Base'
+        agents_framework_extension:
+          EXTENSION_DIRECTORY: 'azurefunctions-extensions-agents-framework'
+          EXTENSION_NAME: 'Agents Framework'
         blob_extension:
           EXTENSION_DIRECTORY: 'azurefunctions-extensions-bindings-blob'
           EXTENSION_NAME: 'Blob'
