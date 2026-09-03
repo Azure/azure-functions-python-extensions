@@ -34,7 +34,7 @@ class _Context:
 
 def test_call_agent_schedules_canonical_payload():
     context = _Context()
-    proxy = DurableAgentContext(context, "agent_framework")
+    proxy = DurableAgentContext(context)
 
     task = proxy.call_agent("orders", {"z": 1, "a": [True, None]})
 
@@ -44,8 +44,7 @@ def test_call_agent_schedules_canonical_payload():
             "activity",
             "azurefunctions_agents_run_markdown_agent",
             {
-                "schema_version": 2,
-                "provider_id": "agent_framework",
+                "schema_version": 1,
                 "agent_name": "orders",
                 "input": {"a": [True, None], "z": 1},
                 "durable_instance_id": "instance-1",
@@ -59,7 +58,7 @@ def test_call_agent_schedules_retry_with_same_canonical_payload():
 
     context = _Context()
     retry_options = RetryOptions(1000, 3)
-    proxy = DurableAgentContext(context, "agent_framework")
+    proxy = DurableAgentContext(context)
 
     task = proxy.call_agent(
         "orders",
@@ -74,8 +73,7 @@ def test_call_agent_schedules_retry_with_same_canonical_payload():
             "azurefunctions_agents_run_markdown_agent",
             retry_options,
             {
-                "schema_version": 2,
-                "provider_id": "agent_framework",
+                "schema_version": 1,
                 "agent_name": "orders",
                 "input": {"a": 2, "z": 1},
                 "durable_instance_id": "instance-1",
@@ -84,40 +82,26 @@ def test_call_agent_schedules_retry_with_same_canonical_payload():
     ]
 
 
-def test_call_agent_schedules_explicit_provider():
-    context = _Context()
-    proxy = DurableAgentContext(context, "agent_framework")
-
-    proxy.call_agent("orders", "hello", provider="langgraph")
-
-    assert context.calls[0][2]["provider_id"] == "langgraph"
+def test_call_agent_does_not_accept_provider_override():
+    with pytest.raises(TypeError, match="provider"):
+        DurableAgentContext(_Context()).call_agent(
+            "orders",
+            "hello",
+            provider="langgraph",  # type: ignore[call-arg]
+        )
 
 
 @pytest.mark.parametrize("value", [math.nan, math.inf, -math.inf])
 def test_call_agent_rejects_nonfinite_numbers(value):
     with pytest.raises(ValueError, match="NaN or infinity"):
-        DurableAgentContext(_Context(), "agent_framework").call_agent("orders", value)
+        DurableAgentContext(_Context()).call_agent("orders", value)
 
 
 def test_parse_activity_input_rejects_unknown_schema():
     with pytest.raises(ValueError, match="schema_version"):
         _parse_activity_input(
             {
-                "schema_version": 1,
-                "provider_id": "agent_framework",
-                "agent_name": "orders",
-                "input": "hello",
-                "durable_instance_id": "instance-1",
-            }
-        )
-
-
-def test_parse_activity_input_rejects_blank_provider():
-    with pytest.raises(ValueError, match="provider_id"):
-        _parse_activity_input(
-            {
                 "schema_version": 2,
-                "provider_id": " ",
                 "agent_name": "orders",
                 "input": "hello",
                 "durable_instance_id": "instance-1",
@@ -211,8 +195,7 @@ def test_hidden_activity_resolves_and_executes_dynamic_agent(tmp_path, monkeypat
     result = asyncio.run(
         activity(
             {
-                "schema_version": 2,
-                "provider_id": "agent_framework",
+                "schema_version": 1,
                 "agent_name": "orders",
                 "input": {"z": 1, "a": 2},
                 "durable_instance_id": "instance-1",
@@ -225,51 +208,10 @@ def test_hidden_activity_resolves_and_executes_dynamic_agent(tmp_path, monkeypat
     assert provider.compile_calls[0]["instructions"] == instructions
     assert provider.compiled.calls[0][0] == '{"a":2,"z":1}'
     assert provider.compiled.calls[0][1].durable_instance_id == "instance-1"
-
-
-def test_hidden_activity_routes_same_agent_name_by_provider(tmp_path, monkeypatch):
-    (tmp_path / "orders.agent.md").write_text("instructions", encoding="utf-8")
-    framework = _Provider()
-    langgraph = _Provider()
-    langgraph.provider_id = "langgraph"
-    providers_by_id = {
-        "agent_framework": framework,
-        "langgraph": langgraph,
-    }
-    monkeypatch.setattr(
-        bindings,
-        "load_provider",
-        lambda provider_id: providers_by_id[provider_id],
-    )
-    app = func.FunctionApp()
-    bindings.configure_app(
-        app,
-        provider="agent_framework",
-        app_root=tmp_path,
-    )
-    bindings.configure_agent_provider(app, provider="langgraph")
-    durable.configure_durable_app(app)
-    activity = app.get_functions()[0].get_user_function()
-    context = SimpleNamespace(function_name="activity", invocation_id="invocation-1")
-
-    for provider_id in providers_by_id:
-        asyncio.run(
-            activity(
-                {
-                    "schema_version": 2,
-                    "provider_id": provider_id,
-                    "agent_name": "orders",
-                    "input": "hello",
-                    "durable_instance_id": "instance-1",
-                },
-                context,
-            )
-        )
     asyncio.run(
         activity(
             {
-                "schema_version": 2,
-                "provider_id": "agent_framework",
+                "schema_version": 1,
                 "agent_name": "orders",
                 "input": "again",
                 "durable_instance_id": "instance-1",
@@ -277,48 +219,4 @@ def test_hidden_activity_routes_same_agent_name_by_provider(tmp_path, monkeypatc
             context,
         )
     )
-
-    assert len(framework.compile_calls) == 1
-    assert len(langgraph.compile_calls) == 1
-
-
-def test_hidden_activity_rejects_unconfigured_provider(tmp_path, monkeypatch):
-    (tmp_path / "orders.agent.md").write_text("instructions", encoding="utf-8")
-    app, _ = _configured_app(tmp_path, monkeypatch)
-    durable.configure_durable_app(app)
-    activity = app.get_functions()[0].get_user_function()
-    context = SimpleNamespace(function_name="activity", invocation_id="invocation-1")
-
-    with pytest.raises(ValueError, match="configure_agent_provider"):
-        asyncio.run(
-            activity(
-                {
-                    "schema_version": 2,
-                    "provider_id": "langgraph",
-                    "agent_name": "orders",
-                    "input": "hello",
-                    "durable_instance_id": "instance-1",
-                },
-                context,
-            )
-        )
-
-
-def test_equal_registration_enables_provider_for_durable(tmp_path, monkeypatch):
-    (tmp_path / "orders.agent.md").write_text("instructions", encoding="utf-8")
-    provider = _Provider()
-    monkeypatch.setattr(bindings, "load_provider", lambda provider_id: provider)
-    app = func.FunctionApp()
-
-    @bindings.markdown_agent(
-        app,
-        provider="agent_framework",
-        arg_name="agent",
-        agent_name="orders",
-        app_root=tmp_path,
-    )
-    async def handler(agent: object) -> None:
-        pass
-
-    bindings.configure_agent_provider(app, provider="agent_framework")
-    assert bindings._durable_agent(app, "agent_framework", "orders") is not None
+    assert len(provider.compile_calls) == 1

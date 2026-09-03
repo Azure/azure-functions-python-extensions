@@ -221,11 +221,6 @@ def test_function_app_supports_multiple_binding_providers(tmp_path, monkeypatch)
         app_root=tmp_path,
         provider_options={"temperature": 0.1},
     )
-    bindings.configure_agent_provider(
-        app,
-        provider="langgraph",
-        provider_options={"recursion_limit": 10},
-    )
 
     @bindings.markdown_agent(
         app,
@@ -254,46 +249,6 @@ def test_function_app_supports_multiple_binding_providers(tmp_path, monkeypatch)
     }
 
 
-def test_provider_defaults_cannot_change_after_first_use(tmp_path, provider):
-    app = func.FunctionApp()
-    bindings.configure_agent_provider(
-        app,
-        provider="agent_framework",
-        app_root=tmp_path,
-        provider_options={"temperature": 0.1},
-    )
-
-    with pytest.raises(ValueError, match="defaults are already configured"):
-        bindings.configure_agent_provider(
-            app,
-            provider="agent_framework",
-            provider_options={"temperature": 0.2},
-        )
-
-
-def test_provider_default_callables_compare_by_identity(tmp_path, provider):
-    app = func.FunctionApp()
-    factory = lambda: object()
-    bindings.configure_agent_provider(
-        app,
-        provider="agent_framework",
-        app_root=tmp_path,
-        provider_options={"client_factory": factory},
-    )
-    bindings.configure_agent_provider(
-        app,
-        provider="agent_framework",
-        provider_options={"client_factory": factory},
-    )
-
-    with pytest.raises(ValueError, match="defaults are already configured"):
-        bindings.configure_agent_provider(
-            app,
-            provider="agent_framework",
-            provider_options={"client_factory": lambda: object()},
-        )
-
-
 def test_all_providers_share_the_first_established_app_root(tmp_path, provider):
     first_root = tmp_path / "first"
     second_root = tmp_path / "second"
@@ -313,9 +268,11 @@ def test_all_providers_share_the_first_established_app_root(tmp_path, provider):
         pass
 
     with pytest.raises(ValueError, match="already configured with app_root"):
-        bindings.configure_agent_provider(
+        bindings.markdown_agent(
             app,
             provider="langgraph",
+            arg_name="agent",
+            agent_name="orders",
             app_root=second_root,
         )
 

@@ -1,4 +1,4 @@
-from .bindings import configure_agent_provider, configure_app, markdown_agent
+from .bindings import configure_app, markdown_agent
 from .providers import (
     AGENT_PROVIDER_ENTRY_POINT_GROUP,
     AgentProvider,
@@ -25,7 +25,6 @@ __all__ = [
     "AgentProvider",
     "CompiledAgent",
     "InvocationMetadata",
-    "configure_agent_provider",
     "configure_app",
     "configure_durable_app",
     "durable_orchestration_trigger",

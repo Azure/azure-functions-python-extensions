@@ -24,18 +24,8 @@ coexist in one app. `AiApp` supplies a default provider; an explicit
 `markdown_agent(provider=...)` overrides it for one binding. Provider discovery
 is cached, while live Agents and clients are never cached.
 
-Provider defaults are stored independently. Configure reusable defaults for an
-additional provider during startup with:
-
-```python
-app.configure_agent_provider(
-    provider="langgraph",
-    client_factory=create_langgraph_client,
-)
-```
-
-The first call that uses a provider freezes its defaults. Binding options
-override those defaults only for that binding. All providers share one app root.
+Provider defaults are stored independently. Binding options override defaults
+only for that binding. All providers share one app root.
 
 ## Markdown lookup
 
@@ -57,10 +47,6 @@ rejected.
 Provider packages expose Durable support through their own `[durable]` extra.
 The base extra installs `azure-functions-durable>=1.2.10,<2`; normal imports do
 not import or require Durable Functions. `DurableAgentContext.call_agent()`
-schedules a hidden activity with a deterministic, JSON-only payload containing
-the selected provider ID. It uses the app default unless
-`call_agent(..., provider="langgraph")` is explicit. Additional Durable
-providers must be registered with `configure_agent_provider()` during startup
-so their non-serializable defaults remain outside orchestration state. All file,
-client, Agent, model, and tool I/O occurs in the activity, never in the
-orchestrator.
+schedules a hidden activity with a deterministic, JSON-only payload and always
+uses the `DurableAiApp` default provider. All file, client, Agent, model, and
+tool I/O occurs in the activity, never in the orchestrator.

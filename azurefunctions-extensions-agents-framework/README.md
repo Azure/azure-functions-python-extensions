@@ -96,22 +96,5 @@ so replay performs no nondeterministic work. Importing the package remains safe
 without Durable installed; constructing `DurableAiApp` reports the exact extra
 to install when it is absent.
 
-To call another provider from the same orchestrator, configure it during app
-startup and select it on the call:
-
-```python
-app.configure_agent_provider(
-    provider="langgraph",
-    client_factory=create_langgraph_client,
-)
-
-
-@app.orchestration_trigger(context_name="context")
-def orchestrator(context):
-    result = yield context.call_agent(
-        "researcher",
-        context.get_input(),
-        provider="langgraph",
-    )
-    return result
-```
+All `call_agent()` invocations use the provider configured by `DurableAiApp`.
+V1 does not support selecting another provider from an orchestrator.

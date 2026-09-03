@@ -21,10 +21,8 @@ _INVALID_FILENAME_CHARACTERS = frozenset('<>:"/\\|?*')
 
 @dataclass
 class _ProviderState:
-    provider_id: str
     provider: AgentProvider
     provider_defaults: Mapping[str, Any]
-    durable_configured: bool = False
     durable_agents: dict[str, CompiledAgent] = field(default_factory=dict)
 
 
@@ -80,17 +78,14 @@ def _provider_state_for(
     *,
     provider: str,
     provider_defaults: Mapping[str, Any] | None = None,
-    configure_for_durable: bool = False,
 ) -> _ProviderState:
     defaults = dict(provider_defaults or {})
     with state.lock:
         provider_state = state.providers.get(provider)
         if provider_state is None:
             provider_state = _ProviderState(
-                provider_id=provider,
                 provider=load_provider(provider),
                 provider_defaults=MappingProxyType(defaults),
-                durable_configured=configure_for_durable,
             )
             state.providers[provider] = provider_state
             return provider_state
@@ -102,8 +97,6 @@ def _provider_state_for(
                 f"FunctionApp Agent provider {provider!r} defaults are "
                 "already configured"
             )
-        if configure_for_durable:
-            provider_state.durable_configured = True
         return provider_state
 
 
@@ -131,25 +124,8 @@ def configure_app(
             state,
             provider=provider,
             provider_defaults=provider_options,
-            configure_for_durable=True,
         )
         state.default_provider_id = provider
-
-
-def configure_agent_provider(
-    app: func.FunctionApp,
-    *,
-    provider: str,
-    app_root: str | os.PathLike[str] | None = None,
-    provider_options: Mapping[str, Any] | None = None,
-) -> None:
-    state = _state_for(app, app_root=app_root)
-    _provider_state_for(
-        state,
-        provider=provider,
-        provider_defaults=provider_options,
-        configure_for_durable=True,
-    )
 
 
 def _configured_state(app: func.FunctionApp) -> _AppState:
@@ -162,17 +138,18 @@ def _configured_state(app: func.FunctionApp) -> _AppState:
 
 def _durable_agent(
     app: func.FunctionApp,
-    provider_id: str,
     agent_name: str,
 ) -> CompiledAgent:
     state = _configured_state(app)
     with state.lock:
-        provider_state = state.providers.get(provider_id)
-        if provider_state is None or not provider_state.durable_configured:
-            raise ValueError(
-                f"Agent provider {provider_id!r} is not configured for Durable "
-                "use; call app.configure_agent_provider(provider=...) during "
-                "startup"
+        if state.default_provider_id is None:
+            raise RuntimeError(
+                "Durable Agent support requires a default Agent provider"
+            )
+        provider_state = state.providers.get(state.default_provider_id)
+        if provider_state is None:
+            raise RuntimeError(
+                "Durable Agent support requires a default Agent provider"
             )
         compiled = provider_state.durable_agents.get(agent_name)
         if compiled is None:
