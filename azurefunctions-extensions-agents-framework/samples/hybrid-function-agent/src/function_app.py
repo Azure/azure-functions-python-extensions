@@ -29,14 +29,14 @@ async def process_order(
     order_agent: Agent,
 ) -> func.HttpResponse:
     order_id = req.route_params["orderId"]
-    order = req.get_json()
     try:
+        order = req.get_json()
         prepared_order = prepare_order_for_agent(order, order_id=order_id)
     except (ValidationError, ValueError):
         return func.HttpResponse(
             body=json.dumps({"error": "Order failed validation."}),
             status_code=400,
-            media_type="application/json",
+            mimetype="application/json",
         )
 
     response = await order_agent.run(
@@ -49,7 +49,7 @@ async def process_order(
     )
     return func.HttpResponse(
         body=json.dumps({"order_id": order_id, "assessment": response.text}),
-        media_type="application/json",
+        mimetype="application/json",
     )
 
 

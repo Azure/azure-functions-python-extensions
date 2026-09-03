@@ -85,6 +85,30 @@ def test_markdown_agent_injects_fresh_context_and_hides_parameter(tmp_path, prov
     assert provider.compiled.opened == provider.compiled.closed == 2
 
 
+def test_markdown_agent_preserves_variadic_handler_arguments(tmp_path, provider):
+    (tmp_path / "orders.agent.md").write_text("instructions", encoding="utf-8")
+    app = func.FunctionApp()
+
+    @bindings.markdown_agent(
+        app,
+        provider="agent_framework",
+        arg_name="agent",
+        agent_name="orders",
+    )
+    async def handler(
+        value: str,
+        agent: object,
+        *rest: str,
+    ) -> tuple[str, object, tuple[str, ...]]:
+        return value, agent, rest
+
+    value, agent, rest = asyncio.run(handler("one", "two", "three"))
+
+    assert value == "one"
+    assert agent["instance"] == 1
+    assert rest == ("two", "three")
+
+
 def test_markdown_agent_closes_context_when_handler_fails(tmp_path, provider):
     (tmp_path / "orders.agent.md").write_text("instructions", encoding="utf-8")
     app = func.FunctionApp()

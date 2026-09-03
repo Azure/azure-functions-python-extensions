@@ -233,7 +233,10 @@ def _source_call(
     positional: list[Any] = []
     keywords: dict[str, Any] = {}
     for parameter in source_signature.parameters.values():
-        if parameter.kind is inspect.Parameter.POSITIONAL_ONLY:
+        if parameter.kind in {
+            inspect.Parameter.POSITIONAL_ONLY,
+            inspect.Parameter.POSITIONAL_OR_KEYWORD,
+        }:
             positional.append(values[parameter.name])
         elif parameter.kind is inspect.Parameter.VAR_POSITIONAL:
             positional.extend(values.get(parameter.name, ()))

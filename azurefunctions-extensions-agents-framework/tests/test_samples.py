@@ -53,3 +53,36 @@ def test_sample_indexes_all_functions(sample_name, expected_names):
     )
 
     assert set(json.loads(completed.stdout)) == expected_names
+
+
+def test_hybrid_function_sample_rejects_malformed_json():
+    environment = os.environ.copy()
+    environment["PYTHONPATH"] = os.pathsep.join(
+        filter(None, [str(_PACKAGE_ROOT), environment.get("PYTHONPATH")])
+    )
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            (
+                "import asyncio, json; import azure.functions as func; "
+                "import function_app; "
+                "request = func.HttpRequest(method='POST', url='https://example.test', "
+                "body=b'{not json', route_params={'orderId': '42'}); "
+                "handler = function_app.process_order._function.get_user_function()"
+                ".__wrapped__; "
+                "response = asyncio.run(handler(request, object())); "
+                "print(json.dumps({'status_code': response.status_code, "
+                "'body': response.get_body().decode()}))"
+            ),
+        ],
+        cwd=_SAMPLES_ROOT / "hybrid-function-agent" / "src",
+        env=environment,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    result = json.loads(completed.stdout)
+    assert result["status_code"] == 400
+    assert json.loads(result["body"]) == {"error": "Order failed validation."}

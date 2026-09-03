@@ -266,8 +266,7 @@ async def _open_mcp_tool(
             load_prompts=False,
             http_client=http_client,
         )
-        entered_tool = await stack.enter_async_context(tool)
-        yield entered_tool
+        yield tool
 
 
 def create_provider() -> AgentFrameworkProvider:

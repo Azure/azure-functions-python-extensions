@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import inspect
-from contextlib import asynccontextmanager
+from contextlib import AsyncExitStack, asynccontextmanager
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock
@@ -215,6 +215,58 @@ def test_binding_translates_and_closes_capabilities(monkeypatch):
     assert _Agent.created[0].kwargs["tools"][0] == "lookup"
     assert _Agent.created[0].kwargs["tools"][1]["server"] == "orders"
     assert _Agent.created[0].closed
+
+
+def test_binding_enters_mcp_tool_once_through_agent(monkeypatch):
+    import agent_framework
+
+    events = []
+
+    class FakeTool:
+        def __init__(self, **kwargs):
+            self.kwargs = kwargs
+
+        async def __aenter__(self):
+            events.append("connect")
+            return self
+
+        async def __aexit__(self, exc_type, exc_value, traceback):
+            events.append("close")
+
+    class AgentOwningTools(_Agent):
+        async def __aenter__(self):
+            await super().__aenter__()
+            self.tool_stack = AsyncExitStack()
+            await self.tool_stack.__aenter__()
+            for tool in self.kwargs.get("tools", []):
+                if isinstance(tool, FakeTool):
+                    await self.tool_stack.enter_async_context(tool)
+            return self
+
+        async def __aexit__(self, exc_type, exc_value, traceback):
+            await self.tool_stack.__aexit__(exc_type, exc_value, traceback)
+            await super().__aexit__(exc_type, exc_value, traceback)
+
+    monkeypatch.setattr(agent_framework, "MCPStreamableHTTPTool", FakeTool)
+    monkeypatch.setattr(provider, "Agent", AgentOwningTools)
+    binding = _compile(
+        capabilities=AgentCapabilities(
+            mcp_servers=(
+                MCPServerDefinition(
+                    "orders",
+                    MCPHTTPConfig("https://mcp.example.test"),
+                ),
+            ),
+        )
+    )
+
+    async def invoke():
+        async with binding.open_agent(InvocationMetadata()):
+            assert events == ["connect"]
+
+    asyncio.run(invoke())
+
+    assert events == ["connect", "close"]
 
 
 def test_skills_provider_owns_skill_format_validation(monkeypatch):
