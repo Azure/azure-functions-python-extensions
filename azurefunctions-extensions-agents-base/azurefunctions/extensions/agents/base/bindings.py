@@ -13,6 +13,8 @@ from typing import Any, TypeVar, cast, get_type_hints
 
 import azure.functions as func
 
+from .capabilities import AgentCapabilities
+from .discovery import discover_capabilities
 from .providers import AgentProvider, CompiledAgent, InvocationMetadata, load_provider
 
 _F = TypeVar("_F", bound=Callable[..., Any])
@@ -29,6 +31,7 @@ class _ProviderState:
 @dataclass
 class _AppState:
     app_root: Path
+    capabilities: AgentCapabilities
     default_provider_id: str | None = None
     providers: dict[str, _ProviderState] = field(default_factory=dict)
     durable_activity_registered: bool = False
@@ -61,6 +64,7 @@ def _state_for(
         if state is None:
             state = _AppState(
                 app_root=resolved_root,
+                capabilities=discover_capabilities(resolved_root),
             )
             _APP_STATES[app] = state
             return state
@@ -153,11 +157,16 @@ def _durable_agent(
             )
         compiled = provider_state.durable_agents.get(agent_name)
         if compiled is None:
+            _validate_provider_capabilities(
+                provider_state.provider,
+                state.capabilities,
+            )
             compiled = provider_state.provider.compile_binding(
                 instructions=_resolve_instructions(state.app_root, agent_name),
                 agent_name=agent_name,
                 options=provider_state.provider_defaults,
                 annotation=inspect.Signature.empty,
+                capabilities=state.capabilities,
             )
             provider_state.durable_agents[agent_name] = compiled
         return compiled
@@ -274,6 +283,22 @@ def _source_call(
     return handler(*positional, **keywords)
 
 
+def _validate_provider_capabilities(
+    provider: AgentProvider,
+    capabilities: AgentCapabilities,
+) -> None:
+    unsupported = []
+    if capabilities.skills and "skills" not in provider.supported_capabilities:
+        unsupported.append("skills")
+    if capabilities.mcp_servers and "mcp" not in provider.supported_capabilities:
+        unsupported.append("mcp")
+    if unsupported:
+        raise TypeError(
+            f"Agent provider {provider.provider_id!r} does not support discovered "
+            f"capabilities: {', '.join(unsupported)}"
+        )
+
+
 def _invocation_metadata(
     worker_signature: inspect.Signature,
     args: tuple[Any, ...],
@@ -319,11 +344,16 @@ def markdown_agent(
             pass
         options = {**provider_state.provider_defaults, **provider_options}
         instructions = _resolve_instructions(state.app_root, agent_name)
+        _validate_provider_capabilities(
+            provider_state.provider,
+            state.capabilities,
+        )
         compiled = provider_state.provider.compile_binding(
             instructions=instructions,
             agent_name=agent_name,
             options=options,
             annotation=annotation,
+            capabilities=state.capabilities,
         )
 
         @functools.wraps(handler)

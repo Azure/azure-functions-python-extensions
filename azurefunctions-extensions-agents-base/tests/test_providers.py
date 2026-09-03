@@ -10,6 +10,7 @@ from azurefunctions.extensions.agents.base import providers
 class _Provider:
     provider_id = "agent_framework"
     distribution_name = "azurefunctions-extensions-agents-framework"
+    supported_capabilities = frozenset({"skills", "mcp"})
 
     def compile_binding(self, **kwargs):
         return kwargs

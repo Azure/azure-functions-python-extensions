@@ -9,6 +9,7 @@ from contextlib import asynccontextmanager
 import azure.functions as func
 import pytest
 
+from azurefunctions.extensions.agents.base import AgentCapabilities
 from azurefunctions.extensions.agents.base import bindings, providers
 
 
@@ -32,6 +33,7 @@ class _CompiledAgent:
 class _Provider:
     provider_id = "agent_framework"
     distribution_name = "azurefunctions-extensions-agents-framework"
+    supported_capabilities = frozenset({"skills", "mcp"})
 
     def __init__(self):
         self.compiled = _CompiledAgent()
@@ -52,7 +54,7 @@ def provider(monkeypatch):
 
 def test_markdown_agent_injects_fresh_context_and_hides_parameter(tmp_path, provider):
     instructions = "---\nnot: parsed\n---\nUse the order API.\n"
-    (tmp_path / "orders.agent.md").write_text(instructions, encoding="utf-8")
+    (tmp_path / "orders.agent.md").write_bytes(instructions.encode("utf-8"))
     app = func.FunctionApp()
 
     @bindings.markdown_agent(
@@ -72,6 +74,7 @@ def test_markdown_agent_injects_fresh_context_and_hides_parameter(tmp_path, prov
         "agent_name": "orders",
         "options": {"tools": ["lookup"]},
         "annotation": object,
+        "capabilities": AgentCapabilities(),
     }
 
     first = asyncio.run(handler("one"))
@@ -316,6 +319,72 @@ def test_app_defaults_are_overridden_by_decorator_options(tmp_path, provider):
         "temperature": 0.5,
         "tools": ["default"],
     }
+
+
+def test_all_bindings_receive_same_discovered_capabilities(tmp_path, provider):
+    (tmp_path / "orders.agent.md").write_text("instructions", encoding="utf-8")
+    (tmp_path / "returns.agent.md").write_text("instructions", encoding="utf-8")
+    skill_directory = tmp_path / "skills" / "inventory"
+    skill_directory.mkdir(parents=True)
+    (skill_directory / "SKILL.md").write_text(
+        "---\nname: inventory\ndescription: Inventory lookup\n---\n",
+        encoding="utf-8",
+    )
+
+    app = func.FunctionApp()
+
+    @bindings.markdown_agent(
+        app,
+        provider="agent_framework",
+        arg_name="agent",
+        agent_name="orders",
+        app_root=tmp_path,
+    )
+    async def handler(agent: object) -> None:
+        pass
+
+    first_capabilities = provider.compile_args["capabilities"]
+
+    @bindings.markdown_agent(
+        app,
+        provider="agent_framework",
+        arg_name="agent",
+        agent_name="returns",
+    )
+    async def returns_handler(agent: object) -> None:
+        pass
+
+    second_capabilities = provider.compile_args["capabilities"]
+    assert tuple(skill.path for skill in first_capabilities.skills) == (
+        skill_directory.resolve(),
+    )
+    assert second_capabilities is first_capabilities
+
+
+def test_binding_rejects_discovered_capability_for_unsupported_provider(
+    tmp_path,
+    provider,
+):
+    provider.supported_capabilities = frozenset()
+    (tmp_path / "orders.agent.md").write_text("instructions", encoding="utf-8")
+    skill_directory = tmp_path / "skills" / "inventory"
+    skill_directory.mkdir(parents=True)
+    (skill_directory / "SKILL.md").write_text(
+        "---\nname: inventory\ndescription: Inventory lookup\n---\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(TypeError, match="does not support discovered capabilities"):
+
+        @bindings.markdown_agent(
+            func.FunctionApp(),
+            provider="agent_framework",
+            arg_name="agent",
+            agent_name="orders",
+            app_root=tmp_path,
+        )
+        async def handler(agent: object) -> None:
+            pass
 
 
 def test_markdown_agent_requires_async_handler(tmp_path, provider):

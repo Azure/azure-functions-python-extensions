@@ -151,7 +151,9 @@ def configure_durable_app(app: func.FunctionApp) -> None:
             return
         blueprint = df.Blueprint()
 
-        @blueprint.activity_trigger(input_name="payload")
+        @blueprint.activity_trigger(  # type: ignore[untyped-decorator]
+            input_name="payload"
+        )
         async def azurefunctions_agents_run_markdown_agent(
             payload: object,
             context: func.Context,

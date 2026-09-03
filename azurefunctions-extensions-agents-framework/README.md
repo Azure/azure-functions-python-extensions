@@ -10,9 +10,16 @@ pip install azurefunctions-extensions-agents-framework
 ```
 
 The default package installs `agent-framework-core==1.13.0`. Install the MAF
-client package required by your application separately. OpenAI, Foundry, Azure
-Identity, storage, YAML, MCP, and the Azure Functions Agents runtime are not
-dependencies of this extension.
+client package required by your application separately. OpenAI, Foundry,
+storage, and the Azure Functions Agents runtime are not dependencies of this
+extension.
+
+Skills use the default package. Install remote MCP transport and Entra support
+with the MCP extra:
+
+```text
+pip install "azurefunctions-extensions-agents-framework[mcp]"
+```
 
 ## Use a typed Agent app
 
@@ -73,6 +80,76 @@ Place the complete instructions at `orders.agent.md` or
 `agents/orders.agent.md`. The file is raw UTF-8 text; no front matter or runtime
 configuration is interpreted.
 
+## Skills and MCP servers
+
+Skills and MCP servers are discovered automatically from the app root and are
+available to each Agent binding by default:
+
+```text
+skills/inventory/SKILL.md
+mcp.json
+```
+
+`SKILL.md` uses Agent Skills frontmatter:
+
+```markdown
+---
+name: inventory
+description: Look up inventory policy and warehouse constraints.
+---
+
+Use the references in this skill when assessing stock.
+```
+
+The base extension discovers Skill directory paths without reading their
+contents. Microsoft Agent Framework parses and validates each `SKILL.md` when
+it loads the file-based Skills provider.
+
+V1 MCP discovery supports remote HTTP transports only:
+
+```json
+{
+    "servers": {
+        "inventory": {
+            "type": "streamable-http",
+            "url": "$INVENTORY_MCP_URL",
+            "tools": ["lookup_stock", "reserve_stock"],
+            "headers": {"X-Tenant": "%TENANT_ID%"},
+            "auth": {
+                "scope": "$INVENTORY_MCP_SCOPE",
+                "client_id": "%AZURE_CLIENT_ID%"
+            }
+        }
+    }
+}
+```
+
+`$VAR` and `%VAR%` references are resolved for each invocation, not during
+discovery. Missing values fail before connecting. Credentials, tokens, HTTP
+clients, MCP tools, and Agents are fresh invocation-owned resources and are
+closed on success, error, or cancellation. Do not place secrets directly in
+source-controlled `mcp.json`; use environment references.
+
+Every Agent in the Function App receives all valid Skills and MCP servers
+discovered from the app root:
+
+```python
+from azurefunctions.extensions.agents.framework import AiApp
+
+app = AiApp(client_factory=create_chat_client)
+
+
+@app.markdown_agent(arg_name="agent", agent_name="orders")
+async def process_order(agent: Agent):
+        ...
+```
+
+V1 has no app-level or per-binding capability selectors. Skill scripts and MCP
+tools can perform privileged operations, so placing a definition under the app
+root grants every Agent in that app access to it. Use separate Function Apps
+when capabilities require isolation. Python `tools=` remain explicit because
+they are supplied directly to the Microsoft Agent Framework Agent.
+
 The generic core form is also supported:
 
 ```python
@@ -127,4 +204,7 @@ without Durable installed; constructing `DurableAiApp` reports the exact extra
 to install when it is absent.
 
 All `call_agent()` invocations use the provider configured by `DurableAiApp`.
-V1 does not support selecting another provider from an orchestrator.
+They also use the app-level `skills` and `mcp_servers` defaults. V1 does not
+support selecting another provider or capability set from an orchestrator, and
+the schema-v1 orchestration payload contains no capability paths, settings, or
+secrets.

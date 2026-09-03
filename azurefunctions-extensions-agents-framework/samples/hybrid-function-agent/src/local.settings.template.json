@@ -4,6 +4,7 @@
     "FUNCTIONS_WORKER_RUNTIME": "python",
     "AzureWebJobsStorage": "UseDevelopmentStorage=true",
     "FOUNDRY_PROJECT_ENDPOINT": "https://<project-name>.<region>.services.ai.azure.com/api/projects/<project-name>",
-    "FOUNDRY_MODEL": "gpt-5.4"
+    "FOUNDRY_MODEL": "gpt-5.4",
+    "INVENTORY_MCP_URL": "https://inventory.example.com/mcp"
   }
 }

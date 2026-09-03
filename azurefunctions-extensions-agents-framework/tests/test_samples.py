@@ -15,7 +15,10 @@ _SAMPLES_ROOT = _PACKAGE_ROOT / "samples"
 @pytest.mark.parametrize(
     ("sample_name", "expected_names"),
     [
-        ("hybrid-function-agent", {"process_order"}),
+        (
+            "hybrid-function-agent",
+            {"process_order", "process_order_event"},
+        ),
         (
             "hybrid-durable-agent",
             {

@@ -135,6 +135,7 @@ class _CompiledAgent:
 class _Provider:
     provider_id = "agent_framework"
     distribution_name = "azurefunctions-extensions-agents-framework"
+    supported_capabilities = frozenset({"skills", "mcp"})
 
     def __init__(self):
         self.compiled = _CompiledAgent()
@@ -183,7 +184,7 @@ def test_hidden_activity_name_collision_is_rejected(tmp_path, monkeypatch):
 
 def test_hidden_activity_resolves_and_executes_dynamic_agent(tmp_path, monkeypatch):
     instructions = "---\nthis remains: raw\n---\nHandle orders.\n"
-    (tmp_path / "orders.agent.md").write_text(instructions, encoding="utf-8")
+    (tmp_path / "orders.agent.md").write_bytes(instructions.encode("utf-8"))
     app, provider = _configured_app(tmp_path, monkeypatch)
     durable.configure_durable_app(app)
     activity = app.get_functions()[0].get_user_function()
@@ -206,6 +207,7 @@ def test_hidden_activity_resolves_and_executes_dynamic_agent(tmp_path, monkeypat
 
     assert result == 'response:{"a":2,"z":1}'
     assert provider.compile_calls[0]["instructions"] == instructions
+    assert provider.compile_calls[0]["capabilities"].skills == ()
     assert provider.compiled.calls[0][0] == '{"a":2,"z":1}'
     assert provider.compiled.calls[0][1].durable_instance_id == "instance-1"
     asyncio.run(
@@ -220,3 +222,33 @@ def test_hidden_activity_resolves_and_executes_dynamic_agent(tmp_path, monkeypat
         )
     )
     assert len(provider.compile_calls) == 1
+
+
+def test_hidden_activity_receives_all_discovered_capabilities(tmp_path, monkeypatch):
+    (tmp_path / "orders.agent.md").write_text("instructions", encoding="utf-8")
+    skill_directory = tmp_path / "skills" / "inventory"
+    skill_directory.mkdir(parents=True)
+    (skill_directory / "SKILL.md").write_text(
+        "---\nname: inventory\ndescription: Inventory lookup\n---\n",
+        encoding="utf-8",
+    )
+    app, provider = _configured_app(tmp_path, monkeypatch)
+    durable.configure_durable_app(app)
+    activity = app.get_functions()[0].get_user_function()
+
+    asyncio.run(
+        activity(
+            {
+                "schema_version": 1,
+                "agent_name": "orders",
+                "input": "hello",
+                "durable_instance_id": "instance-1",
+            },
+            SimpleNamespace(function_name="activity", invocation_id="invocation-1"),
+        )
+    )
+
+    capabilities = provider.compile_calls[0]["capabilities"]
+    assert tuple(skill.path for skill in capabilities.skills) == (
+        skill_directory.resolve(),
+    )

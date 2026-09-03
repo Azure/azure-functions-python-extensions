@@ -14,9 +14,11 @@ name is the provider ID. The factory returns an `AgentProvider` with a matching
 `provider_id`, its distribution name, and a `compile_binding()` implementation.
 
 `compile_binding()` receives the complete markdown instructions, logical Agent
-name, immutable provider options, and the injected parameter annotation. It
-returns a `CompiledAgent` recipe that creates a fresh Agent context for each
-invocation and can run an Agent from a Durable activity.
+name, immutable provider options, injected parameter annotation, and an
+`AgentCapabilities` bundle. Providers declare `supported_capabilities` and
+translate neutral Skill/MCP definitions into their own runtime objects. The
+compiled recipe creates a fresh Agent context for each invocation and can run
+an Agent from a Durable activity.
 
 Applications use `azure.functions.FunctionApp.markdown_agent()` or install a
 typed provider package. Each Agent binding selects a provider, so providers may
@@ -41,6 +43,30 @@ substitutions, tools, skills, MCP configuration, and history are not parsed by
 this package. If both locations exist, lookup fails as ambiguous. Absolute
 paths, separators, traversal components, and symlinks outside `app_root` are
 rejected.
+
+## Skills and MCP discovery
+
+The base package discovers immutable definitions from the shared app root:
+
+```text
+skills/<skill-name>/SKILL.md
+mcp.json
+```
+
+Base discovery records safely contained directories that contain `SKILL.md`
+without reading or interpreting those files. Each provider owns Skill format
+parsing and validation. MCP servers must use `http` or `streamable-http`; local
+commands and stdio are rejected. Discovery does not execute scripts, resolve
+environment references, create credentials, or connect to servers.
+
+Every Agent binding receives all valid Skills and MCP servers discovered from
+the app root. V1 has no app-level or per-binding capability selectors. Treat
+placing a definition under the app root as granting every Agent in that app
+access to it; use separate Function Apps when capabilities require isolation.
+
+Only immutable definitions are retained in app state. Provider packages must
+create and close clients, credentials, tools, and other live resources within
+each invocation.
 
 ## Durable support
 

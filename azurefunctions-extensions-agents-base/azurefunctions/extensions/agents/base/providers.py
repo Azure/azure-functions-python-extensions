@@ -6,6 +6,8 @@ from functools import lru_cache
 from importlib import metadata
 from typing import Any, Mapping, Protocol
 
+from .capabilities import AgentCapabilities
+
 AGENT_PROVIDER_ENTRY_POINT_GROUP = "azurefunctions.extensions.agents.providers"
 
 
@@ -34,6 +36,7 @@ class CompiledAgent(Protocol):
 class AgentProvider(Protocol):
     provider_id: str
     distribution_name: str
+    supported_capabilities: frozenset[str]
 
     def compile_binding(
         self,
@@ -42,6 +45,7 @@ class AgentProvider(Protocol):
         agent_name: str,
         options: Mapping[str, Any],
         annotation: Any,
+        capabilities: AgentCapabilities,
     ) -> CompiledAgent:
         pass
 
@@ -74,6 +78,13 @@ def _validate_provider(provider: object, provider_id: str) -> AgentProvider:
     distribution_name = getattr(provider, "distribution_name", None)
     if not isinstance(distribution_name, str) or not distribution_name:
         raise TypeError(f"Agent provider {provider_id!r} must define distribution_name")
+    supported_capabilities = getattr(provider, "supported_capabilities", None)
+    if not isinstance(supported_capabilities, frozenset) or any(
+        not isinstance(capability, str) for capability in supported_capabilities
+    ):
+        raise TypeError(
+            f"Agent provider {provider_id!r} must define supported_capabilities"
+        )
     if not callable(getattr(provider, "compile_binding", None)):
         raise TypeError(f"Agent provider {provider_id!r} must define compile_binding()")
     return provider  # type: ignore[return-value]
