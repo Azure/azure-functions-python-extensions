@@ -89,6 +89,8 @@ class AgentFrameworkProvider:
             raise TypeError("client_factory option is required")
         if not callable(client_factory):
             raise TypeError("client_factory must be callable")
+        if inspect.iscoroutinefunction(client_factory):
+            raise TypeError("client_factory must be a synchronous function")
         if annotation is not inspect.Signature.empty:
             annotation_origin = get_origin(annotation)
             if (

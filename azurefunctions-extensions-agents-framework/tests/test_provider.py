@@ -119,6 +119,16 @@ def test_provider_rejects_non_callable_client_factory():
         _compile(client_factory="not callable")
 
 
+def test_provider_rejects_async_client_factory():
+    async def create_client():
+        return object()
+
+    with pytest.raises(
+        TypeError, match="client_factory must be a synchronous function"
+    ):
+        _compile(client_factory=create_client)
+
+
 def test_provider_factory_errors_propagate():
     def fail():
         raise RuntimeError("client failed")
