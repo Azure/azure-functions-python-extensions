@@ -143,10 +143,6 @@ def configure_durable_app(app: func.FunctionApp) -> None:
 
     state = _configured_state(app)
     with state.lock:
-        if state.default_provider_id is None:
-            raise RuntimeError(
-                "Durable Agent support requires a default Agent provider"
-            )
         if state.durable_activity_registered:
             return
         blueprint = df.Blueprint()

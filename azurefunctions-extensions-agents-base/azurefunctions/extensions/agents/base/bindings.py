@@ -22,18 +22,13 @@ _INVALID_FILENAME_CHARACTERS = frozenset('<>:"/\\|?*')
 
 
 @dataclass
-class _ProviderState:
-    provider: AgentProvider
-    provider_defaults: Mapping[str, Any]
-    durable_agents: dict[str, CompiledAgent] = field(default_factory=dict)
-
-
-@dataclass
 class _AppState:
     app_root: Path
     capabilities: AgentCapabilities
-    default_provider_id: str | None = None
-    providers: dict[str, _ProviderState] = field(default_factory=dict)
+    provider_id: str
+    provider: AgentProvider
+    provider_defaults: Mapping[str, Any]
+    durable_agents: dict[str, CompiledAgent] = field(default_factory=dict)
     durable_activity_registered: bool = False
     lock: threading.RLock = field(default_factory=threading.RLock)
 
@@ -56,15 +51,21 @@ def _resolve_app_root(app_root: str | os.PathLike[str] | None) -> Path:
 def _state_for(
     app: func.FunctionApp,
     *,
+    provider: str,
     app_root: str | os.PathLike[str] | None = None,
+    provider_defaults: Mapping[str, Any] | None = None,
 ) -> _AppState:
     resolved_root = _resolve_app_root(app_root)
+    defaults = dict(provider_defaults or {})
     with _APP_STATES_LOCK:
         state = _APP_STATES.get(app)
         if state is None:
             state = _AppState(
                 app_root=resolved_root,
                 capabilities=discover_capabilities(resolved_root),
+                provider_id=provider,
+                provider=load_provider(provider),
+                provider_defaults=MappingProxyType(defaults),
             )
             _APP_STATES[app] = state
             return state
@@ -74,34 +75,16 @@ def _state_for(
                 f"{str(state.app_root)!r}; it cannot also use "
                 f"{str(resolved_root)!r}"
             )
-        return state
-
-
-def _provider_state_for(
-    state: _AppState,
-    *,
-    provider: str,
-    provider_defaults: Mapping[str, Any] | None = None,
-) -> _ProviderState:
-    defaults = dict(provider_defaults or {})
-    with state.lock:
-        provider_state = state.providers.get(provider)
-        if provider_state is None:
-            provider_state = _ProviderState(
-                provider=load_provider(provider),
-                provider_defaults=MappingProxyType(defaults),
-            )
-            state.providers[provider] = provider_state
-            return provider_state
-        if (
-            provider_defaults is not None
-            and provider_state.provider_defaults != defaults
-        ):
+        if state.provider_id != provider:
             raise ValueError(
-                f"FunctionApp Agent provider {provider!r} defaults are "
-                "already configured"
+                f"FunctionApp is already configured with Agent provider "
+                f"{state.provider_id!r}; it cannot also use {provider!r}"
             )
-        return provider_state
+        if provider_defaults is not None and state.provider_defaults != defaults:
+            raise ValueError(
+                "FunctionApp Agent provider defaults are already configured"
+            )
+        return state
 
 
 def configure_app(
@@ -111,25 +94,12 @@ def configure_app(
     app_root: str | os.PathLike[str] | None = None,
     provider_options: Mapping[str, Any] | None = None,
 ) -> None:
-    state = _state_for(
+    _state_for(
         app,
+        provider=provider,
         app_root=app_root,
+        provider_defaults=provider_options,
     )
-    with state.lock:
-        if (
-            state.default_provider_id is not None
-            and state.default_provider_id != provider
-        ):
-            raise ValueError(
-                f"FunctionApp default Agent provider is already "
-                f"{state.default_provider_id!r}; it cannot also be {provider!r}"
-            )
-        _provider_state_for(
-            state,
-            provider=provider,
-            provider_defaults=provider_options,
-        )
-        state.default_provider_id = provider
 
 
 def _configured_state(app: func.FunctionApp) -> _AppState:
@@ -146,29 +116,20 @@ def _durable_agent(
 ) -> CompiledAgent:
     state = _configured_state(app)
     with state.lock:
-        if state.default_provider_id is None:
-            raise RuntimeError(
-                "Durable Agent support requires a default Agent provider"
-            )
-        provider_state = state.providers.get(state.default_provider_id)
-        if provider_state is None:
-            raise RuntimeError(
-                "Durable Agent support requires a default Agent provider"
-            )
-        compiled = provider_state.durable_agents.get(agent_name)
+        compiled = state.durable_agents.get(agent_name)
         if compiled is None:
             _validate_provider_capabilities(
-                provider_state.provider,
+                state.provider,
                 state.capabilities,
             )
-            compiled = provider_state.provider.compile_binding(
+            compiled = state.provider.compile_binding(
                 instructions=_resolve_instructions(state.app_root, agent_name),
                 agent_name=agent_name,
-                options=provider_state.provider_defaults,
+                options=state.provider_defaults,
                 annotation=inspect.Signature.empty,
                 capabilities=state.capabilities,
             )
-            provider_state.durable_agents[agent_name] = compiled
+            state.durable_agents[agent_name] = compiled
         return compiled
 
 
@@ -320,11 +281,11 @@ def markdown_agent(
     provider: str,
     arg_name: str,
     agent_name: str,
-    app_root: str | os.PathLike[str] | None = None,
     **provider_options: Any,
 ) -> Callable[[_F], _F]:
-    state = _state_for(app, app_root=app_root)
-    provider_state = _provider_state_for(state, provider=provider)
+    if "app_root" in provider_options:
+        raise TypeError("markdown_agent app_root is app-scoped; configure it on AiApp")
+    state = _state_for(app, provider=provider)
 
     def decorate(handler: _F) -> _F:
         if not inspect.isfunction(handler):
@@ -342,13 +303,13 @@ def markdown_agent(
             annotation = get_type_hints(handler).get(arg_name, annotation)
         except (NameError, TypeError):
             pass
-        options = {**provider_state.provider_defaults, **provider_options}
+        options = {**state.provider_defaults, **provider_options}
         instructions = _resolve_instructions(state.app_root, agent_name)
         _validate_provider_capabilities(
-            provider_state.provider,
+            state.provider,
             state.capabilities,
         )
-        compiled = provider_state.provider.compile_binding(
+        compiled = state.provider.compile_binding(
             instructions=instructions,
             agent_name=agent_name,
             options=options,

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 from unittest.mock import Mock
 
 import azure.functions as func
@@ -12,20 +13,43 @@ from azurefunctions.extensions.agents.framework import (
 from azurefunctions.extensions.agents.framework import apps
 
 
+def test_typed_api_exposes_only_v1_options():
+    assert list(inspect.signature(markdown_agent).parameters) == [
+        "app",
+        "arg_name",
+        "agent_name",
+        "client_factory",
+        "tools",
+    ]
+    assert list(inspect.signature(AiApp.__init__).parameters) == [
+        "self",
+        "client_factory",
+        "app_root",
+        "tools",
+        "http_auth_level",
+    ]
+    assert list(inspect.signature(AiApp.markdown_agent).parameters) == [
+        "self",
+        "arg_name",
+        "agent_name",
+        "client_factory",
+        "tools",
+    ]
+
+
 def test_typed_ai_app_pins_framework_provider(monkeypatch):
     parent_init = Mock()
     monkeypatch.setattr(func.AiApp, "__init__", parent_init)
     factory = lambda: object()
 
-    AiApp(client_factory=factory, app_root="app", description="orders")
+    AiApp(client_factory=factory, app_root="app", tools=["lookup"])
 
     parent_init.assert_called_once_with(
         http_auth_level=func.AuthLevel.FUNCTION,
         provider="agent_framework",
         app_root="app",
         client_factory=factory,
-        description="orders",
-        require_per_service_call_history_persistence=False,
+        tools=["lookup"],
     )
 
 
@@ -44,34 +68,10 @@ def test_typed_markdown_agent_forwards_supported_overrides(monkeypatch):
 
     assert result is parent_decorator.return_value
     parent_decorator.assert_called_once_with(
-        provider="agent_framework",
         arg_name="agent",
         agent_name="orders",
-        app_root=None,
         client_factory=factory,
         tools=["lookup"],
-    )
-
-
-def test_typed_ai_app_can_select_another_provider(monkeypatch):
-    parent_decorator = Mock(return_value=object())
-    monkeypatch.setattr(func.AiApp, "markdown_agent", parent_decorator)
-    app = object.__new__(AiApp)
-
-    result = app.markdown_agent(
-        provider="langgraph",
-        arg_name="agent",
-        agent_name="researcher",
-        recursion_limit=10,
-    )
-
-    assert result is parent_decorator.return_value
-    parent_decorator.assert_called_once_with(
-        provider="langgraph",
-        arg_name="agent",
-        agent_name="researcher",
-        app_root=None,
-        recursion_limit=10,
     )
 
 
@@ -94,32 +94,7 @@ def test_typed_decorator_preserves_app_provider_defaults(monkeypatch):
         provider="agent_framework",
         arg_name="agent",
         agent_name="orders",
-        app_root=None,
         client_factory=factory,
-    )
-
-
-def test_typed_decorator_can_select_another_provider(monkeypatch):
-    base_decorator = Mock(return_value=object())
-    monkeypatch.setattr(apps, "base_markdown_agent", base_decorator)
-    app = func.FunctionApp()
-
-    result = markdown_agent(
-        app,
-        provider="langgraph",
-        arg_name="agent",
-        agent_name="researcher",
-        recursion_limit=10,
-    )
-
-    assert result is base_decorator.return_value
-    base_decorator.assert_called_once_with(
-        app,
-        provider="langgraph",
-        arg_name="agent",
-        agent_name="researcher",
-        app_root=None,
-        recursion_limit=10,
     )
 
 

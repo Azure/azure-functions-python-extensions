@@ -45,8 +45,9 @@ class _Provider:
 
 
 @pytest.fixture
-def provider(monkeypatch):
+def provider(monkeypatch, tmp_path):
     instance = _Provider()
+    monkeypatch.setenv("AzureWebJobsScriptRoot", str(tmp_path))
     monkeypatch.setattr(providers, "load_provider", lambda provider_id: instance)
     monkeypatch.setattr(bindings, "load_provider", lambda provider_id: instance)
     return instance
@@ -62,7 +63,6 @@ def test_markdown_agent_injects_fresh_context_and_hides_parameter(tmp_path, prov
         provider="agent_framework",
         arg_name="agent",
         agent_name="orders",
-        app_root=tmp_path,
         tools=["lookup"],
     )
     async def handler(value: str, agent: object) -> tuple[str, object]:
@@ -94,7 +94,6 @@ def test_markdown_agent_closes_context_when_handler_fails(tmp_path, provider):
         provider="agent_framework",
         arg_name="agent",
         agent_name="orders",
-        app_root=tmp_path,
     )
     async def handler(agent: object) -> None:
         raise RuntimeError("handler failed")
@@ -114,7 +113,6 @@ def test_markdown_agent_closes_context_when_handler_is_cancelled(tmp_path, provi
         provider="agent_framework",
         arg_name="agent",
         agent_name="orders",
-        app_root=tmp_path,
     )
     async def handler(agent: object) -> None:
         raise asyncio.CancelledError
@@ -137,7 +135,6 @@ def test_markdown_agent_rejects_ambiguous_files(tmp_path, provider):
             provider="agent_framework",
             arg_name="agent",
             agent_name="orders",
-            app_root=tmp_path,
         )
         async def handler(agent: object) -> None:
             pass
@@ -152,15 +149,16 @@ def test_markdown_agent_rejects_symlink_outside_app_root(tmp_path, provider):
         (app_root / "orders.agent.md").symlink_to(outside)
     except OSError as error:
         pytest.skip(f"symlink creation is unavailable: {error}")
+    app = func.FunctionApp()
+    bindings.configure_app(app, provider="agent_framework", app_root=app_root)
 
     with pytest.raises(ValueError, match="resolves outside app root"):
 
         @bindings.markdown_agent(
-            func.FunctionApp(),
+            app,
             provider="agent_framework",
             arg_name="agent",
             agent_name="orders",
-            app_root=app_root,
         )
         async def handler(agent: object) -> None:
             pass
@@ -184,7 +182,6 @@ def test_markdown_agent_rejects_nonportable_agent_names(
             provider="agent_framework",
             arg_name="agent",
             agent_name=agent_name,
-            app_root=tmp_path,
         )
         async def handler(agent: object) -> None:
             pass
@@ -197,7 +194,7 @@ def test_function_app_rejects_a_second_default_provider(tmp_path, provider):
         app_root=tmp_path,
     )
 
-    with pytest.raises(ValueError, match="default Agent provider is already"):
+    with pytest.raises(ValueError, match="already configured with Agent provider"):
         bindings.configure_app(
             func_app,
             provider="langgraph",
@@ -205,8 +202,9 @@ def test_function_app_rejects_a_second_default_provider(tmp_path, provider):
         )
 
 
-def test_function_app_supports_multiple_binding_providers(tmp_path, monkeypatch):
+def test_function_app_rejects_a_second_binding_provider(tmp_path, monkeypatch):
     (tmp_path / "orders.agent.md").write_text("instructions", encoding="utf-8")
+    monkeypatch.setenv("AzureWebJobsScriptRoot", str(tmp_path))
     providers_by_id = {
         "agent_framework": _Provider(),
         "langgraph": _Provider(),
@@ -218,41 +216,33 @@ def test_function_app_supports_multiple_binding_providers(tmp_path, monkeypatch)
         lambda provider_id: providers_by_id[provider_id],
     )
     app = func.FunctionApp()
-    bindings.configure_app(
-        app,
-        provider="agent_framework",
-        app_root=tmp_path,
-        provider_options={"temperature": 0.1},
-    )
 
     @bindings.markdown_agent(
         app,
         provider="agent_framework",
         arg_name="agent",
         agent_name="orders",
+        temperature=0.1,
     )
     async def framework_handler(agent: object) -> None:
         pass
 
-    @bindings.markdown_agent(
-        app,
-        provider="langgraph",
-        arg_name="agent",
-        agent_name="orders",
-        recursion_limit=20,
-    )
-    async def langgraph_handler(agent: object) -> None:
-        pass
+    with pytest.raises(ValueError, match="already configured with Agent provider"):
+        bindings.markdown_agent(
+            app,
+            provider="langgraph",
+            arg_name="agent",
+            agent_name="orders",
+            recursion_limit=20,
+        )
 
     assert providers_by_id["agent_framework"].compile_args["options"] == {
         "temperature": 0.1
     }
-    assert providers_by_id["langgraph"].compile_args["options"] == {
-        "recursion_limit": 20
-    }
+    assert providers_by_id["langgraph"].compile_args is None
 
 
-def test_all_providers_share_the_first_established_app_root(tmp_path, provider):
+def test_markdown_agent_rejects_per_binding_app_root(tmp_path, provider):
     first_root = tmp_path / "first"
     second_root = tmp_path / "second"
     first_root.mkdir()
@@ -260,20 +250,12 @@ def test_all_providers_share_the_first_established_app_root(tmp_path, provider):
     (first_root / "orders.agent.md").write_text("instructions", encoding="utf-8")
     app = func.FunctionApp()
 
-    @bindings.markdown_agent(
-        app,
-        provider="agent_framework",
-        arg_name="agent",
-        agent_name="orders",
-        app_root=first_root,
-    )
-    async def handler(agent: object) -> None:
-        pass
+    bindings.configure_app(app, provider="agent_framework", app_root=first_root)
 
-    with pytest.raises(ValueError, match="already configured with app_root"):
+    with pytest.raises(TypeError, match="app_root is app-scoped"):
         bindings.markdown_agent(
             app,
-            provider="langgraph",
+            provider="agent_framework",
             arg_name="agent",
             agent_name="orders",
             app_root=second_root,
@@ -332,13 +314,13 @@ def test_all_bindings_receive_same_discovered_capabilities(tmp_path, provider):
     )
 
     app = func.FunctionApp()
+    bindings.configure_app(app, provider="agent_framework", app_root=tmp_path)
 
     @bindings.markdown_agent(
         app,
         provider="agent_framework",
         arg_name="agent",
         agent_name="orders",
-        app_root=tmp_path,
     )
     async def handler(agent: object) -> None:
         pass
@@ -375,13 +357,14 @@ def test_binding_rejects_discovered_capability_for_unsupported_provider(
     )
 
     with pytest.raises(TypeError, match="does not support discovered capabilities"):
+        app = func.FunctionApp()
+        bindings.configure_app(app, provider="agent_framework", app_root=tmp_path)
 
         @bindings.markdown_agent(
-            func.FunctionApp(),
+            app,
             provider="agent_framework",
             arg_name="agent",
             agent_name="orders",
-            app_root=tmp_path,
         )
         async def handler(agent: object) -> None:
             pass
@@ -397,7 +380,6 @@ def test_markdown_agent_requires_async_handler(tmp_path, provider):
             provider="agent_framework",
             arg_name="agent",
             agent_name="orders",
-            app_root=tmp_path,
         )
         def handler(agent: object) -> None:
             pass

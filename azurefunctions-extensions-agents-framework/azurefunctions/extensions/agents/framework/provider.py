@@ -29,20 +29,7 @@ _ENV_REFERENCE = re.compile(
     r"\$([A-Za-z_][A-Za-z0-9_]*)|%([A-Za-z_][A-Za-z0-9_]*)%"
 )
 
-_SUPPORTED_OPTIONS = frozenset(
-    {
-        "additional_properties",
-        "client_factory",
-        "compaction_strategy",
-        "context_providers",
-        "default_options",
-        "description",
-        "middleware",
-        "require_per_service_call_history_persistence",
-        "tokenizer",
-        "tools",
-    }
-)
+_SUPPORTED_OPTIONS = frozenset({"client_factory", "tools"})
 
 
 @dataclass(frozen=True)
@@ -60,8 +47,7 @@ class AgentFrameworkBinding:
     ) -> Agent[Any]:
         options = dict(self.agent_options)
         if skills_provider is not None:
-            context_providers = _option_values(options.pop("context_providers", None))
-            options["context_providers"] = [*context_providers, skills_provider]
+            options["context_providers"] = [skills_provider]
         if mcp_tools:
             tools = _option_values(options.pop("tools", None))
             options["tools"] = [*tools, *mcp_tools]

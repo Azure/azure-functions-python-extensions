@@ -54,7 +54,8 @@ provider package documents its ID; this package exports
 closed SDK enum is not used because third-party packages may add provider IDs
 without an Azure Functions SDK release.
 
-The standalone typed decorator also defaults to the Agent Framework provider:
+The standalone typed decorator pins a plain app to the Agent Framework
+provider on first use:
 
 ```python
 from azurefunctions.extensions.agents.framework import markdown_agent
@@ -72,9 +73,8 @@ async def process_order(req: func.HttpRequest, agent: Agent):
     ...
 ```
 
-Its optional `provider` parameter can select another installed provider for one
-binding. Pass that provider's options as keyword arguments; provider-specific
-packages remain the source of truth for their IDs and supported options.
+One Function App uses one provider. A later decorator from a different provider
+package is rejected.
 
 Place the complete instructions at `orders.agent.md` or
 `agents/orders.agent.md`. The file is raw UTF-8 text; no front matter or runtime
@@ -168,26 +168,10 @@ async def process_order(req: func.HttpRequest, agent: Agent):
     ...
 ```
 
-Typed constructors and decorators expose the MAF Agent options supported by
-this release: tools, description, default options, context providers,
-middleware, per-service-call history persistence, compaction strategy,
-tokenizer, and additional properties. The extension owns the Agent client,
-name, and instructions.
-
-`AiApp` makes `agent_framework` the default provider, but one app may use other
-installed providers too. Select another provider on an individual binding and
-pass its options directly:
-
-```python
-@app.markdown_agent(
-    provider="langgraph",
-    arg_name="agent",
-    agent_name="researcher",
-    recursion_limit=10,
-)
-async def research(agent: object):
-    ...
-```
+Typed constructors and decorators expose only `client_factory` and explicit
+Python `tools` in V1. The extension owns the Agent client, name, instructions,
+and discovered Skills/MCP integration. Configure `app_root` only when
+constructing `AiApp` or `DurableAiApp`; decorators do not override it.
 
 ## Durable Agents
 
