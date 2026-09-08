@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import math
 from contextlib import asynccontextmanager
+from datetime import timedelta
 from types import SimpleNamespace
 
 import azure.functions as func
@@ -54,10 +55,13 @@ def test_call_agent_schedules_canonical_payload():
 
 
 def test_call_agent_schedules_retry_with_same_canonical_payload():
-    from azure.durable_functions import RetryOptions
+    from azure.durable_functions import RetryPolicy
 
     context = _Context()
-    retry_options = RetryOptions(1000, 3)
+    retry_options = RetryPolicy(
+        first_retry_interval=timedelta(seconds=1),
+        max_number_of_attempts=3,
+    )
     proxy = DurableAgentContext(context)
 
     task = proxy.call_agent(
@@ -134,7 +138,7 @@ class _CompiledAgent:
 
 class _Provider:
     provider_id = "agent_framework"
-    distribution_name = "azurefunctions-extensions-agents-framework"
+    distribution_name = "azurefunctions-agents-extension-agent-framework"
     supported_capabilities = frozenset({"skills", "mcp"})
 
     def __init__(self):
@@ -156,6 +160,15 @@ def _configured_app(tmp_path, monkeypatch):
         app_root=tmp_path,
     )
     return app, provider
+
+
+def _hidden_activity(app):
+    return next(
+        function.get_user_function()
+        for function in app.get_functions()
+        if function.get_function_name()
+        == "azurefunctions_agents_run_markdown_agent"
+    )
 
 
 def test_configure_durable_app_registers_hidden_activity_once(tmp_path, monkeypatch):
@@ -187,7 +200,7 @@ def test_hidden_activity_resolves_and_executes_dynamic_agent(tmp_path, monkeypat
     (tmp_path / "orders.agent.md").write_bytes(instructions.encode("utf-8"))
     app, provider = _configured_app(tmp_path, monkeypatch)
     durable.configure_durable_app(app)
-    activity = app.get_functions()[0].get_user_function()
+    activity = _hidden_activity(app)
     context = SimpleNamespace(
         function_name="activity",
         invocation_id="invocation-1",
@@ -234,7 +247,7 @@ def test_hidden_activity_receives_all_discovered_capabilities(tmp_path, monkeypa
     )
     app, provider = _configured_app(tmp_path, monkeypatch)
     durable.configure_durable_app(app)
-    activity = app.get_functions()[0].get_user_function()
+    activity = _hidden_activity(app)
 
     asyncio.run(
         activity(

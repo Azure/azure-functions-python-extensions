@@ -9,7 +9,7 @@ from azurefunctions.extensions.agents.base import providers
 
 class _Provider:
     provider_id = "agent_framework"
-    distribution_name = "azurefunctions-extensions-agents-framework"
+    distribution_name = "azurefunctions-agents-extension-agent-framework"
     supported_capabilities = frozenset({"skills", "mcp"})
 
     def compile_binding(self, **kwargs):
@@ -41,7 +41,7 @@ def test_load_provider_uses_matching_entry_point(monkeypatch):
         "agent_framework",
         "test:provider",
         _Provider,
-        "azurefunctions-extensions-agents-framework",
+        "azurefunctions-agents-extension-agent-framework",
     )
     monkeypatch.setattr(
         providers.metadata,
@@ -65,7 +65,7 @@ def test_provider_entry_points_are_enumerated_once_for_multiple_ids(monkeypatch)
             "agent_framework",
             "test:provider",
             _Provider,
-            "azurefunctions-extensions-agents-framework",
+            "azurefunctions-agents-extension-agent-framework",
         ),
         _EntryPoint("other", "test:other", OtherProvider, "other-provider"),
     ]
@@ -86,7 +86,9 @@ def test_provider_entry_points_are_enumerated_once_for_multiple_ids(monkeypatch)
 def test_load_provider_reports_installable_distribution(monkeypatch):
     monkeypatch.setattr(providers.metadata, "entry_points", lambda **kwargs: [])
 
-    with pytest.raises(LookupError, match="azurefunctions-extensions-agents-framework"):
+    with pytest.raises(
+        LookupError, match="azurefunctions-agents-extension-agent-framework"
+    ):
         providers.load_provider("agent_framework")
 
 

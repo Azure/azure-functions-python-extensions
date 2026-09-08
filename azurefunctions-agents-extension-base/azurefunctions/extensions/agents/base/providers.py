@@ -52,9 +52,7 @@ class AgentProvider(Protocol):
 
 def _provider_distribution_name(provider_id: str) -> str:
     normalized = provider_id.replace("_", "-")
-    if normalized.startswith("agent-"):
-        normalized = normalized.removeprefix("agent-")
-    return f"azurefunctions-extensions-agents-{normalized}"
+    return f"azurefunctions-agents-extension-{normalized}"
 
 
 def _entry_point_distribution(entry_point: metadata.EntryPoint) -> str:

@@ -1,6 +1,7 @@
 import json
 import os
-from typing import Any, cast
+from datetime import timedelta
+from typing import Any
 
 import azure.durable_functions as df
 import azure.functions as func
@@ -27,14 +28,13 @@ app = DurableAIApp(client_factory=create_chat_client)
 @app.durable_client_input(client_name="client")
 async def start_order_orchestration(
     req: func.HttpRequest,
-    client: str,
+    client: df.DurableFunctionsClient,
 ) -> func.HttpResponse:
-    durable_client = cast(df.DurableOrchestrationClient, client)
-    instance_id = await durable_client.start_new(
+    instance_id = await client.start_new(
         "order_orchestrator",
         client_input=req.get_json(),
     )
-    management = durable_client.create_http_management_payload(instance_id)
+    management = client.create_http_management_payload(req, instance_id)
     return func.HttpResponse(
         body=json.dumps(management),
         status_code=202,
@@ -80,8 +80,8 @@ def order_orchestrator(context: Any):
             "risk_assessment": assessment,
             "task": "create a fulfillment plan with prioritized human-review actions",
         },
-        retry_options=df.RetryOptions(
-            first_retry_interval_in_milliseconds=5_000,
+        retry_options=df.RetryPolicy(
+            first_retry_interval=timedelta(seconds=5),
             max_number_of_attempts=3,
         ),
     )

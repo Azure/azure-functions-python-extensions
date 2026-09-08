@@ -4,7 +4,7 @@ Framework-neutral provider and lifecycle contracts for Python Agent integrations
 with Azure Functions.
 
 This package is infrastructure for provider extensions. Applications should
-install a provider package such as `azurefunctions-extensions-agents-framework`.
+install a provider package such as `azurefunctions-agents-extension-agent-framework`.
 
 ## Provider contract
 
@@ -73,7 +73,7 @@ each invocation.
 ## Durable support
 
 Provider packages expose Durable support through their own `[durable]` extra.
-The base extra installs `azure-functions-durable>=1.2.10,<2`; normal imports do
+The base extra installs `azure-functions-durable==2.0.0b2`; normal imports do
 not import or require Durable Functions. `DurableAgentContext.call_agent()`
 schedules a hidden activity with a deterministic, JSON-only payload and always
 uses the `DurableAIApp` provider. All file, client, Agent, model, and

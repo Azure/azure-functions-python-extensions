@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from azure.durable_functions import (
         DurableOrchestrationContext as _DurableContextBase,
     )
-    from azure.durable_functions.models.Task import TaskBase
+    from durabletask.task import RetryPolicy, Task
 else:
 
     class _DurableContextBase:
@@ -115,8 +115,8 @@ class DurableAgentContext(_DurableContextBase):  # type: ignore[misc]
         agent_name: str,
         input_: JSONValue,
         *,
-        retry_options: df.RetryOptions | None = None,
-    ) -> TaskBase:
+        retry_options: RetryPolicy | None = None,
+    ) -> Task[Any]:
         if not isinstance(agent_name, str) or not agent_name.strip():
             raise ValueError("call_agent agent_name must be a non-empty string")
         payload = {
@@ -127,10 +127,10 @@ class DurableAgentContext(_DurableContextBase):  # type: ignore[misc]
         }
         if retry_options is None:
             return self._context.call_activity(_INTERNAL_AGENT_ACTIVITY_NAME, payload)
-        from azure.durable_functions import RetryOptions
+        from durabletask.task import RetryPolicy
 
-        if not isinstance(retry_options, RetryOptions):
-            raise TypeError("call_agent retry_options must be RetryOptions or None")
+        if not isinstance(retry_options, RetryPolicy):
+            raise TypeError("call_agent retry_options must be RetryPolicy or None")
         return self._context.call_activity_with_retry(
             _INTERNAL_AGENT_ACTIVITY_NAME,
             retry_options,
@@ -139,15 +139,12 @@ class DurableAgentContext(_DurableContextBase):  # type: ignore[misc]
 
 
 def configure_durable_app(app: func.FunctionApp) -> None:
-    import azure.durable_functions as df
-
     state = _configured_state(app)
     with state.lock:
         if state.durable_activity_registered:
             return
-        blueprint = df.Blueprint()
 
-        @blueprint.activity_trigger(  # type: ignore[untyped-decorator]
+        @app.activity_trigger(
             input_name="payload"
         )
         async def azurefunctions_agents_run_markdown_agent(
@@ -171,7 +168,6 @@ def configure_durable_app(app: func.FunctionApp) -> None:
                 invocation,
             )
 
-        app.register_blueprint(blueprint)
         state.durable_activity_registered = True
 
 

@@ -88,7 +88,7 @@ class AgentFrameworkBinding:
 
 class AgentFrameworkProvider:
     provider_id = AGENT_FRAMEWORK_PROVIDER_ID
-    distribution_name = "azurefunctions-extensions-agents-framework"
+    distribution_name = "azurefunctions-agents-extension-agent-framework"
     supported_capabilities = frozenset({"skills", "mcp"})
 
     def compile_binding(
@@ -187,7 +187,7 @@ async def _open_mcp_tool(
     except ImportError as error:
         raise ImportError(
             "MCP support is not installed. Install "
-            "'azurefunctions-extensions-agents-framework[mcp]'."
+            "'azurefunctions-agents-extension-agent-framework[mcp]'."
         ) from error
 
     config = definition.config
@@ -230,7 +230,7 @@ async def _open_mcp_tool(
             except ImportError as error:
                 raise ImportError(
                     "MCP Entra authentication is not installed. Install "
-                    "'azurefunctions-extensions-agents-framework[mcp]'."
+                    "'azurefunctions-agents-extension-agent-framework[mcp]'."
                 ) from error
             credential = DefaultAzureCredential(
                 managed_identity_client_id=client_id,

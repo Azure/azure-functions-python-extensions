@@ -3,7 +3,7 @@ requires = ["setuptools >= 61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "azurefunctions-extensions-agents-base"
+name = "azurefunctions-agents-extension-base"
 dynamic = ["version"]
 requires-python = ">=3.13"
 authors = [
@@ -30,10 +30,10 @@ dependencies = [
 
 [project.optional-dependencies]
 durable = [
-    "azure-functions-durable>=1.2.10,<2",
+    "azure-functions-durable>=2.0.0b2",
 ]
 dev = [
-    "azure-functions-durable>=1.2.10,<2",
+    "azure-functions-durable>=2.0.0b2",
     "coverage",
     "flake8",
     "mypy",

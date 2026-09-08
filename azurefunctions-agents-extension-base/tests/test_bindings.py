@@ -32,7 +32,7 @@ class _CompiledAgent:
 
 class _Provider:
     provider_id = "agent_framework"
-    distribution_name = "azurefunctions-extensions-agents-framework"
+    distribution_name = "azurefunctions-agents-extension-agent-framework"
     supported_capabilities = frozenset({"skills", "mcp"})
 
     def __init__(self):

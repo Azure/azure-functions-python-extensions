@@ -6,7 +6,7 @@ into Python Azure Functions.
 ## Install
 
 ```text
-pip install azurefunctions-extensions-agents-framework
+pip install azurefunctions-agents-extension-agent-framework
 ```
 
 The default package installs `agent-framework-core==1.13.0`. Install the MAF
@@ -18,7 +18,7 @@ Skills use the default package. Install remote MCP transport and Entra support
 with the MCP extra:
 
 ```text
-pip install "azurefunctions-extensions-agents-framework[mcp]"
+pip install "azurefunctions-agents-extension-agent-framework[mcp]"
 ```
 
 ## Use a typed Agent app
@@ -178,7 +178,7 @@ constructing `AIApp` or `DurableAIApp`; decorators do not override it.
 Durable orchestration support is optional:
 
 ```text
-pip install "azurefunctions-extensions-agents-framework[durable]"
+pip install "azurefunctions-agents-extension-agent-framework[durable]"
 ```
 
 Use `DurableAIApp` and call `context.call_agent(agent_name, input_)` inside a
