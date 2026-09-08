@@ -6,8 +6,8 @@ from unittest.mock import Mock
 import azure.functions as func
 
 from azurefunctions.extensions.agents.framework import (
-    AiApp,
-    DurableAiApp,
+    AIApp,
+    DurableAIApp,
     markdown_agent,
 )
 from azurefunctions.extensions.agents.framework import apps
@@ -21,14 +21,14 @@ def test_typed_api_exposes_only_v1_options():
         "client_factory",
         "tools",
     ]
-    assert list(inspect.signature(AiApp.__init__).parameters) == [
+    assert list(inspect.signature(AIApp.__init__).parameters) == [
         "self",
         "client_factory",
         "app_root",
         "tools",
         "http_auth_level",
     ]
-    assert list(inspect.signature(AiApp.markdown_agent).parameters) == [
+    assert list(inspect.signature(AIApp.markdown_agent).parameters) == [
         "self",
         "arg_name",
         "agent_name",
@@ -39,10 +39,10 @@ def test_typed_api_exposes_only_v1_options():
 
 def test_typed_ai_app_pins_framework_provider(monkeypatch):
     parent_init = Mock()
-    monkeypatch.setattr(func.AiApp, "__init__", parent_init)
+    monkeypatch.setattr(func.AIApp, "__init__", parent_init)
     factory = lambda: object()
 
-    AiApp(client_factory=factory, app_root="app", tools=["lookup"])
+    AIApp(client_factory=factory, app_root="app", tools=["lookup"])
 
     parent_init.assert_called_once_with(
         http_auth_level=func.AuthLevel.FUNCTION,
@@ -55,8 +55,8 @@ def test_typed_ai_app_pins_framework_provider(monkeypatch):
 
 def test_typed_markdown_agent_forwards_supported_overrides(monkeypatch):
     parent_decorator = Mock(return_value=object())
-    monkeypatch.setattr(func.AiApp, "markdown_agent", parent_decorator)
-    app = object.__new__(AiApp)
+    monkeypatch.setattr(func.AIApp, "markdown_agent", parent_decorator)
+    app = object.__new__(AIApp)
     factory = lambda: object()
 
     result = app.markdown_agent(
@@ -99,5 +99,5 @@ def test_typed_decorator_preserves_app_provider_defaults(monkeypatch):
 
 
 def test_typed_durable_ai_app_is_typed_ai_app():
-    assert issubclass(DurableAiApp, AiApp)
-    assert issubclass(DurableAiApp, func.DurableAiApp)
+    assert issubclass(DurableAIApp, AIApp)
+    assert issubclass(DurableAIApp, func.DurableAIApp)

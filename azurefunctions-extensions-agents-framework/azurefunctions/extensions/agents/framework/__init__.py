@@ -1,11 +1,11 @@
-from .apps import AiApp, DurableAiApp, markdown_agent
+from .apps import AIApp, DurableAIApp, markdown_agent
 from .provider import AGENT_FRAMEWORK_PROVIDER_ID, ClientFactory
 
 __all__ = [
     "AGENT_FRAMEWORK_PROVIDER_ID",
-    "AiApp",
+    "AIApp",
     "ClientFactory",
-    "DurableAiApp",
+    "DurableAIApp",
     "markdown_agent",
 ]
 

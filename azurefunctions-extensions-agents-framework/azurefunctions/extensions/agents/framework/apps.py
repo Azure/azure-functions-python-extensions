@@ -48,7 +48,7 @@ def markdown_agent(
     )
 
 
-class AiApp(func.AiApp):
+class AIApp(func.AIApp):
     """Azure Functions app configured for Microsoft Agent Framework."""
 
     def __init__(
@@ -91,5 +91,5 @@ class AiApp(func.AiApp):
         )
 
 
-class DurableAiApp(AiApp, func.DurableAiApp):
+class DurableAIApp(AIApp, func.DurableAIApp):
     """Microsoft Agent Framework app with optional Durable Agent support."""

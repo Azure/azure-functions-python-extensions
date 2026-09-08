@@ -205,7 +205,7 @@ def durable_orchestration_trigger(
     def decorate(handler: _F) -> Any:
         if not inspect.isgeneratorfunction(handler):
             raise TypeError(
-                "DurableAiApp orchestration_trigger requires a synchronous "
+                "DurableAIApp orchestration_trigger requires a synchronous "
                 "generator function"
             )
         signature = inspect.signature(handler)

@@ -5,7 +5,7 @@ from typing import Any, cast
 import azure.durable_functions as df
 import azure.functions as func
 from agent_framework import Agent
-from azurefunctions.extensions.agents.framework import DurableAiApp
+from azurefunctions.extensions.agents.framework import DurableAIApp
 from order_processing import prepare_order_for_agent
 
 
@@ -20,7 +20,7 @@ def create_chat_client():
     )
 
 
-app = DurableAiApp(client_factory=create_chat_client)
+app = DurableAIApp(client_factory=create_chat_client)
 
 
 @app.route(route="orders/orchestrations", methods=["POST"])

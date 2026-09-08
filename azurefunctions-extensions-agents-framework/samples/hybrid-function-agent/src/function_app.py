@@ -3,7 +3,7 @@ import os
 
 import azure.functions as func
 from agent_framework import Agent
-from azurefunctions.extensions.agents.framework import AiApp
+from azurefunctions.extensions.agents.framework import AIApp
 from order_processing import prepare_order_for_agent
 from pydantic import ValidationError
 
@@ -19,7 +19,7 @@ def create_chat_client():
     )
 
 
-app = AiApp(client_factory=create_chat_client)
+app = AIApp(client_factory=create_chat_client)
 
 
 @app.route(route="orders/{orderId}", methods=["POST"])

@@ -287,7 +287,7 @@ def markdown_agent(
     **provider_options: Any,
 ) -> Callable[[_F], _F]:
     if "app_root" in provider_options:
-        raise TypeError("markdown_agent app_root is app-scoped; configure it on AiApp")
+        raise TypeError("markdown_agent app_root is app-scoped; configure it on AIApp")
     state = _state_for(app, provider=provider)
 
     def decorate(handler: _F) -> _F:

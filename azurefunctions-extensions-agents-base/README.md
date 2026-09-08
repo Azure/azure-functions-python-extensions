@@ -21,13 +21,13 @@ compiled recipe creates a fresh Agent context for each invocation and can run
 an Agent from a Durable activity.
 
 Applications use `azure.functions.FunctionApp.markdown_agent()` or install a
-typed provider package. Each Function App uses one provider. `AiApp` pins it at
+typed provider package. Each Function App uses one provider. `AIApp` pins it at
 construction; a plain `FunctionApp` pins it on its first
 `markdown_agent(provider=...)` use. A later different provider is rejected.
 Provider discovery is cached, while live Agents and clients are never cached.
 
 Provider defaults are app-scoped. Binding options override defaults only for
-that binding. The app root is configured once on `AiApp` or inferred from
+that binding. The app root is configured once on `AIApp` or inferred from
 `AzureWebJobsScriptRoot` and then the current directory for a plain app;
 decorators cannot override it.
 
@@ -76,5 +76,5 @@ Provider packages expose Durable support through their own `[durable]` extra.
 The base extra installs `azure-functions-durable>=1.2.10,<2`; normal imports do
 not import or require Durable Functions. `DurableAgentContext.call_agent()`
 schedules a hidden activity with a deterministic, JSON-only payload and always
-uses the `DurableAiApp` provider. All file, client, Agent, model, and
+uses the `DurableAIApp` provider. All file, client, Agent, model, and
 tool I/O occurs in the activity, never in the orchestrator.

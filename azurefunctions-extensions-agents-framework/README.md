@@ -29,7 +29,7 @@ client and Agent context are created and closed for every Function invocation.
 ```python
 import azure.functions as func
 from agent_framework import Agent
-from azurefunctions.extensions.agents.framework import AiApp
+from azurefunctions.extensions.agents.framework import AIApp
 
 
 def create_chat_client():
@@ -38,7 +38,7 @@ def create_chat_client():
     return OpenAIChatClient()
 
 
-app = AiApp(client_factory=create_chat_client)
+app = AIApp(client_factory=create_chat_client)
 
 
 @app.route(route="orders", methods=["POST"])
@@ -134,9 +134,9 @@ Every Agent in the Function App receives all valid Skills and MCP servers
 discovered from the app root:
 
 ```python
-from azurefunctions.extensions.agents.framework import AiApp
+from azurefunctions.extensions.agents.framework import AIApp
 
-app = AiApp(client_factory=create_chat_client)
+app = AIApp(client_factory=create_chat_client)
 
 
 @app.markdown_agent(arg_name="agent", agent_name="orders")
@@ -171,7 +171,7 @@ async def process_order(req: func.HttpRequest, agent: Agent):
 Typed constructors and decorators expose only `client_factory` and explicit
 Python `tools` in V1. The extension owns the Agent client, name, instructions,
 and discovered Skills/MCP integration. Configure `app_root` only when
-constructing `AiApp` or `DurableAiApp`; decorators do not override it.
+constructing `AIApp` or `DurableAIApp`; decorators do not override it.
 
 ## Durable Agents
 
@@ -181,13 +181,13 @@ Durable orchestration support is optional:
 pip install "azurefunctions-extensions-agents-framework[durable]"
 ```
 
-Use `DurableAiApp` and call `context.call_agent(agent_name, input_)` inside a
+Use `DurableAIApp` and call `context.call_agent(agent_name, input_)` inside a
 synchronous generator orchestrator. Agent execution is isolated in an activity
 so replay performs no nondeterministic work. Importing the package remains safe
-without Durable installed; constructing `DurableAiApp` reports the exact extra
+without Durable installed; constructing `DurableAIApp` reports the exact extra
 to install when it is absent.
 
-All `call_agent()` invocations use the provider configured by `DurableAiApp`.
+All `call_agent()` invocations use the provider configured by `DurableAIApp`.
 They also use the app-level `skills` and `mcp_servers` defaults. V1 does not
 support selecting another provider or capability set from an orchestrator, and
 the schema-v1 orchestration payload contains no capability paths, settings, or
