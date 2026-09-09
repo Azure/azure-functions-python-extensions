@@ -38,11 +38,11 @@ jobs:
           versionSpec: $(PYTHON_VERSION)
       - bash: |
           python -m pip install --upgrade pip
-          cd azurefunctions-agents-extension-base
+          cd azurefunctions-agents-extensions-base
           python -m pip install -U -e .[dev]
         displayName: 'Install Agents Base Dependencies'
       - bash: |
-          python -m pytest -q --instafail azurefunctions-agents-extension-base/tests/
+          python -m pytest -q --instafail azurefunctions-agents-extensions-base/tests/
         displayName: "Run Agents Base Tests for Python $(PYTHON_VERSION)"
 
   - job: "AgentsFrameworkTests"
@@ -66,12 +66,12 @@ jobs:
           versionSpec: $(PYTHON_VERSION)
       - bash: |
           python -m pip install --upgrade pip
-          python -m pip install -e ./azurefunctions-agents-extension-base
-          cd azurefunctions-agents-extension-agent-framework
+          python -m pip install -e ./azurefunctions-agents-extensions-base
+          cd azurefunctions-agents-extensions-agent-framework
           python -m pip install -U -e .[dev]
         displayName: 'Install Agents Framework Dependencies'
       - bash: |
-          python -m pytest -q --instafail azurefunctions-agents-extension-agent-framework/tests/
+          python -m pytest -q --instafail azurefunctions-agents-extensions-agent-framework/tests/
         displayName: "Run Agents Framework Tests for Python $(PYTHON_VERSION)"
 
   - job: "BaseTests"
