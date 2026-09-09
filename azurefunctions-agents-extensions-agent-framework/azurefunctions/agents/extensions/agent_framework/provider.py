@@ -8,15 +8,22 @@ import warnings
 from collections.abc import Callable, Mapping, Sequence
 from contextlib import AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass
-from types import MappingProxyType
-from typing import Any, AsyncIterator, get_origin
+from typing import TYPE_CHECKING, Any, AsyncIterator, TypedDict, cast, get_origin
 from urllib.parse import urlsplit
 
-from agent_framework import Agent, BaseChatClient, SkillsProvider
+from agent_framework import (
+    Agent,
+    BaseChatClient,
+    ContextProvider,
+    SkillsProvider,
+    ToolTypes,
+)
 from agent_framework._feature_stage import ExperimentalWarning
 
 from azurefunctions.agents.extensions.base import (
     AgentCapabilities,
+    AgentProvider,
+    CompiledAgent,
     InvocationMetadata,
     MCPServerDefinition,
     SkillDefinition,
@@ -24,6 +31,7 @@ from azurefunctions.agents.extensions.base import (
 
 AGENT_FRAMEWORK_PROVIDER_ID = "agent_framework"
 ClientFactory = Callable[[], BaseChatClient[Any]]
+type AgentTool = ToolTypes | Callable[..., Any]
 _AGENT_ANNOTATION_TYPE = Agent
 _ENV_REFERENCE = re.compile(
     r"\$([A-Za-z_][A-Za-z0-9_]*)|%([A-Za-z_][A-Za-z0-9_]*)%"
@@ -31,28 +39,43 @@ _ENV_REFERENCE = re.compile(
 
 _SUPPORTED_OPTIONS = frozenset({"client_factory", "tools"})
 
+if TYPE_CHECKING:
+    from httpx import Request
+
 
 @dataclass(frozen=True)
-class AgentFrameworkBinding:
+class _AgentFrameworkOptions:
+    client_factory: ClientFactory
+    tools: tuple[AgentTool, ...]
+
+
+class _AgentKeywordOptions(TypedDict, total=False):
+    context_providers: Sequence[ContextProvider]
+    tools: Sequence[AgentTool]
+
+
+@dataclass(frozen=True)
+class AgentFrameworkBinding(CompiledAgent):
     instructions: str
     agent_name: str
-    client_factory: ClientFactory
-    agent_options: Mapping[str, Any]
+    options: _AgentFrameworkOptions
     capabilities: AgentCapabilities
 
     def _create_agent(
         self,
-        skills_provider: Any | None,
-        mcp_tools: Sequence[Any],
+        skills_provider: SkillsProvider | None,
+        mcp_tools: Sequence[AgentTool],
     ) -> Agent[Any]:
-        options = dict(self.agent_options)
+        options = _AgentKeywordOptions()
         if skills_provider is not None:
             options["context_providers"] = [skills_provider]
+        tools = list(self.options.tools)
         if mcp_tools:
-            tools = _option_values(options.pop("tools", None))
             options["tools"] = [*tools, *mcp_tools]
+        elif tools:
+            options["tools"] = tools
         return Agent(
-            client=self.client_factory(),
+            client=self.options.client_factory(),
             instructions=self.instructions,
             name=self.agent_name,
             **options,
@@ -86,7 +109,7 @@ class AgentFrameworkBinding:
         return text
 
 
-class AgentFrameworkProvider:
+class AgentFrameworkProvider(AgentProvider):
     provider_id = AGENT_FRAMEWORK_PROVIDER_ID
     distribution_name = "azurefunctions-agents-extensions-agent-framework"
     supported_capabilities = frozenset({"skills", "mcp"})
@@ -96,8 +119,8 @@ class AgentFrameworkProvider:
         *,
         instructions: str,
         agent_name: str,
-        options: Mapping[str, Any],
-        annotation: Any,
+        options: Mapping[str, object],
+        annotation: object,
         capabilities: AgentCapabilities,
     ) -> AgentFrameworkBinding:
         unknown = sorted(set(options) - _SUPPORTED_OPTIONS)
@@ -105,7 +128,7 @@ class AgentFrameworkProvider:
             raise TypeError(
                 "Unsupported Microsoft Agent Framework option(s): " + ", ".join(unknown)
             )
-        client_factory = options.get("client_factory")
+        client_factory: object | None = options.get("client_factory")
         if client_factory is None:
             raise TypeError("client_factory option is required")
         if not callable(client_factory):
@@ -123,23 +146,23 @@ class AgentFrameworkProvider:
                     "as agent_framework.Agent"
                 )
 
-        agent_options = dict(options)
-        del agent_options["client_factory"]
         return AgentFrameworkBinding(
             instructions=instructions,
             agent_name=agent_name,
-            client_factory=client_factory,
-            agent_options=MappingProxyType(agent_options),
+            options=_AgentFrameworkOptions(
+                client_factory=cast(ClientFactory, client_factory),
+                tools=_normalize_tools(options.get("tools")),
+            ),
             capabilities=capabilities,
         )
 
 
-def _option_values(value: Any) -> list[Any]:
+def _normalize_tools(value: object) -> tuple[AgentTool, ...]:
     if value is None:
-        return []
+        return ()
     if isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
-        return list(value)
-    return [value]
+        return tuple(cast(Sequence[AgentTool], value))
+    return (value,)
 
 
 def _build_skills_provider(
@@ -179,7 +202,7 @@ def _resolve_environment(value: str, *, field: str) -> str:
 @asynccontextmanager
 async def _open_mcp_tool(
     definition: MCPServerDefinition,
-) -> AsyncIterator[Any]:
+) -> AsyncIterator[AgentTool]:
     try:
         import mcp  # noqa: F401
         from agent_framework import MCPStreamableHTTPTool
@@ -240,7 +263,7 @@ async def _open_mcp_tool(
         http_client = None
         if static_headers or credential is not None:
 
-            async def inject_headers(request: Any) -> None:
+            async def inject_headers(request: Request) -> None:
                 for name, value in static_headers.items():
                     request.headers[name] = value
                 if credential is not None and scope is not None:
@@ -266,7 +289,7 @@ async def _open_mcp_tool(
             load_prompts=False,
             http_client=http_client,
         )
-        yield tool
+        yield cast(AgentTool, tool)
 
 
 def create_provider() -> AgentFrameworkProvider:

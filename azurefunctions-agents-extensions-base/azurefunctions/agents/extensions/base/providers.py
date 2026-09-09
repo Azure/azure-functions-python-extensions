@@ -4,7 +4,7 @@ from contextlib import AbstractAsyncContextManager
 from dataclasses import dataclass
 from functools import lru_cache
 from importlib import metadata
-from typing import Any, Mapping, Protocol
+from typing import Callable, Mapping, Protocol, cast
 
 from .capabilities import AgentCapabilities
 
@@ -22,7 +22,7 @@ class CompiledAgent(Protocol):
     def open_agent(
         self,
         invocation: InvocationMetadata,
-    ) -> AbstractAsyncContextManager[Any]:
+    ) -> AbstractAsyncContextManager[object]:
         pass
 
     async def run_agent(
@@ -43,8 +43,8 @@ class AgentProvider(Protocol):
         *,
         instructions: str,
         agent_name: str,
-        options: Mapping[str, Any],
-        annotation: Any,
+        options: Mapping[str, object],
+        annotation: object,
         capabilities: AgentCapabilities,
     ) -> CompiledAgent:
         pass
@@ -85,7 +85,7 @@ def _validate_provider(provider: object, provider_id: str) -> AgentProvider:
         )
     if not callable(getattr(provider, "compile_binding", None)):
         raise TypeError(f"Agent provider {provider_id!r} must define compile_binding()")
-    return provider  # type: ignore[return-value]
+    return cast(AgentProvider, provider)
 
 
 @lru_cache(maxsize=None)
@@ -111,9 +111,9 @@ def load_provider(provider_id: str) -> AgentProvider:
             f"{', '.join(distributions)}"
         )
 
-    factory = matches[0].load()
+    factory: object = matches[0].load()
     if not callable(factory):
         raise TypeError(
             f"Agent provider entry point {provider_id!r} must load a callable factory"
         )
-    return _validate_provider(factory(), provider_id)
+    return _validate_provider(cast(Callable[[], object], factory)(), provider_id)

@@ -27,7 +27,7 @@ class _AppState:
     capabilities: AgentCapabilities
     provider_id: str
     provider: AgentProvider
-    provider_defaults: Mapping[str, Any]
+    provider_defaults: Mapping[str, object]
     durable_agents: dict[str, CompiledAgent] = field(default_factory=dict)
     durable_activity_registered: bool = False
     lock: threading.RLock = field(default_factory=threading.RLock)
@@ -53,7 +53,7 @@ def _state_for(
     *,
     provider: str,
     app_root: str | os.PathLike[str] | None = None,
-    provider_defaults: Mapping[str, Any] | None = None,
+    provider_defaults: Mapping[str, object] | None = None,
 ) -> _AppState:
     resolved_root = _resolve_app_root(app_root)
     defaults = dict(provider_defaults or {})
@@ -92,7 +92,7 @@ def configure_app(
     *,
     provider: str,
     app_root: str | os.PathLike[str] | None = None,
-    provider_options: Mapping[str, Any] | None = None,
+    provider_options: Mapping[str, object] | None = None,
 ) -> None:
     _state_for(
         app,
@@ -222,7 +222,7 @@ def _source_call(
     args: tuple[Any, ...],
     kwargs: dict[str, Any],
     arg_name: str,
-    injected: Any,
+    injected: object,
 ) -> Any:
     if arg_name in kwargs:
         raise TypeError(f"markdown_agent parameter {arg_name!r} is runtime-managed")
@@ -284,7 +284,7 @@ def markdown_agent(
     provider: str,
     arg_name: str,
     agent_name: str,
-    **provider_options: Any,
+    **provider_options: object,
 ) -> Callable[[_F], _F]:
     if "app_root" in provider_options:
         raise TypeError(

@@ -24,8 +24,8 @@ def _provider_options(
     tools: (
         ToolTypes | Callable[..., Any] | Sequence[ToolTypes | Callable[..., Any]] | None
     ) = None,
-) -> dict[str, Any]:
-    options: dict[str, Any] = {}
+) -> dict[str, object]:
+    options: dict[str, object] = {}
     if client_factory is not None:
         options["client_factory"] = client_factory
     if tools is not None:
@@ -56,7 +56,10 @@ class _AgentFrameworkAppMixin:
         )
 
 
-class AgentFunctionApp(_AgentFrameworkAppMixin, func.FunctionApp):
+class AgentFunctionApp(
+    _AgentFrameworkAppMixin,
+    func.FunctionApp,  # type: ignore[misc]  # azure-functions lacks py.typed
+):
     """Azure Functions app configured for Microsoft Agent Framework Agents."""
 
     def __init__(

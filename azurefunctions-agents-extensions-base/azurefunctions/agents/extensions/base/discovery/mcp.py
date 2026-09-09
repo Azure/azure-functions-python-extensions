@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
-from typing import Any, cast
+from typing import cast
 from urllib.parse import urlsplit
 
 from ..capabilities import (
@@ -18,8 +18,10 @@ _ENV_REFERENCE = re.compile(
 _VALID_SERVER_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 
 
-def _object_without_duplicates(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
-    result: dict[str, Any] = {}
+def _object_without_duplicates(
+    pairs: list[tuple[str, object]],
+) -> dict[str, object]:
+    result: dict[str, object] = {}
     for key, value in pairs:
         if key in result:
             raise ValueError(f"Duplicate key {key!r} in mcp.json")
@@ -27,7 +29,7 @@ def _object_without_duplicates(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     return result
 
 
-def _string(value: Any, *, field: str, required: bool = True) -> str | None:
+def _string(value: object, *, field: str, required: bool = True) -> str | None:
     if value is None and not required:
         return None
     if not isinstance(value, str) or not value.strip():
@@ -35,14 +37,15 @@ def _string(value: Any, *, field: str, required: bool = True) -> str | None:
     return value.strip()
 
 
-def _allowed_tools(value: Any) -> tuple[str, ...] | None:
+def _allowed_tools(value: object) -> tuple[str, ...] | None:
     if value is None:
         return None
-    if not isinstance(value, list) or any(
-        not isinstance(tool, str) or not tool.strip() for tool in value
-    ):
+    if not isinstance(value, list):
         raise ValueError("MCP tools must be a list of non-empty strings")
-    tools = tuple(tool.strip() for tool in value)
+    values = cast(list[object], value)
+    if any(not isinstance(tool, str) or not tool.strip() for tool in values):
+        raise ValueError("MCP tools must be a list of non-empty strings")
+    tools = tuple(cast(str, tool).strip() for tool in values)
     if len(tools) != len(set(tools)):
         raise ValueError("MCP tools must not contain duplicates")
     if "*" in tools:
@@ -52,13 +55,13 @@ def _allowed_tools(value: Any) -> tuple[str, ...] | None:
     return tools
 
 
-def _headers(value: Any) -> tuple[tuple[str, str], ...]:
+def _headers(value: object) -> tuple[tuple[str, str], ...]:
     if value is None:
         return ()
     if not isinstance(value, dict):
         raise ValueError("MCP headers must be an object")
     headers: list[tuple[str, str]] = []
-    for key, header_value in value.items():
+    for key, header_value in cast(dict[object, object], value).items():
         header_name = _string(key, field="header name")
         header_text = _string(header_value, field=f"header {key!r}")
         assert header_name is not None and header_text is not None
@@ -66,17 +69,18 @@ def _headers(value: Any) -> tuple[tuple[str, str], ...]:
     return tuple(sorted(headers))
 
 
-def _auth(value: Any) -> MCPAuthConfig | None:
+def _auth(value: object) -> MCPAuthConfig | None:
     if value is None:
         return None
     if not isinstance(value, dict):
         raise ValueError("MCP auth must be an object")
-    unknown = sorted(set(value) - {"scope", "client_id"})
+    auth = cast(dict[str, object], value)
+    unknown = sorted(set(auth) - {"scope", "client_id"})
     if unknown:
         raise ValueError(f"Unknown MCP auth field(s): {', '.join(unknown)}")
-    scope = _string(value.get("scope"), field="auth scope")
+    scope = _string(auth.get("scope"), field="auth scope")
     client_id = _string(
-        value.get("client_id"),
+        auth.get("client_id"),
         field="auth client_id",
         required=False,
     )
@@ -84,12 +88,12 @@ def _auth(value: Any) -> MCPAuthConfig | None:
     return MCPAuthConfig(scope=scope, client_id=client_id)
 
 
-def _server_definition(name: str, value: Any) -> MCPServerDefinition:
+def _server_definition(name: str, value: object) -> MCPServerDefinition:
     if _VALID_SERVER_NAME.fullmatch(name) is None:
         raise ValueError(f"Invalid MCP server name {name!r}")
     if not isinstance(value, dict):
         raise ValueError(f"MCP server {name!r} must be an object")
-    server = cast(dict[str, Any], value)
+    server = cast(dict[str, object], value)
     server_type = str(server.get("type", "")).strip().lower()
     if "command" in server or server_type in {"stdio", "local"}:
         raise ValueError(f"MCP server {name!r} uses unsupported stdio transport")
@@ -129,21 +133,23 @@ def discover_mcp_servers(app_root: Path) -> tuple[MCPServerDefinition, ...]:
     if not config_path.is_relative_to(resolved_root):
         raise ValueError("mcp.json resolves outside the app root")
     try:
-        data = json.loads(
+        loaded: object = json.loads(
             config_path.read_text(encoding="utf-8"),
             object_pairs_hook=_object_without_duplicates,
         )
     except (OSError, UnicodeError, json.JSONDecodeError) as error:
         raise ValueError(f"Failed to read {str(config_path)!r}") from error
-    if not isinstance(data, dict):
+    if not isinstance(loaded, dict):
         raise ValueError("mcp.json must contain an object")
+    data = cast(dict[str, object], loaded)
     servers = data.get("servers")
     if not isinstance(servers, dict):
         raise ValueError("mcp.json 'servers' must be an object")
+    server_definitions = cast(dict[str, object], servers)
     unknown = sorted(set(data) - {"servers"})
     if unknown:
         raise ValueError(f"Unknown mcp.json field(s): {', '.join(unknown)}")
     return tuple(
-        _server_definition(name, servers[name])
-        for name in sorted(servers)
+        _server_definition(name, server_definitions[name])
+        for name in sorted(server_definitions)
     )

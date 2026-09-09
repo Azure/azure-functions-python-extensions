@@ -52,6 +52,9 @@ include = ["azurefunctions.agents.extensions.base*"]
 [tool.setuptools.package-data]
 "azurefunctions.agents.extensions.base" = ["py.typed"]
 
+[tool.mypy]
+strict = true
+
 [[tool.mypy.overrides]]
 module = ["azure", "azure.*"]
 ignore_missing_imports = true

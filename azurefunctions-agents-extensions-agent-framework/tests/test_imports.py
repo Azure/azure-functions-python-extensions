@@ -34,5 +34,3 @@ def test_framework_import_does_not_import_durable():
     )
 
     assert result.returncode == 0, result.stderr
-
-

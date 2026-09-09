@@ -4,8 +4,8 @@ import functools
 import inspect
 import json
 import math
-from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, Dict, List, Literal, TypeVar, Union, cast
+from collections.abc import Awaitable, Callable
+from typing import TYPE_CHECKING, Any, Literal, Protocol, TypeVar, TypedDict, cast
 
 import azure.functions as func
 
@@ -14,22 +14,49 @@ from .providers import InvocationMetadata
 
 if TYPE_CHECKING:
     import azure.durable_functions as df
-    from azure.durable_functions import (
-        DurableOrchestrationContext as _DurableContextBase,
-    )
     from durabletask.task import RetryPolicy, Task
-else:
-
-    class _DurableContextBase:
-        pass
 
 
-JSONPrimitive = Union[str, int, float, bool, None]
-JSONValue = Union[JSONPrimitive, List["JSONValue"], Dict[str, "JSONValue"]]
+type JSONPrimitive = str | int | float | bool | None
+type JSONValue = JSONPrimitive | list[JSONValue] | dict[str, JSONValue]
 _F = TypeVar("_F", bound=Callable[..., Any])
 
 _INTERNAL_AGENT_ACTIVITY_NAME = "azurefunctions_agents_run_markdown_agent"
 _ACTIVITY_PAYLOAD_VERSION: Literal[1] = 1
+
+
+class _ActivityPayload(TypedDict):
+    schema_version: Literal[1]
+    agent_name: str
+    input: JSONValue
+    durable_instance_id: str
+
+
+type _ActivityHandler = Callable[[object, func.Context], Awaitable[str]]
+
+
+class _DurableApp(Protocol):
+    def activity_trigger(
+        self,
+        input_name: str,
+        activity: str | None = None,
+    ) -> Callable[[_ActivityHandler], object]:
+        ...
+
+
+class _DurableContext(Protocol):
+    instance_id: str
+
+    def call_activity(self, name: str, input_: object) -> Task[Any]:
+        ...
+
+    def call_activity_with_retry(
+        self,
+        name: str,
+        retry_policy: RetryPolicy,
+        input_: object,
+    ) -> Task[Any]:
+        ...
 
 
 def _validate_json_value(value: object) -> None:
@@ -61,30 +88,31 @@ def _canonicalize_json_value(value: object) -> JSONValue:
     return cast(JSONValue, json.loads(encoded))
 
 
-def _parse_activity_input(value: object) -> dict[str, Any]:
+def _parse_activity_input(value: object) -> _ActivityPayload:
     if not isinstance(value, dict):
         raise TypeError("Markdown Agent activity input must be a JSON object")
+    payload = cast(dict[str, object], value)
     expected_fields = {
         "schema_version",
         "agent_name",
         "input",
         "durable_instance_id",
     }
-    if set(value) != expected_fields:
+    if set(payload) != expected_fields:
         raise ValueError(
             "Markdown Agent activity input must contain exactly: "
             + ", ".join(sorted(expected_fields))
         )
-    if type(value["schema_version"]) is not int or value["schema_version"] != 1:
+    if type(payload["schema_version"]) is not int or payload["schema_version"] != 1:
         raise ValueError(
             "Unsupported Markdown Agent activity payload schema_version; expected 1"
         )
-    agent_name = value["agent_name"]
+    agent_name = payload["agent_name"]
     if not isinstance(agent_name, str) or not agent_name.strip():
         raise ValueError(
             "Markdown Agent activity agent_name must be a non-empty string"
         )
-    durable_instance_id = value["durable_instance_id"]
+    durable_instance_id = payload["durable_instance_id"]
     if not isinstance(durable_instance_id, str) or not durable_instance_id:
         raise ValueError(
             "Markdown Agent activity durable_instance_id must be a non-empty string"
@@ -92,7 +120,7 @@ def _parse_activity_input(value: object) -> dict[str, Any]:
     return {
         "schema_version": 1,
         "agent_name": agent_name,
-        "input": _canonicalize_json_value(value["input"]),
+        "input": _canonicalize_json_value(payload["input"]),
         "durable_instance_id": durable_instance_id,
     }
 
@@ -103,12 +131,8 @@ def _normalize_agent_prompt(value: JSONValue) -> str:
     return json.dumps(value, allow_nan=False, separators=(",", ":"), sort_keys=True)
 
 
-class DurableAgentContext(_DurableContextBase):  # type: ignore[misc]
-    def __init__(self, context: df.DurableOrchestrationContext) -> None:
-        self._context = context
-
-    def __getattr__(self, name: str) -> Any:
-        return getattr(self._context, name)
+class _DurableAgentContextMixin:
+    _context: _DurableContext
 
     def call_agent(
         self,
@@ -138,7 +162,26 @@ class DurableAgentContext(_DurableContextBase):  # type: ignore[misc]
         )
 
 
-def configure_durable_app(app: func.FunctionApp) -> None:
+if TYPE_CHECKING:
+
+    class DurableAgentContext(
+        _DurableAgentContextMixin,
+        df.DurableOrchestrationContext,
+    ):
+        def __init__(self, context: df.DurableOrchestrationContext) -> None:
+            self._context = cast(_DurableContext, context)
+
+else:
+
+    class DurableAgentContext(_DurableAgentContextMixin):
+        def __init__(self, context: _DurableContext) -> None:
+            self._context = context
+
+        def __getattr__(self, name: str) -> object:
+            return getattr(self._context, name)
+
+
+def configure_durable_app(app: _DurableApp) -> None:
     state = _configured_state(app)
     with state.lock:
         if state.durable_activity_registered:
@@ -172,7 +215,7 @@ def configure_durable_app(app: func.FunctionApp) -> None:
 
 
 def durable_orchestration_trigger(
-    app: func.FunctionApp,
+    app: _DurableApp,
     *,
     sdk_decorator: Callable[..., Any],
     context_name: str,

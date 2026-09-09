@@ -61,6 +61,9 @@ include = ["azurefunctions.agents.extensions.agent_framework*"]
 [tool.setuptools.package-data]
 "azurefunctions.agents.extensions.agent_framework" = ["py.typed"]
 
+[tool.mypy]
+strict = true
+
 [[tool.mypy.overrides]]
 module = ["azure", "azure.*"]
 ignore_missing_imports = true
