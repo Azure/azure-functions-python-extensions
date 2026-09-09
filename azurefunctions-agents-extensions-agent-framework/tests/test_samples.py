@@ -168,3 +168,23 @@ def test_agent_framework_sample_assets_follow_discovery_conventions():
     assert (sample_root / "order-fulfillment.agent.md").is_file()
     assert (sample_root / "skills" / "order-policy" / "SKILL.md").is_file()
     assert (sample_root / "mcp.json").is_file()
+
+
+def test_lazy_owned_dafx_sample_indexes_both_registries():
+    completed = subprocess.run(
+        [sys.executable, "-c", (
+            "import json; import function_app; "
+            "first = function_app.app.get_functions(); "
+            "second = function_app.app.get_functions(); "
+            "assert [f.get_function_name() for f in first] == "
+            "[f.get_function_name() for f in second]; "
+            "print(json.dumps([f.get_function_name() for f in first]))"
+        )],
+        cwd=_SAMPLES_ROOT / "lazy-owned-dafx",
+        check=True, capture_output=True, text=True,
+    )
+    assert set(json.loads(completed.stdout)) == {
+        "hello", "orders", "start_orders", "dafx-Orders",
+        "azurefunctions_agents_run_markdown_agent",
+        "BuiltIn__HttpActivity", "BuiltIn__HttpPollOrchestrator",
+    }

@@ -37,6 +37,10 @@ mcp = [
 ]
 durable = [
     "azurefunctions-agents-extensions-base[durable]>=1.0.0b1",
+    # Prototype only. PR #72 supplies DAFX's SDK 2 support. Pin both packages
+    # to the same revision until compatible distributions are published.
+    "agent-framework-azurefunctions @ git+https://github.com/microsoft/agent-framework-durable-extension.git@aa9529ec489e16ac64b73bd68d5adbb8e4945258#subdirectory=python/packages/azurefunctions",
+    "agent-framework-durabletask @ git+https://github.com/microsoft/agent-framework-durable-extension.git@aa9529ec489e16ac64b73bd68d5adbb8e4945258#subdirectory=python/packages/durabletask",
 ]
 dev = [
     "azure-functions-durable>=2.0.0b2",

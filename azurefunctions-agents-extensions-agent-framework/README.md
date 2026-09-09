@@ -138,6 +138,12 @@ discovered Skills/MCP integration. Configure `app_root` only when constructing
 
 ## Durable Agents
 
+This prototype also supports an explicit DAFX path through
+`add_durable_agent()` and `get_agent()`. See the
+[lazy-owned DAFX example](samples/lazy-owned-dafx/README.md) for the design,
+SDK 2 dependency pins, and test instructions. It does not change the
+activity-based API described below.
+
 Durable orchestration support is optional:
 
 ```text
