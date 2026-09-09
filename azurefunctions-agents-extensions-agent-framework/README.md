@@ -9,13 +9,14 @@ into Python Azure Functions.
 pip install azurefunctions-agents-extensions-agent-framework
 ```
 
-The default package installs `agent-framework-core==1.13.0`. Install the MAF
-client package required by your application separately. OpenAI, Foundry,
-storage, and the Azure Functions Agents runtime are not dependencies of this
-extension.
+Install Durable Functions support with the durable extra:
 
-Skills use the default package. Install remote MCP transport and Entra support
-with the MCP extra:
+```text
+pip install "azurefunctions-agents-extensions-agent-framework[durable]"
+```
+
+
+Install remote MCP transport and Entra support with the MCP extra:
 
 ```text
 pip install "azurefunctions-agents-extensions-agent-framework[mcp]"

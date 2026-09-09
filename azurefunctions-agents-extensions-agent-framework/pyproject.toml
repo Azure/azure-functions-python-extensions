@@ -25,7 +25,7 @@ classifiers = [
     "Development Status :: 3 - Alpha",
 ]
 dependencies = [
-    "agent-framework-core==1.13.0",
+    "agent-framework-core>=1.13.0,<2",
     "azurefunctions-agents-extensions-base>=1.0.0b1",
 ]
 
