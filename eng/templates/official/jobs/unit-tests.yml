@@ -68,7 +68,7 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -e ./azurefunctions-agents-extensions-base
           cd azurefunctions-agents-extensions-agent-framework
-          python -m pip install -U -e .[dev]
+          python -m pip install -U -e .[dev,mcp]
         displayName: 'Install Agents Framework Dependencies'
       - bash: |
           python -m pytest -q --instafail azurefunctions-agents-extensions-agent-framework/tests/
