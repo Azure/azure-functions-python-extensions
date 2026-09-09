@@ -15,17 +15,18 @@ urlFragment: agent-framework-durable-sample
 This sample combines deterministic Durable Functions orchestration with
 Microsoft Agent Framework reasoning. The orchestrator coordinates ordinary
 application activities and Agent calls while all filesystem, client, model, and
-network work runs outside replay through activities.
+network work runs outside replay. An ordinary activity prepares the order, and
+DAFX entities execute the Agent calls.
 
-The sample demonstrates:
+The sample demonstrates
 
-- starting an orchestration from an HTTP-triggered Function;
-- validating and minimizing an order in an ordinary Durable activity;
-- using `context.call_agent()` from a synchronous generator orchestrator;
-- executing Agent calls through the extension's hidden activity;
-- passing deterministic, JSON-only payloads between the orchestrator and Agent
-  activity;
-- applying a Durable retry policy to an Agent call; and
+- starting an orchestration from an HTTP-triggered Function
+- validating and minimizing an order in an ordinary Durable activity
+- injecting a DAFX proxy with `durable_markdown_agent` below
+  `orchestration_trigger`
+- yielding `agent.run()` tasks from a synchronous generator orchestrator
+- sharing one durable session between assessment and planning
+- passing the prepared order as JSON and returning the responses' text
 - polling the standard Durable management endpoint for status and output.
 
 ## How the sample works
@@ -36,21 +37,26 @@ The request follows this sequence:
    `order_orchestrator` instance.
 2. The orchestrator calls `prepare_order_activity`, which validates the order,
    calculates totals, and produces a minimized projection.
-3. `context.call_agent("order-fulfillment", ...)` schedules the extension's
-   hidden `azurefunctions_agents_run_markdown_agent` activity to assess risk.
-4. A second `call_agent()` schedules a fulfillment-plan request with a retry
-   policy of three attempts and a five-second first retry interval.
+3. The injected Agent proxy creates a session. The first `agent.run()` schedules
+    an assessment of the prepared order through the DAFX entity.
+4. A second `agent.run()` requests a fulfillment plan using the same session and
+    the assessment's text.
 5. The orchestration output combines the deterministic order ID with the two
    model-generated results.
 
 The orchestrator never opens files, creates credentials or clients, connects to
-a model, or performs network I/O. During replay it only recreates the same
-activity schedule from recorded inputs and results.
+a model, or performs network I/O. During replay it recreates the activity and
+Agent task schedule from recorded inputs and results.
 
 The logical Agent name `order-fulfillment` resolves
 `order-fulfillment.agent.md`. The file contains raw Agent instructions;
 Foundry client and model configuration remain explicit in
 `create_chat_client()`.
+
+The binding registers the selected markdown definition and enables its Agent
+HTTP endpoint without `durable=True`. Clients are created and closed per entity
+execution through the compiled markdown binding, not during indexing or replay.
+No custom orchestration context wrapper or hidden Agent activity is used.
 
 ## Project structure
 
@@ -58,7 +64,7 @@ Foundry client and model configuration remain explicit in
 | --- | --- |
 | `function_app.py` | Defines the HTTP starter, preparation activity, orchestrator, and Foundry client factory. |
 | `order_processing.py` | Validates input and calculates the trusted order projection. |
-| `order-fulfillment.agent.md` | Contains raw instructions used by both Agent activity calls. |
+| `order-fulfillment.agent.md` | Contains raw instructions used by both Agent turns. |
 | `local.settings.template.json` | Lists required local application settings. |
 | `requirements.txt` | Installs the extension with Durable support and sample dependencies. |
 
@@ -68,7 +74,9 @@ Foundry client and model configuration remain explicit in
 - [Azure Functions Core Tools v4](https://learn.microsoft.com/azure/azure-functions/functions-run-local).
 - [Azurite](https://learn.microsoft.com/azure/storage/common/storage-use-azurite)
   or an Azure Storage account. Durable Functions requires storage for history,
-  control queues, and activity work items.
+  control queues, activity work items, and entity state.
+- The prototype's SDK 2-compatible DAFX packages and a compatible Functions
+  host/extension and Durable backend. These are not provisioned by this sample.
 - An Azure subscription and a Microsoft Foundry project with a deployed model.
 - A local identity authorized to use the Foundry project. For example, sign in
   with `az login` before running the sample.
@@ -93,14 +101,18 @@ Foundry client and model configuration remain explicit in
 
 3. Install the dependencies:
 
+    First follow the [prototype setup steps](../lazy-owned-dafx/README.md#install-and-verify)
+    to install both local extension packages and the pinned SDK 2-compatible DAFX
+    dependencies in the same virtual environment. Then, from this sample directory,
+    install the Foundry and order-validation dependencies:
+
    ```bash
    python -m pip install -r requirements.txt
    ```
 
    The editable dependency in `requirements.txt` installs the Agent Framework
-   extension from this repository with its `[durable]` extra. When using the
-   published package instead, install
-   `azurefunctions-agents-extensions-agent-framework[durable]`.
+    extension from this repository with its `[durable]` extra. Use the prototype
+    dependencies rather than substituting the published SDK 1.x DAFX packages.
 
 4. Create local settings from the template:
 
@@ -132,7 +144,7 @@ Foundry client and model configuration remain explicit in
    You can instead start Azurite from its Visual Studio Code extension.
 
 2. In another terminal, activate the virtual environment from the sample
-  directory and start the Functions host:
+    directory and start the Functions host:
 
    ```bash
    func start
@@ -183,24 +195,38 @@ Malformed JSON returns HTTP `400` and does not start an orchestration:
 
 Order schema validation occurs in `prepare_order_activity`. A structurally
 invalid order therefore starts successfully but later causes the orchestration
-to fail; inspect the status endpoint and Functions host logs for the activity
+to fail. Inspect the status endpoint and Functions host logs for the activity
 failure.
 
 ## Durable Agent behavior
 
-- `context.call_agent()` accepts a logical Agent name and a JSON-compatible
-  input value.
-- Each call schedules the hidden Agent activity with a deterministic schema-v1
-  payload containing the Agent name, canonical input, and Durable instance ID.
-- Agent execution and all related I/O occur in the activity, never in the
+- `@app.durable_markdown_agent` sits below `@app.orchestration_trigger` and
+  injects a `DurableAIAgent[DurableAgentTask]` proxy into the generator.
+- `agent.create_session()` creates one session that both `agent.run()` calls
+  reuse. DAFX stores conversation history in durable session state.
+- Each Agent call receives a JSON string containing the trusted prepared order.
+  The planning request also includes `assessment.text`.
+- Agent execution and all related I/O occur in the DAFX entity, never in the
   orchestrator.
-- The extension may cache the compiled Agent recipe, but creates and closes a
-  fresh Foundry client and Agent for each activity invocation.
-- The second Agent call uses `df.RetryPolicy`. Durable Functions records each
-  attempt and applies the retry without introducing nondeterministic sleeps in
-  the orchestrator.
-- The hidden activity is registered automatically when
-  `@app.orchestration_trigger` is used.
+- The extension compiles the Agent recipe during registration, then creates and
+  closes a fresh Foundry client and Agent for each entity execution.
+- The output contains only the order ID, `assessment.text`, and `plan.text`.
+
+### Direct Agent endpoint
+
+This sample's `host.json` removes the default `api` prefix. The binding also
+publishes `POST /agents/order-fulfillment/run`:
+
+```bash
+curl -X POST http://localhost:7071/agents/order-fulfillment/run \
+  -H "Content-Type: application/json" \
+  -d '{"message":"Describe the fulfillment review process.","session_id":"order-demo"}'
+```
+
+Reuse the `session_id` to continue that conversation. This direct route accepts
+a message and bypasses the order-preparation activity. Use the orchestration
+route above for the validated order flow. Include a function key when invoking
+the Agent endpoint on a hosted app.
 
 ## Troubleshooting
 
@@ -209,13 +235,14 @@ failure.
 - **Foundry authentication fails:** run `az login`, verify the active tenant and
   subscription, and confirm the identity can access the Foundry project.
 - **Durable extension fails to load:** confirm the `[durable]` extra was
-  installed and the extension bundle in `host.json` can be downloaded.
+  installed, the SDK 2-compatible host/extension is available, and the extension
+  bundle in `host.json` can be downloaded.
 - **Orchestration remains Pending:** verify Azurite is running and
   `AzureWebJobsStorage` points to the same storage service used by the host.
 - **Orchestration fails in `prepare_order_activity`:** confirm the request has an
   `order_id`, customer, two-letter shipping country, supported shipping method,
   and at least one item with a positive integer quantity.
-- **Agent activity retries or fails:** inspect the Functions host logs and the
+- **Agent execution fails:** inspect the Functions host logs and the
   instance status response for Foundry authentication, quota, or model errors.
 
 ## Next steps
@@ -223,4 +250,6 @@ failure.
 - Review the extension's [package documentation](../../README.md).
 - Compare this sample with the [Agent Framework sample](../agent_samples_agent-framework/README.md)
   for direct Agent injection into HTTP and queue handlers.
+- Try the [durable markdown binding sample](../durable-markdown-binding/README.md)
+  for the same shared-session pattern with a deterministic local client.
 - Learn more about [Durable Functions for Python](https://learn.microsoft.com/azure/azure-functions/durable/durable-functions-overview?tabs=python).

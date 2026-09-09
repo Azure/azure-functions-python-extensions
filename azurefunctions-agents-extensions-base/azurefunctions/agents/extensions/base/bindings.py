@@ -28,8 +28,6 @@ class _AppState:
     provider_id: str
     provider: AgentProvider
     provider_defaults: Mapping[str, object]
-    durable_agents: dict[str, CompiledAgent] = field(default_factory=dict)
-    durable_activity_registered: bool = False
     lock: threading.RLock = field(default_factory=threading.RLock)
 
 
@@ -110,31 +108,53 @@ def _configured_state(app: object) -> _AppState:
     return state
 
 
-def _durable_agent(
+def compile_agent(
     app: object,
     agent_name: str,
 ) -> CompiledAgent:
+    """Compile a named markdown definition using the app's provider defaults.
+
+    This performs no client creation or network I/O. The caller owns caching
+    and invokes the returned recipe's open_agent() at execution time.
+    """
     state = _configured_state(app)
     with state.lock:
-        compiled = state.durable_agents.get(agent_name)
-        if compiled is None:
-            _validate_provider_capabilities(
-                state.provider,
-                state.capabilities,
-            )
-            compiled = state.provider.compile_binding(
-                instructions=_resolve_instructions(state.app_root, agent_name),
-                agent_name=agent_name,
-                options=state.provider_defaults,
-                annotation=inspect.Signature.empty,
-                capabilities=state.capabilities,
-            )
-            state.durable_agents[agent_name] = compiled
-        return compiled
+        _validate_provider_capabilities(state.provider, state.capabilities)
+        return state.provider.compile_binding(
+            instructions=_resolve_instructions(state.app_root, agent_name),
+            agent_name=agent_name,
+            options=state.provider_defaults,
+            annotation=inspect.Signature.empty,
+            capabilities=state.capabilities,
+        )
+
+
+def discover_agent_names(app: object) -> list[str]:
+    """Find definitions directly under the app root and its agents directory.
+
+    Validate all files before returning so ambiguous or escaping definitions
+    cannot partially publish a set of endpoints.
+    """
+    root = _configured_state(app).app_root
+    names: dict[str, str] = {}
+    for directory in (root, root / "agents"):
+        if not directory.is_dir():
+            continue
+        for source in sorted(directory.iterdir()):
+            if not source.name.endswith(".agent.md"):
+                continue
+            name = _validate_agent_name(source.name.removesuffix(".agent.md"))
+            if not source.is_file():
+                raise ValueError(f"Agent definition {source.name!r} is not a file")
+            if name.casefold() in names:
+                raise ValueError(f"Ambiguous agent name {name!r}")
+            _resolve_instructions(root, name)
+            names[name.casefold()] = name
+    return sorted(names.values(), key=str.casefold)
 
 
 def _validate_agent_name(agent_name: str) -> str:
-    if not isinstance(agent_name, str) or not agent_name:
+    if not isinstance(agent_name, str) or not agent_name.strip():
         raise ValueError("agent_name must be a non-empty string")
     if agent_name in {".", ".."}:
         raise ValueError("agent_name must be a filename component")

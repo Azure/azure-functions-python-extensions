@@ -1,20 +1,24 @@
 from __future__ import annotations
 
+import functools
+import inspect
 import os
+import re
 from collections.abc import Callable, Sequence
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 import azure.functions as func
 from agent_framework import SupportsAgentRun, ToolTypes
 from azure.functions.decorators.function_app import Function
 
 from azurefunctions.agents.extensions.base import (
+    compile_agent,
     configure_app,
-    durable_orchestration_trigger,
+    discover_agent_names,
 )
 from azurefunctions.agents.extensions.base import markdown_agent as base_markdown_agent
 
-from .provider import AGENT_FRAMEWORK_PROVIDER_ID, ClientFactory
+from .provider import AGENT_FRAMEWORK_PROVIDER_ID, AgentFrameworkBinding, ClientFactory
 
 if TYPE_CHECKING:
     from agent_framework_azurefunctions import (
@@ -82,12 +86,16 @@ class AgentFunctionApp(
             | None
         ) = None,
         http_auth_level: func.AuthLevel | str = func.AuthLevel.FUNCTION,
+        durable: bool = False,
     ) -> None:
+        if not isinstance(durable, bool):
+            raise TypeError("durable must be a bool")
         super().__init__(
             http_auth_level=http_auth_level,
         )
         self._durable_app: DurableAgentFunctionApp | None = None
         self._functions_indexed = False
+        self._markdown_agents: dict[str, str] = {}
         configure_app(
             self,
             provider=AGENT_FRAMEWORK_PROVIDER_ID,
@@ -97,6 +105,109 @@ class AgentFunctionApp(
                 tools=tools,
             ),
         )
+        if durable:
+            # Validate/compile the complete discovery set before registering any
+            # endpoints. Compilation creates recipes, not clients or live agents.
+            bindings = [
+                self._compile_durable_markdown(name)
+                for name in discover_agent_names(self)
+            ]
+            self._ensure_durable_app()
+            for binding in bindings:
+                self._register_durable_markdown(binding)
+
+    def _compile_durable_markdown(self, name: str) -> AgentFrameworkBinding:
+        # The name is also used in an HTTP route and a Durable Entity ID, not
+        # only a filename. Reject route placeholders and entity-ID separators.
+        if re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]*", name) is None:
+            raise ValueError(
+                "Durable agent names must start with a letter or digit and "
+                "contain only ASCII letters, digits, hyphens, and underscores."
+            )
+        compiled = compile_agent(self, name)
+        if not isinstance(compiled, AgentFrameworkBinding):
+            raise TypeError("Durable markdown agents require the MAF provider.")
+        return compiled
+
+    def _register_durable_markdown(self, binding: AgentFrameworkBinding) -> None:
+        from ._durable import MarkdownDurableAgent
+
+        self.add_durable_agent(MarkdownDurableAgent(binding))
+        self._markdown_agents[binding.agent_name.casefold()] = binding.agent_name
+
+    def durable_markdown_agent(
+        self,
+        *,
+        arg_name: str,
+        agent_name: str,
+        context_name: str = "context",
+    ) -> Callable[[_F], _F]:
+        """Declare a durable markdown agent and inject its orchestration proxy.
+
+        Apply below orchestration_trigger, above a synchronous generator. The
+        declaration also publishes DAFX's default agent HTTP endpoint.
+        """
+        if not isinstance(agent_name, str) or not agent_name.strip():
+            raise ValueError("agent_name must be a non-empty string")
+
+        def decorate(handler: _F) -> _F:
+            if self._functions_indexed:
+                raise RuntimeError("Declare durable agents before function indexing.")
+            if not inspect.isgeneratorfunction(handler):
+                raise TypeError(
+                    "durable_markdown_agent requires a synchronous generator "
+                    "below orchestration_trigger."
+                )
+            signature = inspect.signature(handler)
+            parameter = signature.parameters.get(arg_name)
+            if parameter is None or parameter.kind not in {
+                inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                inspect.Parameter.KEYWORD_ONLY,
+            }:
+                raise TypeError(f"Invalid injected agent parameter {arg_name!r}.")
+            context_parameter = signature.parameters.get(context_name)
+            if arg_name == context_name or context_parameter is None:
+                raise TypeError(f"Missing distinct context parameter {context_name!r}.")
+            visible = signature.replace(parameters=[
+                item for name, item in signature.parameters.items() if name != arg_name
+            ])
+            parameters = list(visible.parameters.values())
+            if (
+                not parameters or parameters[0].name != context_name
+                or len(parameters) > 2
+                or any(p.kind != inspect.Parameter.POSITIONAL_OR_KEYWORD
+                       for p in parameters)
+            ):
+                raise TypeError(
+                    "The orchestrator must accept context first and optionally input."
+                )
+            existing_context = getattr(handler, "_durable_agent_context_name", None)
+            if existing_context is not None and existing_context != context_name:
+                raise TypeError("Durable bindings must use the same context_name.")
+
+            if agent_name.casefold() in self._markdown_agents:
+                if self._markdown_agents[agent_name.casefold()] != agent_name:
+                    raise ValueError(f"Ambiguous agent name {agent_name!r}.")
+            else:
+                self._register_durable_markdown(
+                    self._compile_durable_markdown(agent_name)
+                )
+
+            @functools.wraps(handler)
+            def inject(*args: Any, **kwargs: Any) -> Any:
+                bound = visible.bind(*args, **kwargs)
+                bound.apply_defaults()
+                bound.arguments[arg_name] = self.get_agent(
+                    bound.arguments[context_name], agent_name
+                )
+                call = inspect.BoundArguments(signature, bound.arguments)
+                return (yield from handler(*call.args, **call.kwargs))
+
+            inject.__signature__ = visible  # type: ignore[attr-defined]
+            setattr(inject, "_durable_agent_context_name", context_name)
+            return cast(_F, inject)
+
+        return decorate
 
     def add_durable_agent(self, agent: SupportsAgentRun) -> None:
         """Opt in to DAFX by registering an agent before function indexing.
@@ -135,7 +246,7 @@ class AgentFunctionApp(
             self._durable_app = DurableAgentFunctionApp(
                 http_auth_level=self.auth_level,
                 enable_health_check=False,
-                enable_http_endpoints=False,
+                enable_http_endpoints=True,
                 enable_mcp_tool_trigger=False,
             )
         return self._durable_app
@@ -147,7 +258,9 @@ class AgentFunctionApp(
     ) -> DurableAIAgent[DurableAgentTask]:
         """Get a DAFX proxy without registering functions during execution."""
         if self._durable_app is None:
-            raise RuntimeError("Call add_durable_agent() during app configuration.")
+            raise RuntimeError(
+                "Enable durable=True or declare a durable markdown agent."
+            )
         return self._durable_app.get_agent(context, agent_name)
 
     def get_functions(self) -> list[Function]:
@@ -179,10 +292,22 @@ class AgentFunctionApp(
         orchestration: str | None = None,
         input_type: type | None = None,
     ) -> Callable[..., Any]:
-        return durable_orchestration_trigger(
-            self,
-            sdk_decorator=super().orchestration_trigger,
-            context_name=context_name,
-            orchestration=orchestration,
-            input_type=input_type,
-        )
+        # Keep the native SDK context and task semantics; no hidden activity or
+        # custom call_agent context wrapper is installed.
+        sdk = super().orchestration_trigger
+        options: dict[str, Any] = {
+            "context_name": context_name, "orchestration": orchestration,
+        }
+        if input_type is not None:
+            if "input_type" not in inspect.signature(sdk).parameters:
+                raise TypeError("The installed SDK does not support input_type.")
+            options["input_type"] = input_type
+        decorator = sdk(**options)
+
+        def decorate(handler: _F) -> Any:
+            declared_context = getattr(handler, "_durable_agent_context_name", None)
+            if declared_context is not None and declared_context != context_name:
+                raise TypeError("Binding and trigger context_name must match.")
+            return decorator(handler)
+
+        return decorate

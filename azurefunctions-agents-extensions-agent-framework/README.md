@@ -131,33 +131,69 @@ root grants every Agent in that app access to it. Use separate Function Apps
 when capabilities require isolation. Python `tools=` remain explicit because
 they are supplied directly to the Microsoft Agent Framework Agent.
 
-The constructor and decorator expose only `client_factory` and explicit Python
-`tools` in V1. The extension owns the Agent client, name, instructions, and
+The normal markdown binding accepts `client_factory` and explicit Python
+`tools` overrides. The extension owns the Agent client, name, instructions, and
 discovered Skills/MCP integration. Configure `app_root` only when constructing
 `AgentFunctionApp`; decorators do not override it.
 
 ## Durable Agents
 
-This prototype also supports an explicit DAFX path through
-`add_durable_agent()` and `get_agent()`. See the
-[lazy-owned DAFX example](samples/lazy-owned-dafx/README.md) for the design,
-SDK 2 dependency pins, and test instructions. It does not change the
-activity-based API described below.
-
-Durable orchestration support is optional:
+Durable support is optional. This prototype pins both DAFX packages to
+[DAFX PR #72](https://github.com/microsoft/agent-framework-durable-extension/pull/72)
+at `aa9529ec489e16ac64b73bd68d5adbb8e4945258` for SDK 2 compatibility.
+These Git dependencies are for local prototyping, not a PyPI release.
 
 ```text
 pip install "azurefunctions-agents-extensions-agent-framework[durable]"
 ```
 
-Use `AgentFunctionApp` and call `context.call_agent(agent_name, input_)` inside a
-synchronous generator orchestrator. Agent execution is isolated in an activity
-so replay performs no nondeterministic work. Importing the package remains safe
-without Durable installed; using a Durable decorator requires the `[durable]`
-extra.
+Set `durable=True` to discover every `.agent.md` file directly in the app root
+or its `agents/` directory. Each discovered agent gets a DAFX entity and an
+automatic `POST /api/agents/{name}/run` endpoint with the default HTTP route
+prefix. No handwritten HTTP function or orchestrator is required.
 
-All `call_agent()` invocations use the provider configured by `AgentFunctionApp`.
-They also use the app-level `skills` and `mcp_servers` defaults. V1 does not
-support selecting another provider or capability set from an orchestrator, and
-the schema-v1 orchestration payload contains no capability paths, settings, or
-secrets.
+This explicitly publishes every discovered definition. Durable names must start
+with an ASCII letter or digit and contain only ASCII letters, digits, hyphens, and
+underscores. Ambiguous definitions and generated function-name collisions fail
+rather than silently selecting an agent.
+
+```python
+app = AgentFunctionApp(client_factory=create_chat_client, durable=True)
+```
+
+For orchestration, place `durable_markdown_agent` below `orchestration_trigger`
+on a synchronous generator. The binding registers the selected markdown agent
+and its HTTP endpoint even without `durable=True`. The injected object is a
+DAFX proxy, not a live Agent. Yield its tasks and share a session across turns.
+
+```python
+app = AgentFunctionApp(client_factory=create_chat_client)
+
+
+@app.orchestration_trigger(context_name="context")
+@app.durable_markdown_agent(
+    arg_name="agent", agent_name="orders", context_name="context"
+)
+def orders(context, agent):
+    session = agent.create_session()
+    assessment = yield agent.run("Assess the order.", session=session)
+    plan = yield agent.run("Make a fulfillment plan.", session=session)
+    return {"assessment": assessment.text, "plan": plan.text}
+```
+
+Registration compiles recipes without constructing clients. At entity execution,
+the lifecycle adapter enters the compiled binding's `open_agent()` context and
+closes it after the run. Each execution creates fresh clients and tools; DAFX
+restores conversation history from durable session state. Orchestrators keep the
+native SDK context. The old `context.call_agent()` activity path is replaced by
+the injected proxy.
+
+Normal `markdown_agent()` remains invocation-scoped and unchanged. Without a
+durable opt-in, it does not create an inner DAFX app. With durable agents, the
+outer app indexes both registries, including the SDK's `BuiltIn__HttpActivity`
+and `BuiltIn__HttpPollOrchestrator`. Agent HTTP endpoints are enabled; health
+and MCP endpoints are disabled.
+
+See the [endpoint-only local sample](samples/lazy-owned-dafx/README.md) and the
+[durable binding sample](samples/durable-markdown-binding/README.md) for setup
+and deterministic examples that do not need a model service.

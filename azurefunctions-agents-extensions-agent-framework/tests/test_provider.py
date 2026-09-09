@@ -101,7 +101,7 @@ def test_provider_rejects_non_agent_annotation():
         )
 
 
-def test_provider_accepts_missing_annotation_for_durable_activity():
+def test_provider_accepts_missing_annotation_for_compiled_recipe():
     binding = provider.AgentFrameworkProvider().compile_binding(
         instructions="instructions",
         agent_name="orders",

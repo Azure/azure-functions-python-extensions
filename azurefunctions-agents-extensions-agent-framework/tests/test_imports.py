@@ -7,10 +7,9 @@ import pytest
 
 def test_framework_exports_supported_api():
     import azurefunctions.agents.extensions.agent_framework as framework
-    from azurefunctions.agents.extensions.base.durable import DurableAgentContext
 
     assert framework.AgentFunctionApp is not None
-    assert framework.DurableAgentContext is DurableAgentContext
+    assert not hasattr(framework, "DurableAgentContext")
     assert not hasattr(framework, "AgentDFApp")
     assert not hasattr(framework, "markdown_agent")
 

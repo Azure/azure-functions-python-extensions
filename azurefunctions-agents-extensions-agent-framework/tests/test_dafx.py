@@ -15,7 +15,6 @@ from durabletask.task import CompletableTask
 from google.protobuf.wrappers_pb2 import StringValue
 
 from azurefunctions.agents.extensions.agent_framework import AgentFunctionApp
-from azurefunctions.agents.extensions.base.durable import DurableAgentContext
 
 
 class RecordingClient(BaseChatClient):
@@ -66,7 +65,7 @@ def test_registration_owns_one_real_dafx_app(app):
     assert app._durable_app is inner
     assert set(inner.agents) == {"Orders", "Shipping"}
     assert not inner.enable_health_check
-    assert not inner.enable_http_endpoints
+    assert inner.enable_http_endpoints
     assert not inner.enable_mcp_tool_trigger
     assert inner.auth_level == app.auth_level
     functions = app.get_functions()
@@ -76,7 +75,7 @@ def test_registration_owns_one_real_dafx_app(app):
         if function.get_bindings_dict()["bindings"][0]["type"] == "entityTrigger"
     }
     assert entities == {"dafx-Orders", "dafx-Shipping"}
-    assert not any(function.is_http_function() for function in functions)
+    assert sum(function.is_http_function() for function in functions) == 2
 
 
 @pytest.mark.parametrize("name", [None, "", " ", 42])
@@ -95,7 +94,7 @@ def test_different_agent_with_duplicate_name_is_rejected(app, name):
 
 
 def test_lookup_does_not_enable_dafx(app):
-    with pytest.raises(RuntimeError, match="add_durable_agent"):
+    with pytest.raises(RuntimeError, match="durable=True"):
         app.get_agent(object(), "Orders")
     assert app._durable_app is None
 
@@ -168,7 +167,7 @@ def test_combined_index_preserves_http_auth_and_is_repeatable(tmp_path, auth):
     assert [fn.get_function_name() for fn in first] == [
         fn.get_function_name() for fn in second
     ]
-    assert len(first) == 4  # HTTP + entity + the SDK's two built-in functions.
+    assert len(first) == 5  # Two HTTP routes + entity + SDK built-ins.
     http = next(fn for fn in first if fn.get_function_name() == "orders")
     trigger = next(
         binding for binding in http.get_bindings_dict()["bindings"]
@@ -197,7 +196,10 @@ def test_sdk_builtin_names_cannot_be_shadowed(app, tmp_path):
     app.add_durable_agent(make_agent())
     # Derive the SDK-owned names rather than duplicating a hard-coded list.
     sdk_functions = app._durable_app.get_functions()
-    builtins = [fn for fn in sdk_functions if fn.get_function_name() != "dafx-Orders"]
+    builtins = [
+        fn for fn in sdk_functions
+        if fn.get_function_name().startswith("BuiltIn__")
+    ]
     assert builtins
     for index, builtin in enumerate(builtins):
         candidate = AgentFunctionApp(
@@ -214,13 +216,14 @@ def test_sdk_builtin_names_cannot_be_shadowed(app, tmp_path):
             candidate.get_functions()
 
 
-def test_existing_activity_path_does_not_create_dafx(app):
+def test_native_orchestration_does_not_add_hidden_activity(app):
     @app.orchestration_trigger(context_name="context")
     def orchestrator(context):
-        yield context.call_agent("orders", "hello")
+        assert not hasattr(context, "call_agent")
+        yield context.call_activity("orders", "hello")
 
     names = {fn.get_function_name() for fn in app.get_functions()}
-    assert names == {"orchestrator", "azurefunctions_agents_run_markdown_agent"}
+    assert names == {"orchestrator"}
     assert app._durable_app is None
 
 
@@ -259,12 +262,12 @@ def test_proxy_runs_indexed_entity_and_restores_session_between_turns(app):
         scheduled.append((entity_id, input_, task))
         return task
 
-    # Only the scheduler is replaced. Use the SDK wrapper the PR receives,
-    # its context proxy, real DAFX tasks, and the real indexed entity handler.
+    # Only the scheduler is replaced. Use the SDK context, real DAFX tasks,
+    # and the real indexed entity handler.
     scheduler = Mock(instance_id="workflow-1")
     scheduler.new_uuid.side_effect = [str(uuid.UUID(int=n)) for n in range(1, 5)]
     scheduler.call_entity.side_effect = call_entity
-    context = DurableAgentContext(DurableOrchestrationContext(scheduler))
+    context = DurableOrchestrationContext(scheduler)
     agent = app.get_agent(context, "Orders")
     session = agent.create_session()
     state = None

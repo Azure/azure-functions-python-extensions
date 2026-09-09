@@ -16,6 +16,7 @@ def test_typed_api_exposes_only_v1_options():
         "app_root",
         "tools",
         "http_auth_level",
+        "durable",
     ]
     assert list(inspect.signature(AgentFunctionApp.markdown_agent).parameters) == [
         "self",
@@ -86,18 +87,17 @@ def test_typed_markdown_agent_forwards_supported_overrides(monkeypatch):
     )
 
 
-def test_typed_orchestration_trigger_adds_agent_context(monkeypatch):
+def test_typed_orchestration_trigger_keeps_native_context(monkeypatch):
     parent_decorator = Mock(return_value=object())
-    durable_decorator = Mock(return_value=object())
+
+    def sdk(context_name, orchestration=None, input_type=None):
+        assert (context_name, orchestration, input_type) == ("context", "orders", dict)
+        return parent_decorator
+
     monkeypatch.setattr(
         func.FunctionApp,
         "orchestration_trigger",
-        parent_decorator,
-    )
-    monkeypatch.setattr(
-        apps,
-        "durable_orchestration_trigger",
-        durable_decorator,
+        staticmethod(sdk),
     )
     app = object.__new__(AgentFunctionApp)
 
@@ -107,11 +107,8 @@ def test_typed_orchestration_trigger_adds_agent_context(monkeypatch):
         input_type=dict,
     )
 
-    assert result is durable_decorator.return_value
-    durable_decorator.assert_called_once_with(
-        app,
-        sdk_decorator=parent_decorator,
-        context_name="context",
-        orchestration="orders",
-        input_type=dict,
-    )
+    def handler(context):
+        yield context
+
+    assert result(handler) is parent_decorator.return_value
+    parent_decorator.assert_called_once_with(handler)
