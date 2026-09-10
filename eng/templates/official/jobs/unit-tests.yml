@@ -69,6 +69,9 @@ jobs:
           python -m pip install -e ./azurefunctions-agents-extensions-base
           cd azurefunctions-agents-extensions-agent-framework
           python -m pip install -U -e .[dev,durable,mcp]
+          if [ "$(PYTHON_VERSION)" = "3.13" ]; then
+            python -m pip install -e .[workflows]
+          fi
         displayName: 'Install Agents Framework Dependencies'
       - bash: |
           python -m pytest -q --instafail azurefunctions-agents-extensions-agent-framework/tests/

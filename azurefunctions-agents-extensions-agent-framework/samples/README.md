@@ -34,6 +34,10 @@ examples use deterministic clients without model credentials.
 * [Durable markdown binding](durable-markdown-binding/README.md) injects a proxy
     into a generator orchestrator, runs two turns in one session, and includes an
     HTTP starter. It also uses a deterministic local client.
+- [Durable YAML workflows](durable-yaml-workflow/README.md) enables
+    `durable=True, workflows=True` for shared state, a Markdown agent activity,
+    and a separate approval question. No handwritten handlers are needed.
+    Requires Python 3.13 and the `[durable,workflows]` extras.
 
 ## Prerequisites
 

@@ -8,13 +8,14 @@ from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 import azure.functions as func
-from agent_framework import SupportsAgentRun, ToolTypes
+from agent_framework import SupportsAgentRun, ToolTypes, Workflow
 from azure.functions.decorators.function_app import Function
 
 from azurefunctions.agents.extensions.base import (
     compile_agent,
     configure_app,
     discover_agent_names,
+    get_app_root,
 )
 from azurefunctions.agents.extensions.base import markdown_agent as base_markdown_agent
 
@@ -87,15 +88,21 @@ class AgentFunctionApp(
         ) = None,
         http_auth_level: func.AuthLevel | str = func.AuthLevel.FUNCTION,
         durable: bool = False,
+        workflows: bool = False,
     ) -> None:
         if not isinstance(durable, bool):
             raise TypeError("durable must be a bool")
+        if not isinstance(workflows, bool):
+            raise TypeError("workflows must be a bool")
+        if workflows and not durable:
+            raise ValueError("workflows=True requires durable=True.")
         super().__init__(
             http_auth_level=http_auth_level,
         )
         self._durable_app: DurableAgentFunctionApp | None = None
         self._functions_indexed = False
         self._markdown_agents: dict[str, str] = {}
+        self._hosted_workflows: list[Workflow] = []
         configure_app(
             self,
             provider=AGENT_FRAMEWORK_PROVIDER_ID,
@@ -112,6 +119,22 @@ class AgentFunctionApp(
                 self._compile_durable_markdown(name)
                 for name in discover_agent_names(self)
             ]
+            if workflows:
+                from ._durable import MarkdownDurableAgent
+                from ._workflows import load_workflows
+
+                recipes = {binding.agent_name: binding for binding in bindings}
+
+                def resolve_agent(name: str) -> SupportsAgentRun:
+                    if name not in recipes:
+                        # Use the same validation/error for missing and mis-cased
+                        # references as a standalone markdown declaration.
+                        recipes[name] = self._compile_durable_markdown(name)
+                    return MarkdownDurableAgent(recipes[name])
+
+                self._hosted_workflows = load_workflows(
+                    get_app_root(self), resolve_agent,
+                )
             self._ensure_durable_app()
             for binding in bindings:
                 self._register_durable_markdown(binding)
@@ -244,6 +267,7 @@ class AgentFunctionApp(
                 ) from error
 
             self._durable_app = DurableAgentFunctionApp(
+                workflows=self._hosted_workflows,
                 http_auth_level=self.auth_level,
                 enable_health_check=False,
                 enable_http_endpoints=True,

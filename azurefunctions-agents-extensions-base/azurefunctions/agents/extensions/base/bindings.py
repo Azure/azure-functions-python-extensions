@@ -108,6 +108,11 @@ def _configured_state(app: object) -> _AppState:
     return state
 
 
+def get_app_root(app: object) -> Path:
+    """Return the configured definition root for provider-specific loaders."""
+    return _configured_state(app).app_root
+
+
 def compile_agent(
     app: object,
     agent_name: str,

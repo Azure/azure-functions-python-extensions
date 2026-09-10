@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from .bindings import compile_agent, configure_app, discover_agent_names, markdown_agent
+from .bindings import (
+    compile_agent, configure_app, discover_agent_names, get_app_root, markdown_agent,
+)
 from .capabilities import (
     AgentCapabilities,
     MCPAuthConfig,
@@ -29,6 +31,7 @@ __all__ = [
     "compile_agent",
     "configure_app",
     "discover_agent_names",
+    "get_app_root",
     "load_provider",
     "markdown_agent",
 ]

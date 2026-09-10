@@ -17,6 +17,7 @@ def test_typed_api_exposes_only_v1_options():
         "tools",
         "http_auth_level",
         "durable",
+        "workflows",
     ]
     assert list(inspect.signature(AgentFunctionApp.markdown_agent).parameters) == [
         "self",

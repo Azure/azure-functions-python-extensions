@@ -197,3 +197,44 @@ and MCP endpoints are disabled.
 See the [endpoint-only local sample](samples/lazy-owned-dafx/README.md) and the
 [durable binding sample](samples/durable-markdown-binding/README.md) for setup
 and deterministic examples that do not need a model service.
+
+## YAML workflows
+
+YAML hosting is a separate opt-in and currently requires **Python 3.13**. Install
+both optional extras. Python 3.14 is rejected for this feature because the
+declarative runtime needs PowerFx.
+
+```text
+pip install "azurefunctions-agents-extensions-agent-framework[durable,workflows]"
+```
+
+```python
+app = AgentFunctionApp(
+    client_factory=create_chat_client,
+    durable=True,
+    workflows=True,
+)
+```
+
+Only `*.workflow.yaml` and `*.workflow.yml` directly in the app root or its
+`workflows/` directory are discovered, not arbitrary YAML or nested files. Each
+definition needs `kind: Workflow` and an explicit `name` of 1–63 ASCII letters,
+digits, hyphens, or underscores, starting with a letter. Names must be unique
+ignoring case.
+
+The extension builds graphs with `WorkflowFactory` and supplies them to DAFX's
+`workflows=` constructor. With the default route prefix, each graph gets
+`POST /api/workflow/NAME/run`, `GET /api/workflow/NAME/status/{instanceId}`, and
+`POST /api/workflow/NAME/respond/{instanceId}/{requestId}`. No custom
+orchestration or handwritten HTTP handlers are needed.
+
+`InvokeAzureAgent` accepts static Markdown references, either `agent: writer` or
+`agent: {name: writer}`. Inline top-level `agents` definitions, file-based YAML
+agents, and dynamic agent names are rejected. Agent actions run as durable
+activities using the existing `MarkdownDurableAgent` open/close lifecycle, not
+through the agent entity in the same graph. `durable=True` still publishes all
+discovered Markdown agents and their standalone HTTP endpoints.
+
+See the [local YAML sample](samples/durable-yaml-workflow/README.md) for shared
+state, a Markdown agent call, and a separate question/response workflow. The
+sample uses a deterministic client and does not provision a host or backend.

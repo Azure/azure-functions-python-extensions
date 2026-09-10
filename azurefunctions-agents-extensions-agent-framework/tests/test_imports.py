@@ -48,6 +48,9 @@ def test_non_durable_binding_runs_with_all_durable_imports_blocked(tmp_path):
         import sys
 
         blocked = (
+            'agent_framework_declarative',
+            'yaml',
+            'powerfx',
             'agent_framework_azurefunctions',
             'agent_framework_durabletask',
             'azure.durable_functions',

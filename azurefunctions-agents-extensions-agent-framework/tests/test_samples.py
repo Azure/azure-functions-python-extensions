@@ -26,6 +26,17 @@ _SAMPLE_INDEXES = {
         "orders", "start_orders", "dafx-orders", "http-orders",
         "BuiltIn__HttpActivity", "BuiltIn__HttpPollOrchestrator",
     },
+    "durable-yaml-workflow": {
+        "BuiltIn__HttpActivity", "BuiltIn__HttpPollOrchestrator",
+        "dafx-writer", "http-writer",
+        "dafx-OrderReview", "dafx-OrderReview-start", "dafx-OrderReview-status",
+        "dafx-OrderReview-respond", "dafx-OrderReview-_workflow_entry",
+        "dafx-OrderReview-capture_order", "dafx-OrderReview-prepare_prompt",
+        "dafx-OrderReview-review_order", "dafx-OrderReview-send_review",
+        "dafx-Approval", "dafx-Approval-start", "dafx-Approval-status",
+        "dafx-Approval-respond", "dafx-Approval-_workflow_entry",
+        "dafx-Approval-request_approval", "dafx-Approval-send_answer",
+    },
 }
 _LOCAL_SAMPLES = ("lazy-owned-dafx", "durable-markdown-binding")
 
@@ -40,14 +51,15 @@ def _run_sample(sample_path, script):
         ])
     )
     completed = subprocess.run(
-        [sys.executable, "-c", textwrap.dedent(script)],
+        [sys.executable, "-X", "utf8", "-c", textwrap.dedent(script)],
         cwd=_SAMPLES_ROOT / sample_path,
         env=environment,
         capture_output=True,
         text=True,
     )
     assert completed.returncode == 0, completed.stdout + completed.stderr
-    return json.loads(completed.stdout)
+    # PowerFx's loader may print initialization notices before the JSON result.
+    return json.loads(completed.stdout.strip().splitlines()[-1])
 
 
 def test_index_cases_cover_every_sample_app():
@@ -59,6 +71,13 @@ def test_index_cases_cover_every_sample_app():
 
 @pytest.mark.parametrize("sample_path", _SAMPLE_INDEXES)
 def test_sample_indexes_all_functions(sample_path):
+    if sample_path == "durable-yaml-workflow":
+        from importlib.util import find_spec
+        if (
+            sys.version_info >= (3, 14)
+            or find_spec("agent_framework_declarative") is None
+        ):
+            pytest.skip("YAML sample requires Python 3.13 and the workflows extra")
     # Exact names were recorded from the SDK 2/DAFX PR #72 index. DAFX sanitizes
     # HTTP names (_build_function_name), but preserves hyphens in entity names.
     result = _run_sample(sample_path, """
