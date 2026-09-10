@@ -126,3 +126,37 @@ def test_hybrid_durable_sample_starts_orchestration():
         "mimetype": "application/json",
         "location": "https://example.test/status/42",
     }
+
+
+def test_hybrid_durable_sample_rejects_malformed_json():
+    environment = os.environ.copy()
+    environment["PYTHONPATH"] = os.pathsep.join(
+        filter(None, [str(_PACKAGE_ROOT), environment.get("PYTHONPATH")])
+    )
+    script = (
+        "import asyncio, json\n"
+        "import azure.functions as func\n"
+        "import function_app\n"
+        "class FakeClient:\n"
+        "    async def start_new(self, name, *, client_input):\n"
+        "        raise AssertionError('orchestration must not start')\n"
+        "request = func.HttpRequest(method='POST', url='https://example.test', "
+        "body=b'{not json')\n"
+        "handler = function_app.start_order_orchestration._function"
+        ".get_user_function().__wrapped__\n"
+        "response = asyncio.run(handler(request, FakeClient()))\n"
+        "print(json.dumps({'status_code': response.status_code, "
+        "'body': response.get_body().decode()}))\n"
+    )
+    completed = subprocess.run(
+        [sys.executable, "-c", script],
+        cwd=_SAMPLES_ROOT / "hybrid-durable-agent" / "src",
+        env=environment,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    result = json.loads(completed.stdout)
+    assert result["status_code"] == 400
+    assert json.loads(result["body"]) == {"error": "Order failed validation."}

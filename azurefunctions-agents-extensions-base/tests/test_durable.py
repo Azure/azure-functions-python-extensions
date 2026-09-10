@@ -195,6 +195,29 @@ def test_hidden_activity_name_collision_is_rejected(tmp_path, monkeypatch):
         app.get_functions()
 
 
+def test_orchestration_proxy_wraps_context_at_runtime(tmp_path, monkeypatch):
+    app, _ = _configured_app(tmp_path, monkeypatch)
+
+    def sdk_decorator(**kwargs):
+        return lambda handler: handler
+
+    @durable.durable_orchestration_trigger(
+        app,
+        sdk_decorator=sdk_decorator,
+        context_name="context",
+    )
+    def orchestrator(context):
+        yield context.call_agent("orders", "hello")
+
+    context = _Context()
+
+    assert list(orchestrator(context)) == ["task"]
+    assert context.calls[0][0:2] == (
+        "activity",
+        "azurefunctions_agents_run_markdown_agent",
+    )
+
+
 def test_hidden_activity_resolves_and_executes_dynamic_agent(tmp_path, monkeypatch):
     instructions = "---\nthis remains: raw\n---\nHandle orders.\n"
     (tmp_path / "orders.agent.md").write_bytes(instructions.encode("utf-8"))

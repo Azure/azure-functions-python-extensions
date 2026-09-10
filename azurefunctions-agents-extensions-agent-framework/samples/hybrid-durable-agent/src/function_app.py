@@ -29,9 +29,18 @@ async def start_order_orchestration(
     req: func.HttpRequest,
     client: df.DurableFunctionsClient,
 ) -> func.HttpResponse:
+    try:
+        order = req.get_json()
+    except ValueError:
+        return func.HttpResponse(
+            body=json.dumps({"error": "Order failed validation."}),
+            status_code=400,
+            mimetype="application/json",
+        )
+
     instance_id = await client.start_new(
         "order_orchestrator",
-        client_input=req.get_json(),
+        client_input=order,
     )
     management = client.create_http_management_payload(req, instance_id)
     return func.HttpResponse(

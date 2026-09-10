@@ -58,7 +58,7 @@ class _AgentFrameworkAppMixin:
 
 class AgentFunctionApp(
     _AgentFrameworkAppMixin,
-    func.FunctionApp,  # type: ignore[misc]  # azure-functions lacks py.typed
+    func.FunctionApp,
 ):
     """Azure Functions app configured for Microsoft Agent Framework Agents."""
 

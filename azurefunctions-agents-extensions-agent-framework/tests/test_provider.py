@@ -5,6 +5,7 @@ import inspect
 from contextlib import AsyncExitStack, asynccontextmanager
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Any
 from unittest.mock import Mock
 
 import pytest
@@ -13,6 +14,7 @@ from agent_framework import Agent
 from azurefunctions.agents.extensions.base import (
     AgentCapabilities,
     InvocationMetadata,
+    MCPAuthConfig,
     MCPHTTPConfig,
     MCPServerDefinition,
     SkillDefinition,
@@ -140,6 +142,27 @@ def test_provider_rejects_async_client_factory():
         TypeError, match="client_factory must be a synchronous function"
     ):
         _compile(client_factory=create_client)
+
+
+@pytest.mark.parametrize("factory_kind", ["async_callable", "returns_awaitable"])
+def test_binding_rejects_factory_results_that_are_awaitable(factory_kind):
+    async def create_client():
+        return object()
+
+    if factory_kind == "async_callable":
+
+        class AsyncFactory:
+            async def __call__(self):
+                return object()
+
+        client_factory = AsyncFactory()
+    else:
+        client_factory = lambda: create_client()
+
+    binding = _compile(client_factory=client_factory)
+
+    with pytest.raises(TypeError, match="must return.*not an awaitable"):
+        asyncio.run(binding.run_agent("hello", InvocationMetadata()))
 
 
 def test_provider_factory_errors_propagate():
@@ -313,6 +336,95 @@ def test_mcp_url_is_validated_after_environment_resolution(
 
     with pytest.raises(ValueError, match="HTTP or HTTPS"):
         asyncio.run(open_tool())
+
+
+@pytest.mark.parametrize(
+    "config",
+    [
+        MCPHTTPConfig("$MCP_SERVER_URL", headers=(("X-Api-Key", "secret"),)),
+        MCPHTTPConfig(
+            "$MCP_SERVER_URL",
+            auth=MCPAuthConfig(scope="api://example/.default"),
+        ),
+    ],
+)
+def test_mcp_credentials_require_https_after_environment_resolution(
+    monkeypatch,
+    config,
+):
+    monkeypatch.setenv("MCP_SERVER_URL", "http://mcp.example.test")
+    definition = MCPServerDefinition("orders", config)
+
+    async def open_tool():
+        async with provider._open_mcp_tool(definition):
+            pass
+
+    with pytest.raises(ValueError, match="HTTPS when headers or auth are configured"):
+        asyncio.run(open_tool())
+
+
+@pytest.mark.parametrize("host", ["localhost", "127.0.0.2", "[::1]"])
+def test_mcp_credentials_allow_http_loopback_after_environment_resolution(
+    monkeypatch,
+    host,
+):
+    import agent_framework
+
+    class FakeClient:
+        def __init__(self, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc_value, traceback):
+            pass
+
+    class FakeTool:
+        def __init__(self, **kwargs):
+            pass
+
+    monkeypatch.setattr("httpx.AsyncClient", FakeClient)
+    monkeypatch.setattr(agent_framework, "MCPStreamableHTTPTool", FakeTool)
+    monkeypatch.setenv("MCP_SERVER_URL", f"http://{host}:8080/mcp")
+    definition = MCPServerDefinition(
+        "orders",
+        MCPHTTPConfig(
+            "$MCP_SERVER_URL",
+            headers=(("X-Api-Key", "secret"),),
+        ),
+    )
+
+    async def open_tool():
+        async with provider._open_mcp_tool(definition):
+            pass
+
+    asyncio.run(open_tool())
+
+
+def test_mcp_servers_prefix_duplicate_remote_tool_names(monkeypatch):
+    import agent_framework
+
+    exposed_names = []
+
+    class FakeTool:
+        def __init__(self, **kwargs: Any):
+            exposed_names.append(f"{kwargs['tool_name_prefix']}_lookup")
+
+    monkeypatch.setattr(agent_framework, "MCPStreamableHTTPTool", FakeTool)
+    definitions = (
+        MCPServerDefinition("inventory", MCPHTTPConfig("https://one.example.test")),
+        MCPServerDefinition("orders", MCPHTTPConfig("https://two.example.test")),
+    )
+
+    async def open_tools():
+        async with AsyncExitStack() as stack:
+            for definition in definitions:
+                await stack.enter_async_context(provider._open_mcp_tool(definition))
+
+    asyncio.run(open_tools())
+
+    assert exposed_names == ["inventory_lookup", "orders_lookup"]
 
 
 def test_mcp_client_does_not_follow_redirects(monkeypatch):

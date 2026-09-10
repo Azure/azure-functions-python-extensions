@@ -103,9 +103,12 @@ V1 MCP discovery supports remote HTTP transports only:
 ```
 
 `$VAR` and `%VAR%` references are resolved for each invocation, not during
-discovery. Missing values fail before connecting. Credentials, tokens, HTTP
-clients, MCP tools, and Agents are fresh invocation-owned resources and are
-closed on success, error, or cancellation. Do not place secrets directly in
+discovery. Missing values fail before connecting. Servers configured with
+headers or Entra authentication must use HTTPS; HTTP is accepted only for
+loopback development. Exposed MCP tool names are prefixed with the server name
+to prevent collisions between servers. Credentials, tokens, HTTP clients, MCP
+tools, and Agents are fresh invocation-owned resources and are closed on
+success, error, or cancellation. Do not place secrets directly in
 source-controlled `mcp.json`; use environment references.
 
 Every Agent in the Function App receives all valid Skills and MCP servers

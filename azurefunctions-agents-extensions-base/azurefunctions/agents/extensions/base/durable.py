@@ -168,8 +168,8 @@ if TYPE_CHECKING:
         _DurableAgentContextMixin,
         df.DurableOrchestrationContext,
     ):
-        def __init__(self, context: df.DurableOrchestrationContext) -> None:
-            self._context = cast(_DurableContext, context)
+        def __init__(self, context: _DurableContext) -> None:
+            self._context = context
 
 else:
 
@@ -264,7 +264,7 @@ def durable_orchestration_trigger(
         def proxy_orchestrator(*args: Any, **kwargs: Any) -> Any:
             bound = signature.bind(*args, **kwargs)
             context = cast(
-                df.DurableOrchestrationContext,
+                _DurableContext,
                 bound.arguments[context_name],
             )
             bound.arguments[context_name] = DurableAgentContext(context)

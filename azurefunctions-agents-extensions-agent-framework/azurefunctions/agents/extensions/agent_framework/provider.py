@@ -8,6 +8,7 @@ import warnings
 from collections.abc import Callable, Mapping, Sequence
 from contextlib import AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass
+from ipaddress import ip_address
 from typing import TYPE_CHECKING, Any, AsyncIterator, TypedDict, cast, get_origin
 from urllib.parse import urlsplit
 
@@ -66,6 +67,14 @@ class AgentFrameworkBinding(CompiledAgent):
         skills_provider: SkillsProvider | None,
         mcp_tools: Sequence[AgentTool],
     ) -> Agent[Any]:
+        client = self.options.client_factory()
+        if inspect.isawaitable(client):
+            if inspect.iscoroutine(client):
+                client.close()
+            raise TypeError(
+                "client_factory must return a BaseChatClient synchronously, "
+                "not an awaitable"
+            )
         options = _AgentKeywordOptions()
         if skills_provider is not None:
             options["context_providers"] = [skills_provider]
@@ -75,7 +84,7 @@ class AgentFrameworkBinding(CompiledAgent):
         elif tools:
             options["tools"] = tools
         return Agent(
-            client=self.options.client_factory(),
+            client=client,
             instructions=self.instructions,
             name=self.agent_name,
             **options,
@@ -199,6 +208,18 @@ def _resolve_environment(value: str, *, field: str) -> str:
     return result
 
 
+def _is_loopback_host(hostname: str | None) -> bool:
+    if hostname is None:
+        return False
+    normalized = hostname.rstrip(".").casefold()
+    if normalized == "localhost":
+        return True
+    try:
+        return ip_address(normalized).is_loopback
+    except ValueError:
+        return False
+
+
 @asynccontextmanager
 async def _open_mcp_tool(
     definition: MCPServerDefinition,
@@ -244,6 +265,15 @@ async def _open_mcp_tool(
         if auth is not None and auth.client_id is not None
         else None
     )
+    if (
+        parsed_url.scheme == "http"
+        and (static_headers or auth is not None)
+        and not _is_loopback_host(parsed_url.hostname)
+    ):
+        raise ValueError(
+            f"MCP server {definition.name!r} must use HTTPS when headers or auth "
+            "are configured; HTTP is allowed only for loopback hosts"
+        )
 
     async with AsyncExitStack() as stack:
         credential = None
@@ -280,6 +310,7 @@ async def _open_mcp_tool(
         tool = MCPStreamableHTTPTool(
             name=definition.name,
             url=url,
+            tool_name_prefix=definition.name,
             allowed_tools=(
                 list(config.allowed_tools)
                 if config.allowed_tools is not None
