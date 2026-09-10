@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import math
 from contextlib import asynccontextmanager
 from datetime import timedelta
@@ -218,7 +219,11 @@ def test_orchestration_proxy_wraps_context_at_runtime(tmp_path, monkeypatch):
     )
 
 
-def test_hidden_activity_resolves_and_executes_dynamic_agent(tmp_path, monkeypatch):
+def test_hidden_activity_resolves_and_executes_dynamic_agent(
+    tmp_path,
+    monkeypatch,
+    caplog,
+):
     instructions = "---\nthis remains: raw\n---\nHandle orders.\n"
     (tmp_path / "orders.agent.md").write_bytes(instructions.encode("utf-8"))
     app, provider = _configured_app(tmp_path, monkeypatch)
@@ -229,19 +234,30 @@ def test_hidden_activity_resolves_and_executes_dynamic_agent(tmp_path, monkeypat
         invocation_id="invocation-1",
     )
 
-    result = asyncio.run(
-        activity(
-            {
-                "schema_version": 1,
-                "agent_name": "orders",
-                "input": {"z": 1, "a": 2},
-                "durable_instance_id": "instance-1",
-            },
-            context,
+    with caplog.at_level(logging.INFO, logger="azure.functions.AgentExtension"):
+        result = asyncio.run(
+            activity(
+                {
+                    "schema_version": 1,
+                    "agent_name": "orders",
+                    "input": {"z": 1, "a": 2},
+                    "durable_instance_id": "instance-1",
+                },
+                context,
+            )
         )
-    )
 
     assert result == 'response:{"a":2,"z":1}'
+    records = [
+        record
+        for record in caplog.records
+        if record.name == "azure.functions.AgentExtension"
+    ]
+    assert [record.getMessage() for record in records] == [
+        "Agent extension invoked with provider 'agent_framework' and agent 'orders'"
+    ]
+    assert records[0].provider == "agent_framework"
+    assert records[0].agent_name == "orders"
     assert provider.compile_calls[0]["instructions"] == instructions
     assert provider.compile_calls[0]["capabilities"].skills == ()
     assert provider.compiled.calls[0][0] == '{"a":2,"z":1}'

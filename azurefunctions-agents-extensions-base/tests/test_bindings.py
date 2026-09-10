@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import gc
 import inspect
+import logging
 import weakref
 from contextlib import asynccontextmanager
 
@@ -83,6 +84,34 @@ def test_markdown_agent_injects_fresh_context_and_hides_parameter(tmp_path, prov
     assert first[1]["instance"] == 1
     assert second[1]["instance"] == 2
     assert provider.compiled.opened == provider.compiled.closed == 2
+
+
+def test_markdown_agent_logs_provider_usage(tmp_path, provider, caplog):
+    (tmp_path / "orders.agent.md").write_text("instructions", encoding="utf-8")
+    app = func.FunctionApp()
+
+    @bindings.markdown_agent(
+        app,
+        provider="agent_framework",
+        arg_name="agent",
+        agent_name="orders",
+    )
+    async def handler(agent: object) -> None:
+        pass
+
+    with caplog.at_level(logging.INFO, logger="azure.functions.AgentExtension"):
+        asyncio.run(handler())
+
+    records = [
+        record
+        for record in caplog.records
+        if record.name == "azure.functions.AgentExtension"
+    ]
+    assert [record.getMessage() for record in records] == [
+        "Agent extension invoked with provider 'agent_framework' and agent 'orders'"
+    ]
+    assert records[0].provider == "agent_framework"
+    assert records[0].agent_name == "orders"
 
 
 def test_markdown_agent_preserves_variadic_handler_arguments(tmp_path, provider):

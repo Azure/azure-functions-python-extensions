@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any, Literal, Protocol, TypeVar, TypedDict, ca
 
 import azure.functions as func
 
-from .bindings import _configured_state, _durable_agent
+from .bindings import _configured_state, _durable_agent, _log_agent_usage
 from .providers import InvocationMetadata
 
 if TYPE_CHECKING:
@@ -206,6 +206,7 @@ def configure_durable_app(app: _DurableApp) -> None:
                 invocation_id=str(context.invocation_id or "") or None,
                 durable_instance_id=parsed["durable_instance_id"],
             )
+            _log_agent_usage(state.provider_id, parsed["agent_name"])
             return await compiled.run_agent(
                 _normalize_agent_prompt(parsed["input"]),
                 invocation,

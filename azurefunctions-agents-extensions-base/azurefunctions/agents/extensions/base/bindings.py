@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import functools
 import inspect
+import logging
 import os
 import threading
 import weakref
@@ -19,6 +20,16 @@ from .providers import AgentProvider, CompiledAgent, InvocationMetadata, load_pr
 
 _F = TypeVar("_F", bound=Callable[..., Any])
 _INVALID_FILENAME_CHARACTERS = frozenset('<>:"/\\|?*')
+_logger = logging.getLogger("azure.functions.AgentExtension")
+
+
+def _log_agent_usage(provider: str, agent_name: str) -> None:
+    _logger.info(
+        "Agent extension invoked with provider %r and agent %r",
+        provider,
+        agent_name,
+        extra={"provider": provider, "agent_name": agent_name},
+    )
 
 
 @dataclass
@@ -325,6 +336,7 @@ def markdown_agent(
         @functools.wraps(handler)
         async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
             invocation = _invocation_metadata(visible_signature, args, kwargs)
+            _log_agent_usage(state.provider_id, agent_name)
             async with compiled.open_agent(invocation) as agent:
                 return await _source_call(
                     handler,
