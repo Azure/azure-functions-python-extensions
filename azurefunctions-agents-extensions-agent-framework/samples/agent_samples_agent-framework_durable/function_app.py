@@ -1,11 +1,13 @@
 import json
 import os
 from datetime import timedelta
-from typing import Any
 
 import azure.durable_functions as df
 import azure.functions as func
-from azurefunctions.agents.extensions.agent_framework import AgentFunctionApp
+from azurefunctions.agents.extensions.agent_framework import (
+    AgentFunctionApp,
+    DurableAgentContext,
+)
 from order_processing import prepare_order_for_agent
 
 
@@ -18,6 +20,7 @@ def create_chat_client():
         model=os.environ["FOUNDRY_MODEL"],
         credential=DefaultAzureCredential(),
     )
+
 
 app = AgentFunctionApp(client_factory=create_chat_client)
 
@@ -59,7 +62,7 @@ def prepare_order_activity(order: dict) -> dict[str, object]:
 
 
 @app.orchestration_trigger(context_name="context")
-def order_orchestrator(context: Any):
+def order_orchestrator(context: DurableAgentContext):
     prepared_order = yield context.call_activity(
         "prepare_order_activity",
         context.get_input(),
