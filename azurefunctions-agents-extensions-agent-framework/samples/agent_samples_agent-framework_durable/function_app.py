@@ -5,7 +5,6 @@ from typing import Any
 
 import azure.durable_functions as df
 import azure.functions as func
-from agent_framework import Agent
 from azurefunctions.agents.extensions.agent_framework import AgentFunctionApp
 from order_processing import prepare_order_for_agent
 
@@ -65,14 +64,6 @@ def order_orchestrator(context: Any):
         "prepare_order_activity",
         context.get_input(),
     )
-
-    # context.call_agent equivalent to the following commented-out code:
-    #
-    # @app.activity_trigger(input_name="payload")
-    # @app.markdown_agent(arg_name="agent", agent_name="order-fulfillment")
-    # async def process_order(payload: dict, agent: Agent[Any]) -> dict:
-    #     response = await agent.run(json.dumps(payload))
-    #     return {"text": response.text}
 
     assessment = yield context.call_agent(
         "order-fulfillment",

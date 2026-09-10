@@ -16,11 +16,11 @@ _SAMPLES_ROOT = _PACKAGE_ROOT / "samples"
     ("sample_name", "expected_names"),
     [
         (
-            "hybrid-function-agent",
+            "agent_samples_agent-framework",
             {"process_order", "process_order_event"},
         ),
         (
-            "hybrid-durable-agent",
+            "agent_samples_agent-framework_durable",
             {
                 "azurefunctions_agents_run_markdown_agent",
                 "order_orchestrator",
@@ -45,7 +45,7 @@ def test_sample_indexes_all_functions(sample_name, expected_names):
                 "for function in function_app.app.get_functions()]))"
             ),
         ],
-        cwd=_SAMPLES_ROOT / sample_name / "src",
+        cwd=_SAMPLES_ROOT / sample_name,
         env=environment,
         check=True,
         capture_output=True,
@@ -55,7 +55,7 @@ def test_sample_indexes_all_functions(sample_name, expected_names):
     assert set(json.loads(completed.stdout)) == expected_names
 
 
-def test_hybrid_function_sample_rejects_malformed_json():
+def test_agent_framework_sample_rejects_malformed_json():
     environment = os.environ.copy()
     environment["PYTHONPATH"] = os.pathsep.join(
         filter(None, [str(_PACKAGE_ROOT), environment.get("PYTHONPATH")])
@@ -76,7 +76,7 @@ def test_hybrid_function_sample_rejects_malformed_json():
                 "'body': response.get_body().decode()}))"
             ),
         ],
-        cwd=_SAMPLES_ROOT / "hybrid-function-agent" / "src",
+        cwd=_SAMPLES_ROOT / "agent_samples_agent-framework",
         env=environment,
         check=True,
         capture_output=True,
@@ -88,7 +88,7 @@ def test_hybrid_function_sample_rejects_malformed_json():
     assert json.loads(result["body"]) == {"error": "Order failed validation."}
 
 
-def test_hybrid_durable_sample_starts_orchestration():
+def test_agent_framework_durable_sample_starts_orchestration():
     environment = os.environ.copy()
     environment["PYTHONPATH"] = os.pathsep.join(
         filter(None, [str(_PACKAGE_ROOT), environment.get("PYTHONPATH")])
@@ -114,7 +114,7 @@ def test_hybrid_durable_sample_starts_orchestration():
     )
     completed = subprocess.run(
         [sys.executable, "-c", script],
-        cwd=_SAMPLES_ROOT / "hybrid-durable-agent" / "src",
+        cwd=_SAMPLES_ROOT / "agent_samples_agent-framework_durable",
         env=environment,
         check=True,
         capture_output=True,
@@ -128,7 +128,7 @@ def test_hybrid_durable_sample_starts_orchestration():
     }
 
 
-def test_hybrid_durable_sample_rejects_malformed_json():
+def test_agent_framework_durable_sample_rejects_malformed_json():
     environment = os.environ.copy()
     environment["PYTHONPATH"] = os.pathsep.join(
         filter(None, [str(_PACKAGE_ROOT), environment.get("PYTHONPATH")])
@@ -150,7 +150,7 @@ def test_hybrid_durable_sample_rejects_malformed_json():
     )
     completed = subprocess.run(
         [sys.executable, "-c", script],
-        cwd=_SAMPLES_ROOT / "hybrid-durable-agent" / "src",
+        cwd=_SAMPLES_ROOT / "agent_samples_agent-framework_durable",
         env=environment,
         check=True,
         capture_output=True,
@@ -160,3 +160,11 @@ def test_hybrid_durable_sample_rejects_malformed_json():
     result = json.loads(completed.stdout)
     assert result["status_code"] == 400
     assert json.loads(result["body"]) == {"error": "Order failed validation."}
+
+
+def test_agent_framework_sample_assets_follow_discovery_conventions():
+    sample_root = _SAMPLES_ROOT / "agent_samples_agent-framework"
+
+    assert (sample_root / "order-fulfillment.agent.md").is_file()
+    assert (sample_root / "skills" / "order-policy" / "SKILL.md").is_file()
+    assert (sample_root / "mcp.json").is_file()
