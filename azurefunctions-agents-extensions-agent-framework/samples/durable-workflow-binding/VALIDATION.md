@@ -1,8 +1,11 @@
 # Discovery and binding verification
 
-This revision rebases the prototype onto PR #185 at `2777aa3`. Its provider/MCP
+This revision rebases the prototype onto PR #185 at `edb9d0a`. Its provider/MCP
 fixes, renamed sample directories, malformed-input tests, and CI dependencies
-are preserved. The rebased baseline passed 168 tests before the API revision.
+are preserved. The baseline at `2777aa3` passed 168 tests before the API revision.
+The final rebase keeps the native SDK context instead of the new upstream export
+of the deleted custom context. All 192 tests and five non-durable import tests
+passed again after that rebase, along with typing and lint.
 
 ## Current results
 
@@ -36,6 +39,9 @@ are preserved. The rebased baseline passed 168 tests before the API revision.
   between a workflow-internal agent and a standalone agent. Both were reproduced
   with safe failing tests and fixed. Forwarding now uses DAFX's own sanitizers;
   a standalone/internal collision fails before returning an indexed app.
+- Final rebase review found no runtime-source changes from the approved revision.
+  The upstream custom-context export failed the import test before reconciliation;
+  the resolved export test verifies that no custom context is exposed.
 - Native YAML behavior remains delegated to the public MAF factory. The narrow
   DAFX workflow-route override and input sanitizers rely on the pinned DAFX version,
   not on a custom workflow execution engine.
