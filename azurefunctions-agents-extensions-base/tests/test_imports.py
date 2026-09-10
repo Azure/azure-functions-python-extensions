@@ -2,7 +2,7 @@ import subprocess
 import sys
 
 
-def test_durable_module_import_does_not_require_durable():
+def test_base_import_does_not_require_durable():
     result = subprocess.run(
         [
             sys.executable,
@@ -16,7 +16,8 @@ def test_durable_module_import_does_not_require_durable():
                 "fullname.startswith('azure.durable_functions.'):\n"
                 "   raise ModuleNotFoundError(name=fullname)\n"
                 "sys.meta_path.insert(0, BlockDurable())\n"
-                "import azurefunctions.agents.extensions.base.durable\n"
+                "import azurefunctions.agents.extensions.base as base\n"
+                "assert not hasattr(base, 'configure_durable_app')\n"
                 "assert 'azure.durable_functions' not in sys.modules"
             ),
         ],

@@ -17,8 +17,9 @@ name is the provider ID. The factory returns an `AgentProvider` with a matching
 name, immutable provider options, injected parameter annotation, and an
 `AgentCapabilities` bundle. Providers declare `supported_capabilities` and
 translate neutral Skill/MCP definitions into their own runtime objects. The
-compiled recipe creates a fresh Agent context for each invocation and can run
-an Agent from a Durable activity.
+compiled recipe exposes `open_agent()` to create a fresh Agent context for each
+invocation. Provider-specific adapters can use the same lifecycle for durable
+entity execution.
 
 Applications import the app class supplied by a provider package. Each Agent
 Function App uses one provider, configured when the app is constructed.
@@ -43,6 +44,11 @@ substitutions, tools, skills, MCP configuration, and history are not parsed by
 this package. If both locations exist, lookup fails as ambiguous. Absolute
 paths, separators, traversal components, and symlinks outside `app_root` are
 rejected.
+
+`discover_agent_names()` enumerates `.agent.md` files directly in these two
+directories, not nested directories. Provider apps can compile the discovered
+names without constructing live clients. The Microsoft Agent Framework app uses
+this discovery when `durable=True` is set.
 
 ## Skills and MCP discovery
 
@@ -72,7 +78,13 @@ each invocation.
 
 Provider packages expose Durable support through their own `[durable]` extra.
 The base extra installs `azure-functions-durable>=2.0.0b2`; normal imports do
-not import or require Durable Functions. `DurableAgentContext.call_agent()`
-schedules a hidden activity with a deterministic, JSON-only payload and always
-uses the `AgentFunctionApp` provider. All file, client, Agent, model, and
-tool I/O occurs in the activity, never in the orchestrator.
+not import or require Durable Functions. The base package supplies discovery,
+compilation, and lifecycle contracts, not an orchestration context wrapper or
+hidden Agent activity.
+
+The Microsoft Agent Framework provider offers `durable=True` discovery and a
+`durable_markdown_agent()` binding. It registers compiled markdown recipes with
+DAFX and injects a durable proxy into generator orchestrators. Concrete clients
+and tools are created and closed through `open_agent()` during entity execution,
+not indexing or orchestration replay. See the
+[provider documentation](../azurefunctions-agents-extensions-agent-framework/README.md#durable-agents).

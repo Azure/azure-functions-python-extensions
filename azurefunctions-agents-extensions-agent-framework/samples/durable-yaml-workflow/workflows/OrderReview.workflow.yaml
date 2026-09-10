@@ -1,0 +1,21 @@
+kind: Workflow
+name: OrderReview
+actions:
+  - kind: SetValue
+    id: capture_order
+    path: Local.order
+    value: =Workflow.Inputs.order
+  - kind: SetValue
+    id: prepare_prompt
+    path: Local.prompt
+    value: '="Review order " & Local.order & "."'
+  - kind: InvokeAzureAgent
+    id: review_order
+    agent: writer
+    input: =Local.prompt
+    resultProperty: Local.reply
+    output:
+      autoSend: false
+  - kind: SendActivity
+    id: send_review
+    activity: =Local.reply

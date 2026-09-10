@@ -1,13 +1,10 @@
 import json
 import os
-from datetime import timedelta
 
 import azure.durable_functions as df
 import azure.functions as func
-from azurefunctions.agents.extensions.agent_framework import (
-    AgentFunctionApp,
-    DurableAgentContext,
-)
+from agent_framework_durabletask import DurableAgentTask, DurableAIAgent
+from azurefunctions.agents.extensions.agent_framework import AgentFunctionApp
 from order_processing import prepare_order_for_agent
 
 
@@ -62,33 +59,36 @@ def prepare_order_activity(order: dict) -> dict[str, object]:
 
 
 @app.orchestration_trigger(context_name="context")
-def order_orchestrator(context: DurableAgentContext):
+@app.durable_markdown_agent(
+    arg_name="agent", agent_name="order-fulfillment", context_name="context"
+)
+def order_orchestrator(
+    context: df.DurableOrchestrationContext,
+    agent: DurableAIAgent[DurableAgentTask],
+):
     prepared_order = yield context.call_activity(
         "prepare_order_activity",
         context.get_input(),
     )
 
-    assessment = yield context.call_agent(
-        "order-fulfillment",
-        {
+    session = agent.create_session()
+    assessment = yield agent.run(
+        json.dumps({
             "order": prepared_order,
             "task": "assess fulfillment risk using the trusted calculated fields",
-        },
+        }),
+        session=session,
     )
-    plan = yield context.call_agent(
-        "order-fulfillment",
-        {
+    plan = yield agent.run(
+        json.dumps({
             "order": prepared_order,
-            "risk_assessment": assessment,
+            "risk_assessment": assessment.text,
             "task": "create a fulfillment plan with prioritized human-review actions",
-        },
-        retry_options=df.RetryPolicy(
-            first_retry_interval=timedelta(seconds=5),
-            max_number_of_attempts=3,
-        ),
+        }),
+        session=session,
     )
     return {
         "order_id": prepared_order["order_id"],
-        "risk_assessment": assessment,
-        "fulfillment_plan": plan,
+        "risk_assessment": assessment.text,
+        "fulfillment_plan": plan.text,
     }

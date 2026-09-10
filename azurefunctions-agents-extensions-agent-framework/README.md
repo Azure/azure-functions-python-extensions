@@ -131,27 +131,205 @@ root grants every Agent in that app access to it. Use separate Function Apps
 when capabilities require isolation. Python `tools=` remain explicit because
 they are supplied directly to the Microsoft Agent Framework Agent.
 
-The constructor and decorator expose only `client_factory` and explicit Python
-`tools` in V1. The extension owns the Agent client, name, instructions, and
+The normal markdown binding accepts `client_factory` and explicit Python
+`tools` overrides. The extension owns the Agent client, name, instructions, and
 discovered Skills/MCP integration. Configure `app_root` only when constructing
 `AgentFunctionApp`; decorators do not override it.
 
 ## Durable Agents
 
-Durable orchestration support is optional:
+Durable support is optional. This prototype pins both DAFX packages to
+[DAFX PR #72](https://github.com/microsoft/agent-framework-durable-extension/pull/72)
+at `aa9529ec489e16ac64b73bd68d5adbb8e4945258` for SDK 2 compatibility.
+These Git dependencies are for local prototyping, not a PyPI release.
 
 ```text
 pip install "azurefunctions-agents-extensions-agent-framework[durable]"
 ```
 
-Use `AgentFunctionApp` and call `context.call_agent(agent_name, input_)` inside a
-synchronous generator orchestrator. Agent execution is isolated in an activity
-so replay performs no nondeterministic work. Importing the package remains safe
-without Durable installed; using a Durable decorator requires the `[durable]`
-extra.
+Set `discover_agents=True` to discover every `.agent.md` file directly in the app root
+or its `agents/` directory. Each discovered agent gets a DAFX entity and an
+automatic `POST /api/agents/{name}/run` endpoint with the default HTTP route
+prefix. No handwritten HTTP function or orchestrator is required.
 
-All `call_agent()` invocations use the provider configured by `AgentFunctionApp`.
-They also use the app-level `skills` and `mcp_servers` defaults. V1 does not
-support selecting another provider or capability set from an orchestrator, and
-the schema-v1 orchestration payload contains no capability paths, settings, or
-secrets.
+This explicitly publishes every discovered definition. Durable names must start
+with an ASCII letter or digit and contain only ASCII letters, digits, hyphens, and
+underscores. Ambiguous definitions and generated function-name collisions fail
+rather than silently selecting an agent.
+
+```python
+app = AgentFunctionApp(client_factory=create_chat_client, discover_agents=True)
+```
+
+For orchestration, place `durable_markdown_agent` below `orchestration_trigger`
+on a synchronous generator. The binding registers the selected markdown agent
+without bulk discovery. It is private by default (`expose_http_endpoint=False`).
+The injected object is a DAFX proxy, not a live Agent. Yield its tasks and share
+a session across turns.
+
+```python
+app = AgentFunctionApp(client_factory=create_chat_client)
+
+
+@app.orchestration_trigger(context_name="context")
+@app.durable_markdown_agent(
+    arg_name="agent", agent_name="orders", context_name="context"
+)
+def orders(context, agent):
+    session = agent.create_session()
+    assessment = yield agent.run("Assess the order.", session=session)
+    plan = yield agent.run("Make a fulfillment plan.", session=session)
+    return {"assessment": assessment.text, "plan": plan.text}
+```
+
+Registration compiles recipes without constructing clients. At entity execution,
+the lifecycle adapter enters the compiled binding's `open_agent()` context and
+closes it after the run. Each execution creates fresh clients and tools; DAFX
+restores conversation history from durable session state. Orchestrators keep the
+native SDK context. The old `context.call_agent()` activity path is replaced by
+the injected proxy.
+
+Normal `markdown_agent()` remains invocation-scoped and unchanged. Durable
+declarations collect registrations first. The inner DAFX host is constructed
+at `get_functions()` only when an agent or workflow is registered. The outer
+app indexes both registries, including the SDK's `BuiltIn__HttpActivity` and
+`BuiltIn__HttpPollOrchestrator`. Health and MCP endpoints are disabled.
+
+### Discovery, exposure, and policy
+
+`discover_agents=False` and `discover_workflows=False` are independent defaults.
+The constructor's `expose_agent_endpoints=True` and
+`expose_workflow_endpoints=True` apply only to their respective bulk discovery
+paths. Set either exposure option to `False` to register those definitions
+without publishing their standalone HTTP endpoints.
+
+Selective `durable_markdown_agent` and `durable_workflow` bindings instead use
+their own `expose_http_endpoint=False` default. Set it to `True` on a binding
+to publish that definition. Discovery and bindings share the same registry.
+Repeated registration reuses the definition and combines exposure with logical
+OR, so a private binding does not hide an endpoint already explicitly enabled.
+Register all bindings before indexing.
+
+Endpoint exposure is not application policy. A generated endpoint invokes its
+agent or workflow directly and bypasses any validation in a handwritten parent
+or starter. Private here means no standalone generated HTTP route, not a
+separate authorization or execution boundary. Hosted HTTP endpoints require
+the configured auth level, which defaults to a function key.
+
+See the [endpoint-only local sample](samples/lazy-owned-dafx/README.md) and the
+[durable binding sample](samples/durable-markdown-binding/README.md) for setup
+and deterministic examples that do not need a model service.
+
+## YAML workflows
+
+YAML hosting is a separate opt-in. Install both optional extras. The workflows
+extra uses `agent-framework-declarative>=1.0.3,<2`.
+
+```text
+pip install "azurefunctions-agents-extensions-agent-framework[durable,workflows]"
+```
+
+```python
+app = AgentFunctionApp(
+    client_factory=create_chat_client,
+    discover_workflows=True,
+)
+```
+
+Workflow discovery does not require agent discovery. Only `*.workflow.yaml` and
+`*.workflow.yml` directly in the app root or its `workflows/` directory are
+discovered, not arbitrary YAML or nested files. Discovered entry files must stay
+within the app root. Each loaded result must be a MAF `Workflow` with a stable
+name of 1–63 ASCII letters, digits, hyphens, or underscores, starting with a
+letter. Names must be unique ignoring case. An explicit YAML `name` keeps routes
+predictable, but naming and YAML parsing otherwise follow MAF.
+
+The extension calls the public `create_workflow_from_yaml_path(path)` method and
+supplies the graphs to DAFX's `workflows=` constructor. With the default route
+prefix, each graph gets
+`POST /api/workflow/NAME/run`, `GET /api/workflow/NAME/status/{instanceId}`, and
+`POST /api/workflow/NAME/respond/{instanceId}/{requestId}`. No custom
+orchestration or handwritten HTTP handlers are needed.
+
+By default, `WorkflowFactory(agents=...)` receives `MarkdownDurableAgent`
+adapters for **all** discovered Markdown agents, including agents selected by
+dynamic names. This does not register standalone agent entities or HTTP routes
+unless `discover_agents=True` or a selective agent binding also registers them.
+To configure MAF directly, pass a configured `WorkflowFactory` object as
+`workflow_factory=`. It is allowed without discovery, including with a selective
+workflow binding. That object is used unchanged. Its agent registry is not
+automatically merged with discovered
+Markdown agents. Configure its `agent_factory`, agents, registered tools, HTTP
+or MCP handlers, and configuration through MAF's public APIs.
+
+The extension does not impose a separate YAML parser, action allowlist, or
+restrictions on inline agents, file-based agents, dynamic agent references, or
+workflow tool actions. These follow the installed MAF parser and builder,
+including their warnings, errors, and required configuration. For example,
+`InvokeFunctionTool` can use `WorkflowFactory.register_tool()`, while HTTP and
+MCP actions need their MAF handlers. DAFX's hosting validations still apply.
+This delegation is not a claim that every MAF feature has been execution-tested.
+
+Relative file references inside YAML use native MAF resolution from the workflow
+file's directory. They are not sandboxed by the entry-file containment check.
+Treat workflow files and their references as trusted deployment content.
+
+Agent actions execute as durable activities, not through the agent entity in the
+same graph. Markdown adapters open and close fresh Agents, clients, and tools
+per execution. Inline agents and agents supplied by a custom factory follow
+MAF's or that factory's construction and resource lifecycle, which may construct
+agents and clients during app initialization/indexing. The extension does not
+wrap them in the Markdown lifecycle. Supplying a factory neither enables agent
+discovery nor publishes standalone agent endpoints. `client_factory` remains
+required even for a tool-only workflow. Such apps can pass a `NoReturn` sentinel
+that raises if called, as the configured factory sample does.
+
+### Bind a private child workflow
+
+Use `durable_workflow` below `orchestration_trigger` to select a YAML workflow
+without bulk discovery. The default `context_name` is `"context"`.
+
+```python
+app = AgentFunctionApp(client_factory=create_chat_client)
+
+
+@app.orchestration_trigger(context_name="context")
+@app.durable_workflow(arg_name="child", workflow_name="Child")
+def parent(context, child):
+    outputs = yield child.run(context.get_input())
+    return {"child_outputs": outputs}
+```
+
+Without `workflow_file`, a new binding matches `Child.workflow.yaml` or
+`Child.workflow.yml` directly in the app root or `workflows/`, before parsing.
+Unrelated YAML definitions are not loaded. An explicit app-root-relative
+`workflow_file` can select another filename within the app root. In either case,
+the loaded workflow name must equal `workflow_name`. When reusing an already
+registered graph, omit `workflow_file`.
+
+`child.run(input_, instance_id=None)` returns a yieldable child-orchestration
+task. It invokes `dafx-Child` through the native Durable context and returns
+decoded workflow outputs, rather than calling `Workflow.run()` in-process.
+Each invocation has its own workflow state. Binding alone creates no child run,
+status, or response HTTP routes. Add `expose_http_endpoint=True` to the binding
+only when standalone access is intended.
+
+Forwarded input uses the same reserved-marker sanitization as DAFX's workflow
+HTTP entry point. Workflow results are decoded only from the trusted child result.
+The generic parent binding does not aggregate child human-input requests into a
+parent workflow status endpoint. For child HITL, expose the child's management
+routes or implement application management using the child instance ID.
+
+Python support follows the installed MAF dependencies, not an extension-level
+Python 3.14 rejection. Expression execution has been verified on Python 3.13.
+MAF declarative 1.0.3 excludes its PowerFx dependency on Python 3.14, so those
+expression checks remain on 3.13. Python 3.14 execution is not claimed as verified.
+
+See the [local YAML sample](samples/durable-yaml-workflow/README.md) for shared
+state, a Markdown agent call, and a separate question/response workflow. The
+[configured factory sample](samples/configured-workflow-factory/README.md) uses
+a registered function tool and configuration without an agent client. Neither
+sample provisions a host or backend.
+The [workflow binding sample](samples/durable-workflow-binding/README.md) calls a
+private, agent-free YAML child from a parent generator and includes an HTTP
+starter for the parent.

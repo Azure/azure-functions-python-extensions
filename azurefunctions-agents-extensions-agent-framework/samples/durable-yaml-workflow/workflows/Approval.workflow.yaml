@@ -1,0 +1,10 @@
+kind: Workflow
+name: Approval
+actions:
+  - kind: Question
+    id: request_approval
+    question: Approve this order? Reply approved or rejected.
+    variable: Local.answer
+  - kind: SendActivity
+    id: send_answer
+    activity: =Local.answer
