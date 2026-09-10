@@ -1,0 +1,15 @@
+kind: Workflow
+name: ConfiguredTools
+actions:
+  - kind: InvokeFunctionTool
+    id: format_order
+    functionName: format_order
+    arguments:
+      order: =Workflow.Inputs.order
+      prefix: =Env.ORDER_PREFIX
+    output:
+      result: Local.result
+      autoSend: false
+  - kind: SendActivity
+    id: send_result
+    activity: =Local.result

@@ -21,6 +21,8 @@ from google.protobuf.wrappers_pb2 import StringValue
 
 from azurefunctions.agents.extensions.agent_framework import AgentFunctionApp
 
+WORKFLOW_FACTORY_BUILDER = None
+
 
 class LocalClient(BaseChatClient):
     instances = []
@@ -62,10 +64,15 @@ def write_workflow(root, content, filename="probe.workflow.yaml"):
 
 def make_app(root):
     before = len(LocalClient.instances)
+    factory = WORKFLOW_FACTORY_BUILDER(root) if WORKFLOW_FACTORY_BUILDER else None
     app = AgentFunctionApp(
         client_factory=LocalClient, app_root=root, durable=True, workflows=True,
+        workflow_factory=factory,
     )
-    assert len(LocalClient.instances) == before, "Live client created during loading"
+    if factory is None:
+        assert len(LocalClient.instances) == before, (
+            "Live client created during loading"
+        )
     return app
 
 
@@ -282,44 +289,44 @@ def validation_checks():
             checks.append(label)
 
     for label, content, error in [
-        ("scalar", "hello", "mapping"),
+        ("scalar", "hello", "dictionary"),
         ("malformed", "[", "parsing"),
-        ("unnamed", "actions: []", "explicit name"),
-        ("bad-name", "name: ../bad\nactions: []", "explicit name"),
-        ("duplicate-key", "name: First\nname: Second", "Duplicate YAML key"),
-        ("cyclic-alias", "name: Cycle\nactions: &a [*a]", "Cyclic"),
-        ("inline-agent", "name: Inline\nagents: {writer: {kind: Prompt}}",
-         "inline/file"),
-        ("file-agent", "name: File\nagents: {writer: {file: ../escape.yaml}}",
-         "inline/file"),
-        ("unknown-action", "name: Unknown\nactions: [{kind: Imaginary}]", "Unknown"),
-        ("missing-agent", CASES["agent"][0], "was not found"),
-        ("dynamic-agent", CASES["agent"][0].replace(
-            "agent: writer", "agent: =Local.name"),
-         "static markdown"),
+        ("bad-name", CASES["simple"][0].replace("Simple", "../bad"), "stable name"),
     ]:
         invalid(label, {"probe.workflow.yaml": content}, error)
     invalid("duplicate-name", {
         "one.workflow.yaml": CASES["simple"][0],
         "workflows/two.workflow.yml": CASES["simple"][0].replace("Simple", "simple"),
     }, "Duplicate workflow name")
-    invalid("shadowed-root-actions", {
-        "probe.workflow.yaml": CASES["simple"][0] + "trigger: {actions: []}",
-    }, "both")
-    invalid("ignored-if-elseActions", {
-        "probe.workflow.yaml": CASES["if-agent"][0].replace(
-            '"else":', '"elseActions":'),
-    }, "elseActions")
-    invalid("unregistered-function-tool", {
-        "probe.workflow.yaml": "name: Tool\nactions:\n"
-        "  - {kind: InvokeFunctionTool, id: tool, functionName: lookup}\n"
-        "  - {kind: SendActivity, id: done, activity: DONE}\n",
-    }, "handler")
-
-    invalid("unknown-nested-action", {
-        "probe.workflow.yaml": CASES["if-agent"][0].replace(
-            '"kind": "InvokeAzureAgent"', '"kind": "Imaginary"'),
-    }, "Unknown workflow action")
+    # Compare parsing decisions with MAF itself instead of maintaining a second
+    # YAML schema. Unknown-action warnings, duplicate keys, and precedence are
+    # native loader behavior, not extension-specific rejections.
+    from agent_framework.declarative import WorkflowFactory
+    native_documents = {
+        "duplicate-key": "name: First\n" + CASES["simple"][0],
+        "root-precedence": CASES["simple"][0] + "trigger: {actions: []}\n",
+        "unknown-action": CASES["simple"][0] + "  - kind: Imaginary\n",
+        "trigger-name": json.dumps({"trigger": {"id": "TriggerNamed", "actions": [
+            {"kind": "SendActivity", "id": "greet", "activity": "Hello"},
+        ]}}),
+    }
+    for label, document in native_documents.items():
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            write_workflow(root, document)
+            native = WorkflowFactory().create_workflow_from_yaml_path(
+                root / "probe.workflow.yaml"
+            )
+            app = make_app(root)
+            loaded = app._hosted_workflows[0]
+            assert loaded.name == native.name
+            loaded_nodes = [
+                (key, type(value)) for key, value in loaded.executors.items()
+            ]
+            assert loaded_nodes == [
+                (key, type(executor)) for key, executor in native.executors.items()
+            ]
+            checks.append(label)
     with tempfile.TemporaryDirectory() as temp:
         root = Path(temp)
         definition = json.loads(CASES["if-agent"][0])
@@ -379,6 +386,7 @@ def validation_checks():
 
 def main():
     global LocalClient
+    global WORKFLOW_FACTORY_BUILDER
     mode = sys.argv[1]
     if mode == "execution":
         return execution_checks()
@@ -413,9 +421,40 @@ def main():
             output = run_workflow(root, "IfAgent")[0]
             assert output == ["ok"], output
             return output
+    if mode == "configured-sample":
+        root = Path(__file__).parents[1] / "samples" / "configured-workflow-factory"
+        calls = []
+
+        def build(app_root):
+            spec = importlib.util.spec_from_file_location(
+                "configured_sample", root / "function_app.py",
+            )
+            assert spec is not None and spec.loader is not None
+            module = importlib.util.module_from_spec(spec)
+            old_root = os.environ.get("AzureWebJobsScriptRoot")
+            os.environ["AzureWebJobsScriptRoot"] = str(root)
+            try:
+                spec.loader.exec_module(module)
+            finally:
+                if old_root is None:
+                    os.environ.pop("AzureWebJobsScriptRoot", None)
+                else:
+                    os.environ["AzureWebJobsScriptRoot"] = old_root
+
+            def recorded(order, prefix):
+                calls.append((order, prefix))
+                return module.format_order(order, prefix)
+
+            module.workflow_factory.register_tool("format_order", recorded)
+            return module.workflow_factory
+
+        WORKFLOW_FACTORY_BUILDER = build
+        output = run_workflow(root, "ConfiguredTools", {"order": "42"})[0]
+        assert calls == [("42", "Local")], calls
+        return output
     if mode == "mutation":
         from azurefunctions.agents.extensions.agent_framework import _workflows
-        _workflows.load_workflows = lambda *args: []
+        _workflows.load_workflows = lambda *args, **kwargs: []
         return execution_checks()
     raise ValueError(mode)
 

@@ -2,8 +2,10 @@
 
 [function_app.py](function_app.py) enables `durable=True, workflows=True` with no
 handwritten handlers or orchestrators. The extension loads YAML through MAF's
-`WorkflowFactory` and passes the resulting graphs to DAFX's `workflows=`
-constructor. DAFX supplies the orchestration, activities, and HTTP routes.
+public `WorkflowFactory.create_workflow_from_yaml_path()` and passes the
+resulting graphs to DAFX's `workflows=` constructor. The default factory receives
+adapters for all discovered Markdown agents. DAFX supplies the orchestration,
+activities, and HTTP routes.
 
 - [OrderReview.workflow.yaml](workflows/OrderReview.workflow.yaml) copies the
   request's `order` into shared state, builds a prompt, calls the Markdown
@@ -20,9 +22,11 @@ not perform a real order review or interpret the writer's instructions.
 
 ## Install and run
 
-Use **Python 3.13**. YAML workflows need PowerFx, and this prototype rejects the
-YAML opt-in on Python 3.14. From the repository root, in a Python 3.13 virtual
-environment, install the local packages and both optional extras.
+Use **Python 3.13** to reproduce the verified expression execution. Python
+support follows MAF's dependencies, with no extension-level Python 3.14 rejection.
+MAF declarative 1.0.3 excludes PowerFx on Python 3.14, and expression execution
+has only been verified on 3.13. From the repository root, in a Python 3.13
+virtual environment, install the local packages and both optional extras.
 
 ```powershell
 python -m pip install -e ./azurefunctions-agents-extensions-base
@@ -109,10 +113,29 @@ the app root or `agents/`, including `POST /api/agents/writer/run`. Calling that
 endpoint bypasses both workflows. Hosted requests need a function key, including
 requests to returned status and response URLs.
 
-Inside a YAML graph, agent actions run as **durable activities** through the
-`MarkdownDurableAgent` lifecycle. Each run opens and closes a fresh Agent and
-client. These actions do not call the writer's durable entity or share that
-endpoint's entity session. DAFX carries workflow shared state between actions.
+Inside this sample's YAML graph, the writer action runs as a **durable activity**
+through the `MarkdownDurableAgent` lifecycle. Each execution opens and closes a
+fresh Agent, client, and tools. It does not call the writer's durable entity or
+share that endpoint's entity session. DAFX carries workflow shared state between
+actions.
+
+Inline YAML agents and custom-factory agents instead follow MAF's or the
+factory's construction and resource lifecycle. Agents and clients may be created
+during app initialization/indexing. The extension does not give them the
+Markdown adapter's per-execution open/close lifecycle.
+
+## Configure the factory
+
+The default factory supports native MAF agent definitions and dynamic names as
+well as Markdown references such as `agent: writer`. Supply `workflow_factory=`
+to configure a public `WorkflowFactory` with an `agent_factory`, agents, tools,
+HTTP or MCP handlers, or configuration. The supplied object is used unchanged,
+without automatically merging discovered Markdown agents into its registry.
+All discovered Markdown agents still get their standalone endpoints.
+
+See the [configured factory sample](../configured-workflow-factory/README.md)
+for a tool-only workflow using `register_tool()` and `configuration`, with no
+agent client or external service.
 
 ## Boundaries
 
@@ -121,20 +144,20 @@ See [VALIDATION.md](VALIDATION.md) for measured results and test limitations.
 - `workflows=True` requires `durable=True` and the `[durable,workflows]` extras.
 - Only `*.workflow.yaml` and `*.workflow.yml` directly in the app root or its
   `workflows/` directory are discovered. Discovery is not recursive and does not
-  load arbitrary YAML files.
-- Each definition uses `kind: Workflow` and an explicit `name` of 1–63 ASCII
-  letters, digits, `_`, or `-`, starting with a letter. Names must be unique
-  ignoring case. The YAML name, not the filename, determines the route.
-- Agent references must be static Markdown names, such as `agent: writer` or
-  `agent: {name: writer}`, matching [writer.agent.md](agents/writer.agent.md).
-  Inline top-level `agents` definitions, file-based YAML agents, and dynamic
-  agent names are not supported. Workflow-level `InvokeFunctionTool`,
-  `HttpRequestAction`, and `InvokeMcpTool` are rejected because no handlers are
-  configured for them. Python/MCP tools on the referenced agents remain supported.
-- Use either root `actions` or `trigger.actions`, not both. `If` supports `then`
-  (or `actions`) and `else`; `elseActions` belongs to `ConditionGroup`.
-- The declarative loader is pinned to 1.0.3. Its internal action registry is used
-  to reject unknown actions rather than allowing the loader to warn and skip them.
+  load arbitrary YAML files. Discovered entry files must stay within the app root.
+- Relative references inside YAML use MAF's native resolution from the workflow
+  file's directory, not an extension sandbox. Deploy only trusted workflow files
+  and references.
+- The returned MAF `Workflow` needs a stable name of 1–63 ASCII letters, digits,
+  `_`, or `-`, starting with a letter, unique ignoring case. The resulting name,
+  not the filename, determines the route. These samples set explicit names.
+- YAML parsing and graph construction follow the installed MAF loader, including
+  its warnings, errors, and handler requirements. There is no extension action
+  allowlist or separate inline/file/dynamic-agent or tool-action gate. DAFX
+  hosting validations still apply. This is not exhaustive execution coverage of
+  MAF features.
+- The workflows extra accepts `agent-framework-declarative>=1.0.3,<2` and uses
+  its public factory API, not a private action registry.
 - Keep action IDs stable across reloads. The samples supply explicit IDs.
 - `OrderReview` expects the documented input shape and adds no request schema
   validation. Local execution or indexing is not host/backend validation.

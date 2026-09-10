@@ -14,7 +14,7 @@ urlFragment: extension-agent-framework-samples
 # Azure Functions Microsoft Agent Framework Extension for Python samples
 
 These code samples show common scenarios for using Microsoft Agent Framework
-Agents in Python Function Apps. All samples use raw `.agent.md` instructions.
+Agents in Python Function Apps. Agent samples use raw `.agent.md` instructions.
 The first two use explicit Microsoft Foundry client factories, while the local
 examples use deterministic clients without model credentials.
 
@@ -37,7 +37,10 @@ examples use deterministic clients without model credentials.
 - [Durable YAML workflows](durable-yaml-workflow/README.md) enables
     `durable=True, workflows=True` for shared state, a Markdown agent activity,
     and a separate approval question. No handwritten handlers are needed.
-    Requires Python 3.13 and the `[durable,workflows]` extras.
+    Uses the `[durable,workflows]` extras; expression execution is verified on 3.13.
+- [Configured workflow factory](configured-workflow-factory/README.md) passes a
+    public MAF factory with a registered local function and environment configuration.
+    It needs no Markdown agent, model client, or custom HTTP handler.
 
 ## Prerequisites
 

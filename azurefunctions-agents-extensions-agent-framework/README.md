@@ -200,9 +200,8 @@ and deterministic examples that do not need a model service.
 
 ## YAML workflows
 
-YAML hosting is a separate opt-in and currently requires **Python 3.13**. Install
-both optional extras. Python 3.14 is rejected for this feature because the
-declarative runtime needs PowerFx.
+YAML hosting is a separate opt-in. Install both optional extras. The workflows
+extra uses `agent-framework-declarative>=1.0.3,<2`.
 
 ```text
 pip install "azurefunctions-agents-extensions-agent-framework[durable,workflows]"
@@ -216,25 +215,57 @@ app = AgentFunctionApp(
 )
 ```
 
-Only `*.workflow.yaml` and `*.workflow.yml` directly in the app root or its
-`workflows/` directory are discovered, not arbitrary YAML or nested files. Each
-definition needs `kind: Workflow` and an explicit `name` of 1–63 ASCII letters,
-digits, hyphens, or underscores, starting with a letter. Names must be unique
-ignoring case.
+`workflows=True` requires `durable=True`. Only `*.workflow.yaml` and
+`*.workflow.yml` directly in the app root or its `workflows/` directory are
+discovered, not arbitrary YAML or nested files. Discovered entry files must stay
+within the app root. Each loaded result must be a MAF `Workflow` with a stable
+name of 1–63 ASCII letters, digits, hyphens, or underscores, starting with a
+letter. Names must be unique ignoring case. An explicit YAML `name` keeps routes
+predictable, but naming and YAML parsing otherwise follow MAF.
 
-The extension builds graphs with `WorkflowFactory` and supplies them to DAFX's
-`workflows=` constructor. With the default route prefix, each graph gets
+The extension calls the public `create_workflow_from_yaml_path(path)` method and
+supplies the graphs to DAFX's `workflows=` constructor. With the default route
+prefix, each graph gets
 `POST /api/workflow/NAME/run`, `GET /api/workflow/NAME/status/{instanceId}`, and
 `POST /api/workflow/NAME/respond/{instanceId}/{requestId}`. No custom
 orchestration or handwritten HTTP handlers are needed.
 
-`InvokeAzureAgent` accepts static Markdown references, either `agent: writer` or
-`agent: {name: writer}`. Inline top-level `agents` definitions, file-based YAML
-agents, and dynamic agent names are rejected. Agent actions run as durable
-activities using the existing `MarkdownDurableAgent` open/close lifecycle, not
-through the agent entity in the same graph. `durable=True` still publishes all
-discovered Markdown agents and their standalone HTTP endpoints.
+By default, `WorkflowFactory(agents=...)` receives `MarkdownDurableAgent`
+adapters for **all** discovered Markdown agents, including agents selected by
+dynamic names. To configure MAF directly, pass a configured `WorkflowFactory`
+object as `workflow_factory=` alongside `workflows=True`. That object is used
+unchanged. Its agent registry is not automatically merged with discovered
+Markdown agents. Configure its `agent_factory`, agents, registered tools, HTTP
+or MCP handlers, and configuration through MAF's public APIs.
+
+The extension does not impose a separate YAML parser, action allowlist, or
+restrictions on inline agents, file-based agents, dynamic agent references, or
+workflow tool actions. These follow the installed MAF parser and builder,
+including their warnings, errors, and required configuration. For example,
+`InvokeFunctionTool` can use `WorkflowFactory.register_tool()`, while HTTP and
+MCP actions need their MAF handlers. DAFX's hosting validations still apply.
+This delegation is not a claim that every MAF feature has been execution-tested.
+
+Relative file references inside YAML use native MAF resolution from the workflow
+file's directory. They are not sandboxed by the entry-file containment check.
+Treat workflow files and their references as trusted deployment content.
+
+Agent actions execute as durable activities, not through the agent entity in the
+same graph. Markdown adapters open and close fresh Agents, clients, and tools
+per execution. Inline agents and agents supplied by a custom factory follow
+MAF's or that factory's construction and resource lifecycle, which may construct
+agents and clients during app initialization/indexing. The extension does not
+wrap them in the Markdown lifecycle. `durable=True` still publishes all
+discovered Markdown agents and their standalone HTTP endpoints, even with a
+custom workflow factory.
+
+Python support follows the installed MAF dependencies, not an extension-level
+Python 3.14 rejection. Expression execution has been verified on Python 3.13.
+MAF declarative 1.0.3 excludes its PowerFx dependency on Python 3.14, so those
+expression checks remain on 3.13. Python 3.14 execution is not claimed as verified.
 
 See the [local YAML sample](samples/durable-yaml-workflow/README.md) for shared
 state, a Markdown agent call, and a separate question/response workflow. The
-sample uses a deterministic client and does not provision a host or backend.
+[configured factory sample](samples/configured-workflow-factory/README.md) uses
+a registered function tool and configuration without an agent client. Neither
+sample provisions a host or backend.

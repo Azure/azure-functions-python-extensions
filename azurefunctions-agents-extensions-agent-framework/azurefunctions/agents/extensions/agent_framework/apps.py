@@ -20,6 +20,7 @@ from azurefunctions.agents.extensions.base import (
 from azurefunctions.agents.extensions.base import markdown_agent as base_markdown_agent
 
 from .provider import AGENT_FRAMEWORK_PROVIDER_ID, AgentFrameworkBinding, ClientFactory
+from ._workflows import WorkflowLoader
 
 if TYPE_CHECKING:
     from agent_framework_azurefunctions import (
@@ -89,6 +90,7 @@ class AgentFunctionApp(
         http_auth_level: func.AuthLevel | str = func.AuthLevel.FUNCTION,
         durable: bool = False,
         workflows: bool = False,
+        workflow_factory: WorkflowLoader | None = None,
     ) -> None:
         if not isinstance(durable, bool):
             raise TypeError("durable must be a bool")
@@ -96,6 +98,8 @@ class AgentFunctionApp(
             raise TypeError("workflows must be a bool")
         if workflows and not durable:
             raise ValueError("workflows=True requires durable=True.")
+        if workflow_factory is not None and not workflows:
+            raise ValueError("workflow_factory requires workflows=True.")
         super().__init__(
             http_auth_level=http_auth_level,
         )
@@ -123,17 +127,11 @@ class AgentFunctionApp(
                 from ._durable import MarkdownDurableAgent
                 from ._workflows import load_workflows
 
-                recipes = {binding.agent_name: binding for binding in bindings}
-
-                def resolve_agent(name: str) -> SupportsAgentRun:
-                    if name not in recipes:
-                        # Use the same validation/error for missing and mis-cased
-                        # references as a standalone markdown declaration.
-                        recipes[name] = self._compile_durable_markdown(name)
-                    return MarkdownDurableAgent(recipes[name])
-
                 self._hosted_workflows = load_workflows(
-                    get_app_root(self), resolve_agent,
+                    get_app_root(self),
+                    {binding.agent_name: MarkdownDurableAgent(binding)
+                     for binding in bindings},
+                    factory=workflow_factory,
                 )
             self._ensure_durable_app()
             for binding in bindings:

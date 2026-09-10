@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 import subprocess
 import sys
-from unittest.mock import Mock
+from unittest.mock import Mock, call
 
 import pytest
 
@@ -37,29 +37,75 @@ def test_workflow_files_are_ignored_without_workflow_opt_in(tmp_path):
     assert durable._durable_app.workflows == {}
 
 
-def test_unsupported_python_does_not_silently_ignore_expressions(tmp_path, monkeypatch):
-    monkeypatch.setattr(_workflows.sys, "version_info", (3, 14))
-    with pytest.raises(RuntimeError, match="Python 3.13"):
-        _workflows.load_workflows(tmp_path, Mock())
+def test_factory_requires_workflow_opt_in(tmp_path):
+    with pytest.raises(ValueError, match="workflow_factory requires workflows=True"):
+        AgentFunctionApp(client_factory=lambda: None, app_root=tmp_path,
+                         workflow_factory=Mock())
 
 
-@pytest.mark.parametrize("missing", ["yaml", "agent_framework_declarative", "clr"])
+@pytest.mark.parametrize("missing", ["agent_framework_declarative", "yaml", "clr"])
 def test_missing_workflow_dependencies(tmp_path, monkeypatch, missing):
-    monkeypatch.setattr(_workflows.sys, "version_info", (3, 13))
     original = builtins.__import__
 
     def blocked(name, *args, **kwargs):
-        if name == "yaml":
+        if name == "agent_framework.declarative":
             raise ModuleNotFoundError(name=missing)
         return original(name, *args, **kwargs)
 
     monkeypatch.setattr(builtins, "__import__", blocked)
     with pytest.raises(ImportError) as error:
-        _workflows.load_workflows(tmp_path, Mock())
-    if missing == "clr":
-        assert error.value.name == "clr"
-    else:
+        _workflows.load_workflows(tmp_path, {})
+    if missing == "agent_framework_declarative":
         assert "[durable,workflows]" in str(error.value)
+    else:
+        assert error.value.name == missing
+
+
+def test_custom_factory_is_used_unchanged_without_declarative_import(
+    tmp_path, monkeypatch,
+):
+    from agent_framework import Workflow
+    original = builtins.__import__
+
+    def no_declarative(name, *args, **kwargs):
+        if "declarative" in name or name in {"yaml", "powerfx"}:
+            raise AssertionError("Custom factory must not import the default loader")
+        return original(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", no_declarative)
+    paths = [tmp_path / "one.workflow.yaml", tmp_path / "workflows/two.workflow.yml"]
+    for path in paths:
+        path.parent.mkdir(exist_ok=True)
+        path.write_text("caller-defined format", encoding="utf-8")
+    outputs = [Mock(spec=Workflow, name="One"), Mock(spec=Workflow, name="Two")]
+    for output, name in zip(outputs, ["One", "Two"]):
+        output.name = name
+    factory = Mock()
+    factory.create_workflow_from_yaml_path.side_effect = outputs
+    assert _workflows.load_workflows(tmp_path, {"ignored": object()}, factory) == (
+        outputs
+    )
+    assert factory.method_calls == [
+        call.create_workflow_from_yaml_path(path) for path in paths
+    ]
+
+
+def test_custom_factory_errors_propagate(tmp_path):
+    (tmp_path / "bad.workflow.yaml").touch()
+    error = RuntimeError("custom factory rejected definition")
+    factory = Mock()
+    factory.create_workflow_from_yaml_path.side_effect = error
+    with pytest.raises(RuntimeError) as caught:
+        _workflows.load_workflows(tmp_path, {}, factory)
+    assert caught.value is error
+
+
+def test_factory_must_return_a_workflow(tmp_path):
+    (tmp_path / "bad.workflow.yaml").touch()
+    factory = Mock()
+    factory.create_workflow_from_yaml_path.return_value = object()
+    with pytest.raises(TypeError, match="MAF Workflow"):
+        _workflows.load_workflows(tmp_path, {}, factory)
 
 
 def test_workflow_symlink_escape_is_rejected(tmp_path):
@@ -73,13 +119,18 @@ def test_workflow_symlink_escape_is_rejected(tmp_path):
         _workflows._definition_paths(tmp_path)
 
 
-@pytest.mark.parametrize("mode", ["validation", "execution", "sample"])
+@pytest.mark.parametrize("mode", [
+    "validation", "execution", "sample", "native", "configured-sample",
+])
 def test_real_yaml_workflow_probes(mode):
     if sys.version_info >= (3, 14) or find_spec("agent_framework_declarative") is None:
         pytest.skip("Requires Python 3.13 and workflows extra")
+    filename = (
+        "_native_workflow_probe.py" if mode == "native" else "_yaml_workflow_probe.py"
+    )
     result = subprocess.run(
         [sys.executable, "-X", "utf8", str(Path(__file__).with_name(
-            "_yaml_workflow_probe.py")), mode],
+            filename)), mode],
         capture_output=True, text=True, encoding="utf-8", timeout=180,
     )
     assert result.returncode == 0, result.stdout + result.stderr
@@ -94,5 +145,9 @@ def test_real_yaml_workflow_probes(mode):
             "OrderReview": ["User turn 1: Review order 42."],
             "Approval": ["approved"],
         }
+    elif mode == "validation":
+        assert len(data) == 13
+    elif mode == "configured-sample":
+        assert data == ["Local order 42."]
     else:
-        assert len(data) == 21
+        assert len(data) == 13

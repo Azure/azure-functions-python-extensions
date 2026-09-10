@@ -37,6 +37,13 @@ _SAMPLE_INDEXES = {
         "dafx-Approval-respond", "dafx-Approval-_workflow_entry",
         "dafx-Approval-request_approval", "dafx-Approval-send_answer",
     },
+    "configured-workflow-factory": {
+        "dafx-ConfiguredTools", "dafx-ConfiguredTools-start",
+        "dafx-ConfiguredTools-status", "dafx-ConfiguredTools-respond",
+        "dafx-ConfiguredTools-_workflow_entry", "dafx-ConfiguredTools-format_order",
+        "dafx-ConfiguredTools-send_result", "BuiltIn__HttpActivity",
+        "BuiltIn__HttpPollOrchestrator",
+    },
 }
 _LOCAL_SAMPLES = ("lazy-owned-dafx", "durable-markdown-binding")
 
@@ -71,13 +78,13 @@ def test_index_cases_cover_every_sample_app():
 
 @pytest.mark.parametrize("sample_path", _SAMPLE_INDEXES)
 def test_sample_indexes_all_functions(sample_path):
-    if sample_path == "durable-yaml-workflow":
+    if sample_path in {"durable-yaml-workflow", "configured-workflow-factory"}:
         from importlib.util import find_spec
         if (
             sys.version_info >= (3, 14)
             or find_spec("agent_framework_declarative") is None
         ):
-            pytest.skip("YAML sample requires Python 3.13 and the workflows extra")
+            pytest.skip("YAML expression samples tested on 3.13 with workflows extra")
     # Exact names were recorded from the SDK 2/DAFX PR #72 index. DAFX sanitizes
     # HTTP names (_build_function_name), but preserves hyphens in entity names.
     result = _run_sample(sample_path, """
