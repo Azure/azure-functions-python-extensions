@@ -1,6 +1,13 @@
-# YAML discovery verification
+# Historical YAML discovery verification
 
-## Results
+The totals and replay checks below predate the rebase onto PR #185 at `2777aa3`
+and the separate discovery/exposure API. They are not current-revision totals.
+The integration contract below describes the current API. See
+[README.md](README.md) for this sample's routes.
+Current revision results are recorded in the
+[workflow binding validation](../durable-workflow-binding/VALIDATION.md).
+
+## Historical results
 
 Native factory delegation was verified on Windows/Python 3.13.11 with core 1.16.0,
 declarative 1.0.3, Functions 2.3.0, Durable 2.0.0rc1 and DAFX PR #72 at `aa9529ec`.
@@ -26,8 +33,12 @@ it. Python 3.14 execution is unverified rather than blocked by this extension.
   inside YAML are not sandboxed by the extension. Deploy only trusted files.
 - The default factory receives all discovered Markdown adapters. A supplied
   factory is used unchanged, with no automatic Markdown registry merge. DAFX
-  still validates and hosts the resulting graphs, and all discovered Markdown
-  agents still get standalone endpoints.
+  still validates and hosts the resulting graphs. Workflow discovery alone
+  creates no standalone Markdown agent entities or endpoints.
+- Agent and workflow discovery are independent and disabled by default. Their
+  constructor exposure switches apply only to bulk discovery. Selective bindings
+  default to no standalone HTTP routes, and exposure is combined with logical OR
+  when declarations share a registration. The inner DAFX host is built at indexing.
 - Markdown adapters create fresh resources per execution. Inline and
   custom-factory agents follow MAF's or the factory's lifecycle and may construct
   agents and clients during app initialization/indexing.
@@ -36,7 +47,7 @@ it. Python 3.14 execution is unverified rather than blocked by this extension.
   follows MAF's dependencies. Expression execution is verified on 3.13 only,
   since declarative 1.0.3 excludes its PowerFx dependency on 3.14.
 
-## Verification scope
+## Historical verification scope
 
 The replay probes reconstruct the app and YAML graphs before orchestration
 activations and activities. They execute the actual SDK protobuf orchestration
@@ -47,7 +58,7 @@ HTTP/MCP handlers, configuration-only and environment-fallback expressions, and
 the absence of automatic Markdown merging into a custom factory. This is not an
 exhaustive claim of MAF feature parity.
 
-## Change analysis
+## Historical change analysis
 
 - Removed custom parsing, action traversal/allowlists, the internal action registry
   import, and the inline/file/dynamic/tool/Python version gates. Tests now compare

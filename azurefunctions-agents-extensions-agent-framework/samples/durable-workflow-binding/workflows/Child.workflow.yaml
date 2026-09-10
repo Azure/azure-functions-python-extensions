@@ -1,0 +1,6 @@
+kind: Workflow
+name: Child
+actions:
+  - kind: SendActivity
+    id: send_result
+    activity: Child workflow completed.

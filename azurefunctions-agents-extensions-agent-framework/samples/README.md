@@ -18,29 +18,34 @@ Agents in Python Function Apps. Agent samples use raw `.agent.md` instructions.
 The first two use explicit Microsoft Foundry client factories, while the local
 examples use deterministic clients without model credentials.
 
-* [agent_samples_agent-framework](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-agents-extensions-agent-framework/samples/agent_samples_agent-framework) - Examples for adding an Agent to an existing Function App:
+* [agent_samples_agent-framework](agent_samples_agent-framework/README.md) - Examples for adding an Agent to an existing Function App:
     * Inject a fresh Agent into HTTP and queue-triggered Functions
     * Discover app-wide Skills and MCP servers
     * Keep validation and deterministic processing in application code
 
-* [agent_samples_agent-framework_durable](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-agents-extensions-agent-framework/samples/agent_samples_agent-framework_durable) - Examples for using Agents in Durable Functions:
+* [agent_samples_agent-framework_durable](agent_samples_agent-framework_durable/README.md) - Examples for using Agents in Durable Functions:
     * Schedule Agent calls from a replay-safe orchestrator
     * Inject a durable markdown agent and run two turns in one shared session
     * Combine deterministic activity output with model-generated results
+    * Keep the selected agent private, with no automatic agent HTTP endpoint
 
-* [Endpoint-only local agent](lazy-owned-dafx/README.md) uses `durable=True`
+* [Endpoint-only local agent](lazy-owned-dafx/README.md) uses `discover_agents=True`
     discovery and the generated DAFX HTTP endpoint. No handwritten handlers or
     model credentials are needed.
 * [Durable markdown binding](durable-markdown-binding/README.md) injects a proxy
     into a generator orchestrator, runs two turns in one session, and includes an
-    HTTP starter. It also uses a deterministic local client.
+    HTTP starter. The agent stays private. It uses a deterministic local client.
 - [Durable YAML workflows](durable-yaml-workflow/README.md) enables
-    `durable=True, workflows=True` for shared state, a Markdown agent activity,
+    `discover_workflows=True` for shared state, a Markdown agent activity,
     and a separate approval question. No handwritten handlers are needed.
+    No standalone writer entity or agent HTTP endpoint is published.
     Uses the `[durable,workflows]` extras; expression execution is verified on 3.13.
 - [Configured workflow factory](configured-workflow-factory/README.md) passes a
     public MAF factory with a registered local function and environment configuration.
     It needs no Markdown agent, model client, or custom HTTP handler.
+- [Durable workflow binding](durable-workflow-binding/README.md) selects a private
+    YAML child without discovery. A parent generator yields the child task and
+    returns its decoded outputs. Only the parent has an HTTP starter.
 
 ## Prerequisites
 

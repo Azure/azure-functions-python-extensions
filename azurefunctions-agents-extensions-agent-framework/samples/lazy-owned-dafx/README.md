@@ -1,12 +1,13 @@
 # Endpoint-only durable markdown agent
 
-This sample sets `durable=True` on `AgentFunctionApp` and supplies
+This sample sets `discover_agents=True` on `AgentFunctionApp` and supplies
 `orders.agent.md`. Discovery registers the agent's DAFX entity and
 `POST /api/agents/orders/run` endpoint. There are no handwritten HTTP functions,
 orchestrators, or agent instance registrations.
 
 Every `.agent.md` file directly in the app root or `agents/` is discovered.
-Indexing compiles recipes without constructing clients. Each entity execution
+Discovery compiles recipes without constructing clients. The inner DAFX host is
+created at `get_functions()`. Each entity execution
 opens and closes a fresh Agent through the compiled binding's `open_agent()`
 lifecycle. DAFX stores conversation history separately in durable session state.
 
@@ -41,7 +42,7 @@ python -m pytest -q azurefunctions-agents-extensions-agent-framework/tests/test_
 
 The tests exercise indexing and local entity execution. They do not replace a
 deployed Functions host or storage integration test. See
-[VALIDATION.md](VALIDATION.md) for the current verification results and limitations.
+[VALIDATION.md](VALIDATION.md) for historical verification results and limitations.
 
 ## Run locally
 
@@ -70,7 +71,11 @@ ID to start over. Add a function key when calling a hosted app.
   ASCII letters, digits, hyphens, and underscores. These names become routes and
   entity identifiers, not just filenames.
 - The outer app remains the only worker-indexed app and combines both registries.
-- Agent HTTP endpoints are enabled. Health and MCP endpoints are disabled. The
-  SDK's built-in durable HTTP activity/orchestrator remain registered.
+- `expose_agent_endpoints=True` publishes discovered agents by default. Set it
+  to `False` for registration without standalone HTTP endpoints. This constructor
+  option does not control selective bindings, which are private by default.
+- Workflow discovery is independent and disabled here. Health and MCP endpoints
+  are disabled. The SDK's built-in durable HTTP activity/orchestrator remain
+  registered.
 - Normal `markdown_agent()` is unchanged. Durable orchestrators use the new
   binding and yield proxy tasks instead of calling `context.call_agent()`.

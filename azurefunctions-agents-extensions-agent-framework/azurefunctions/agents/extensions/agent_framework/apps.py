@@ -5,6 +5,7 @@ import inspect
 import os
 import re
 from collections.abc import Callable, Sequence
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 import azure.functions as func
@@ -23,11 +24,11 @@ from .provider import AGENT_FRAMEWORK_PROVIDER_ID, AgentFrameworkBinding, Client
 from ._workflows import WorkflowLoader
 
 if TYPE_CHECKING:
-    from agent_framework_azurefunctions import (
-        AgentFunctionApp as DurableAgentFunctionApp,
-    )
     from agent_framework_durabletask import DurableAgentTask, DurableAIAgent
     from durabletask.task import OrchestrationContext
+
+    from ._durable import MarkdownDurableAgent
+    from ._hosting import HostedAgentFunctionApp
 
 _F = TypeVar("_F", bound=Callable[..., Any])
 
@@ -88,25 +89,32 @@ class AgentFunctionApp(
             | None
         ) = None,
         http_auth_level: func.AuthLevel | str = func.AuthLevel.FUNCTION,
-        durable: bool = False,
-        workflows: bool = False,
+        discover_agents: bool = False,
+        discover_workflows: bool = False,
+        expose_agent_endpoints: bool = True,
+        expose_workflow_endpoints: bool = True,
         workflow_factory: WorkflowLoader | None = None,
     ) -> None:
-        if not isinstance(durable, bool):
-            raise TypeError("durable must be a bool")
-        if not isinstance(workflows, bool):
-            raise TypeError("workflows must be a bool")
-        if workflows and not durable:
-            raise ValueError("workflows=True requires durable=True.")
-        if workflow_factory is not None and not workflows:
-            raise ValueError("workflow_factory requires workflows=True.")
+        for name, value in (
+            ("discover_agents", discover_agents),
+            ("discover_workflows", discover_workflows),
+            ("expose_agent_endpoints", expose_agent_endpoints),
+            ("expose_workflow_endpoints", expose_workflow_endpoints),
+        ):
+            if not isinstance(value, bool):
+                raise TypeError(f"{name} must be a bool")
         super().__init__(
             http_auth_level=http_auth_level,
         )
-        self._durable_app: DurableAgentFunctionApp | None = None
+        self._durable_app: HostedAgentFunctionApp | None = None
         self._functions_indexed = False
-        self._markdown_agents: dict[str, str] = {}
-        self._hosted_workflows: list[Workflow] = []
+        self._durable_agents: dict[str, SupportsAgentRun] = {}
+        self._agent_http_endpoints: dict[str, bool] = {}
+        self._markdown_agents: dict[str, MarkdownDurableAgent] = {}
+        self._markdown_discovered = False
+        self._hosted_workflows: dict[str, Workflow] = {}
+        self._workflow_http_endpoints: dict[str, bool] = {}
+        self._workflow_factory = workflow_factory
         configure_app(
             self,
             provider=AGENT_FRAMEWORK_PROVIDER_ID,
@@ -116,26 +124,46 @@ class AgentFunctionApp(
                 tools=tools,
             ),
         )
-        if durable:
-            # Validate/compile the complete discovery set before registering any
-            # endpoints. Compilation creates recipes, not clients or live agents.
-            bindings = [
-                self._compile_durable_markdown(name)
-                for name in discover_agent_names(self)
-            ]
-            if workflows:
-                from ._durable import MarkdownDurableAgent
-                from ._workflows import load_workflows
-
-                self._hosted_workflows = load_workflows(
-                    get_app_root(self),
-                    {binding.agent_name: MarkdownDurableAgent(binding)
-                     for binding in bindings},
-                    factory=workflow_factory,
+        if discover_agents or (discover_workflows and workflow_factory is None):
+            self._discover_markdown_agents()
+        if discover_agents:
+            for agent in self._markdown_agents.values():
+                self.add_durable_agent(
+                    agent, expose_http_endpoint=expose_agent_endpoints,
                 )
-            self._ensure_durable_app()
-            for binding in bindings:
-                self._register_durable_markdown(binding)
+        if discover_workflows:
+            from ._workflows import load_workflows
+
+            for workflow in load_workflows(
+                get_app_root(self), self._markdown_agents, factory=workflow_factory,
+            ):
+                self._register_workflow(
+                    workflow, expose_http_endpoint=expose_workflow_endpoints,
+                )
+
+    def _check_registration_open(self) -> None:
+        # A failed combined-name validation may already have cached the host.
+        # Retrying indexing is safe, but changing that host's inputs is not.
+        if self._functions_indexed or self._durable_app is not None:
+            raise RuntimeError("Register durable bindings before function indexing.")
+
+    def _discover_markdown_agents(self) -> None:
+        if not self._markdown_discovered:
+            for name in discover_agent_names(self):
+                self._get_markdown_agent(name)
+            self._markdown_discovered = True
+
+    def _get_markdown_agent(self, name: str) -> MarkdownDurableAgent:
+        from ._durable import MarkdownDurableAgent
+
+        for registered_name, agent in self._markdown_agents.items():
+            if registered_name.casefold() == name.casefold():
+                if registered_name != name:
+                    raise ValueError(f"Ambiguous agent name {name!r}.")
+                return agent
+        agent = MarkdownDurableAgent(self._compile_durable_markdown(name))
+        self._markdown_agents[name] = agent
+        return agent
 
     def _compile_durable_markdown(self, name: str) -> AgentFrameworkBinding:
         # The name is also used in an HTTP route and a Durable Entity ID, not
@@ -150,42 +178,162 @@ class AgentFunctionApp(
             raise TypeError("Durable markdown agents require the MAF provider.")
         return compiled
 
-    def _register_durable_markdown(self, binding: AgentFrameworkBinding) -> None:
-        from ._durable import MarkdownDurableAgent
-
-        self.add_durable_agent(MarkdownDurableAgent(binding))
-        self._markdown_agents[binding.agent_name.casefold()] = binding.agent_name
-
     def durable_markdown_agent(
         self,
         *,
         arg_name: str,
         agent_name: str,
         context_name: str = "context",
+        expose_http_endpoint: bool = False,
     ) -> Callable[[_F], _F]:
         """Declare a durable markdown agent and inject its orchestration proxy.
 
         Apply below orchestration_trigger, above a synchronous generator. The
-        declaration also publishes DAFX's default agent HTTP endpoint.
+        agent is private unless HTTP exposure is explicitly requested here or
+        by bulk agent discovery. Repeated declarations reuse the same recipe.
         """
         if not isinstance(agent_name, str) or not agent_name.strip():
             raise ValueError("agent_name must be a non-empty string")
+        if not isinstance(expose_http_endpoint, bool):
+            raise TypeError("expose_http_endpoint must be a bool")
 
+        def register() -> None:
+            self.add_durable_agent(
+                self._get_markdown_agent(agent_name),
+                expose_http_endpoint=expose_http_endpoint,
+            )
+
+        return self._durable_binding(
+            arg_name=arg_name,
+            context_name=context_name,
+            binding_name="durable_markdown_agent",
+            register=register,
+            get_proxy=lambda context: self.get_agent(context, agent_name),
+        )
+
+    def _register_workflow(
+        self, workflow: Workflow, *, expose_http_endpoint: bool,
+    ) -> None:
+        self._check_registration_open()
+        name = workflow.name
+        if not isinstance(name, str) or re.fullmatch(
+            r"[A-Za-z][A-Za-z0-9_-]{0,62}", name,
+        ) is None:
+            raise ValueError("A durable workflow must have a stable workflow name.")
+        for registered_name, registered in self._hosted_workflows.items():
+            if registered_name.casefold() == name.casefold():
+                if registered_name != name:
+                    raise ValueError(f"Ambiguous workflow name {name!r}.")
+                if registered is not workflow:
+                    raise ValueError(f"Workflow {name!r} is already registered.")
+        self._hosted_workflows[name] = workflow
+        self._workflow_http_endpoints[name] = (
+            self._workflow_http_endpoints.get(name, False) or expose_http_endpoint
+        )
+
+    def durable_workflow(
+        self,
+        *,
+        arg_name: str,
+        workflow_name: str,
+        context_name: str = "context",
+        workflow_file: str | Path | None = None,
+        expose_http_endpoint: bool = False,
+    ) -> Callable[[_F], _F]:
+        """Inject a private-by-default workflow proxy into an orchestrator.
+
+        Reuse a registered graph, or selectively load a matching definition.
+        workflow_file selects an app-root-relative file only for a new name;
+        omit it when reusing a graph registered by discovery or another binding.
+        """
+        if not isinstance(workflow_name, str) or re.fullmatch(
+            r"[A-Za-z][A-Za-z0-9_-]{0,62}", workflow_name,
+        ) is None:
+            raise ValueError(
+                "workflow_name must be 1-63 ASCII letters, digits, hyphens or "
+                "underscores, starting with a letter."
+            )
+        if not isinstance(expose_http_endpoint, bool):
+            raise TypeError("expose_http_endpoint must be a bool")
+        if workflow_file is not None and not isinstance(workflow_file, (str, Path)):
+            raise TypeError("workflow_file must be a str or Path")
+
+        def register() -> None:
+            for name in self._hosted_workflows:
+                if (
+                    name.casefold() == workflow_name.casefold()
+                    and name != workflow_name
+                ):
+                    raise ValueError(f"Ambiguous workflow name {workflow_name!r}.")
+            workflow = self._hosted_workflows.get(workflow_name)
+            if workflow is not None:
+                if workflow_file is not None:
+                    raise ValueError(
+                        f"Workflow {workflow_name!r} is already registered; omit "
+                        "workflow_file to reuse the registered graph."
+                    )
+            else:
+                from ._workflows import load_workflows
+
+                if self._workflow_factory is None:
+                    self._discover_markdown_agents()
+                workflows = load_workflows(
+                    get_app_root(self), self._markdown_agents,
+                    factory=self._workflow_factory,
+                    workflow_name=workflow_name, workflow_file=workflow_file,
+                )
+                if len(workflows) != 1 or workflows[0].name != workflow_name:
+                    raise ValueError(
+                        f"The selected definition must return exactly one workflow "
+                        f"named {workflow_name!r}."
+                    )
+                workflow = workflows[0]
+            self._register_workflow(
+                workflow, expose_http_endpoint=expose_http_endpoint,
+            )
+
+        def get_proxy(context: OrchestrationContext) -> Any:
+            from ._workflow_client import DurableWorkflow
+
+            return DurableWorkflow(context, workflow_name)
+
+        return self._durable_binding(
+            arg_name=arg_name,
+            context_name=context_name,
+            binding_name="durable_workflow",
+            register=register,
+            get_proxy=get_proxy,
+        )
+
+    def _durable_binding(
+        self,
+        *,
+        arg_name: str,
+        context_name: str,
+        binding_name: str,
+        register: Callable[[], None],
+        get_proxy: Callable[[OrchestrationContext], Any],
+    ) -> Callable[[_F], _F]:
         def decorate(handler: _F) -> _F:
-            if self._functions_indexed:
-                raise RuntimeError("Declare durable agents before function indexing.")
+            self._check_registration_open()
             if not inspect.isgeneratorfunction(handler):
                 raise TypeError(
-                    "durable_markdown_agent requires a synchronous generator "
+                    f"{binding_name} requires a synchronous generator "
                     "below orchestration_trigger."
                 )
+            pending = getattr(handler, "_durable_binding_args", ())
+            if arg_name in pending:
+                raise TypeError(f"Duplicate injected parameter {arg_name!r}.")
+            existing_context = getattr(handler, "_durable_binding_context_name", None)
+            if existing_context is not None and existing_context != context_name:
+                raise TypeError("Durable bindings must use the same context_name.")
             signature = inspect.signature(handler)
             parameter = signature.parameters.get(arg_name)
             if parameter is None or parameter.kind not in {
                 inspect.Parameter.POSITIONAL_OR_KEYWORD,
                 inspect.Parameter.KEYWORD_ONLY,
             }:
-                raise TypeError(f"Invalid injected agent parameter {arg_name!r}.")
+                raise TypeError(f"Invalid injected parameter {arg_name!r}.")
             context_parameter = signature.parameters.get(context_name)
             if arg_name == context_name or context_parameter is None:
                 raise TypeError(f"Missing distinct context parameter {context_name!r}.")
@@ -195,82 +343,90 @@ class AgentFunctionApp(
             parameters = list(visible.parameters.values())
             if (
                 not parameters or parameters[0].name != context_name
-                or len(parameters) > 2
-                or any(p.kind != inspect.Parameter.POSITIONAL_OR_KEYWORD
-                       for p in parameters)
+                or context_parameter.kind != inspect.Parameter.POSITIONAL_OR_KEYWORD
+                or any(p.kind not in {
+                    inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                    inspect.Parameter.KEYWORD_ONLY,
+                } for p in parameters)
             ):
                 raise TypeError(
                     "The orchestrator must accept context first and optionally input."
                 )
-            existing_context = getattr(handler, "_durable_agent_context_name", None)
-            if existing_context is not None and existing_context != context_name:
-                raise TypeError("Durable bindings must use the same context_name.")
-
-            if agent_name.casefold() in self._markdown_agents:
-                if self._markdown_agents[agent_name.casefold()] != agent_name:
-                    raise ValueError(f"Ambiguous agent name {agent_name!r}.")
-            else:
-                self._register_durable_markdown(
-                    self._compile_durable_markdown(agent_name)
-                )
+            # Other visible parameters may be consumed by stacked bindings.
+            # Only the outer trigger can validate the final native arity.
+            register()
 
             @functools.wraps(handler)
             def inject(*args: Any, **kwargs: Any) -> Any:
                 bound = visible.bind(*args, **kwargs)
                 bound.apply_defaults()
-                bound.arguments[arg_name] = self.get_agent(
-                    bound.arguments[context_name], agent_name
-                )
+                bound.arguments[arg_name] = get_proxy(bound.arguments[context_name])
                 call = inspect.BoundArguments(signature, bound.arguments)
                 return (yield from handler(*call.args, **call.kwargs))
 
             inject.__signature__ = visible  # type: ignore[attr-defined]
-            setattr(inject, "_durable_agent_context_name", context_name)
+            setattr(inject, "_durable_binding_context_name", context_name)
+            setattr(inject, "_durable_binding_args", (*pending, arg_name))
             return cast(_F, inject)
 
         return decorate
 
-    def add_durable_agent(self, agent: SupportsAgentRun) -> None:
+    def add_durable_agent(
+        self, agent: SupportsAgentRun, *, expose_http_endpoint: bool = False,
+    ) -> None:
         """Opt in to DAFX by registering an agent before function indexing.
 
         Unlike markdown bindings, this accepts a caller-owned agent instance.
         It does not construct or close the agent's clients or tools.
         """
-        if self._functions_indexed:
-            raise RuntimeError("Register durable agents before function indexing.")
+        self._check_registration_open()
+        if not isinstance(expose_http_endpoint, bool):
+            raise TypeError("expose_http_endpoint must be a bool")
         name = getattr(agent, "name", None)
         if not isinstance(name, str) or not name.strip():
             raise ValueError("A durable agent must have a non-empty string name.")
 
-        durable_app = self._ensure_durable_app()
-        for registered_name, registered_agent in durable_app.agents.items():
+        for registered_name, registered_agent in self._durable_agents.items():
             if registered_name.casefold() == name.casefold():
-                if registered_agent is agent:
-                    return
-                raise ValueError(f"Durable agent {name!r} is already registered.")
-        durable_app.add_agent(agent)
+                if registered_name != name or registered_agent is not agent:
+                    raise ValueError(f"Durable agent {name!r} is already registered.")
+        self._durable_agents[name] = agent
+        self._agent_http_endpoints[name] = (
+            self._agent_http_endpoints.get(name, False) or expose_http_endpoint
+        )
 
-    def _ensure_durable_app(self) -> DurableAgentFunctionApp:
+    def _ensure_durable_app(self) -> HostedAgentFunctionApp:
         if self._durable_app is None:
             try:
-                from agent_framework_azurefunctions import (
-                    AgentFunctionApp as DurableAgentFunctionApp,
-                )
+                from ._hosting import HostedAgentFunctionApp
             except ModuleNotFoundError as error:
-                if error.name != "agent_framework_azurefunctions":
+                if error.name not in {
+                    "agent_framework_azurefunctions", "agent_framework_durabletask",
+                    "azure.durable_functions", "durabletask",
+                }:
                     raise
                 raise ImportError(
                     "DAFX support is not installed. Install "
                     "'azurefunctions-agents-extensions-agent-framework[durable]'."
                 ) from error
 
-            self._durable_app = DurableAgentFunctionApp(
-                workflows=self._hosted_workflows,
+            durable_app = HostedAgentFunctionApp(
+                workflows=list(self._hosted_workflows.values()),
+                exposed_workflows={
+                    name for name, exposed in self._workflow_http_endpoints.items()
+                    if exposed
+                },
                 http_auth_level=self.auth_level,
-                enable_health_check=False,
-                enable_http_endpoints=True,
-                enable_mcp_tool_trigger=False,
             )
+            for name, agent in self._durable_agents.items():
+                if any(key.casefold() == name.casefold() for key in durable_app.agents):
+                    raise ValueError(
+                        f"Standalone agent {name!r} collides with a workflow agent."
+                    )
+                durable_app.add_agent(
+                    agent, enable_http_endpoint=self._agent_http_endpoints[name],
+                )
+            self._durable_app = durable_app
         return self._durable_app
 
     def get_agent(
@@ -279,11 +435,13 @@ class AgentFunctionApp(
         agent_name: str,
     ) -> DurableAIAgent[DurableAgentTask]:
         """Get a DAFX proxy without registering functions during execution."""
-        if self._durable_app is None:
-            raise RuntimeError(
-                "Enable durable=True or declare a durable markdown agent."
-            )
-        return self._durable_app.get_agent(context, agent_name)
+        if agent_name not in self._durable_agents:
+            raise ValueError(f"Agent {agent_name!r} is not registered with this app.")
+        from agent_framework_durabletask import (
+            DurableAIAgent, OrchestrationAgentExecutor,
+        )
+
+        return DurableAIAgent(OrchestrationAgentExecutor(context), agent_name)
 
     def get_functions(self) -> list[Function]:
         """Expose both registries through the single worker-indexed app."""
@@ -291,9 +449,10 @@ class AgentFunctionApp(
         # each pass fresh, including retries after an indexing error.
         self.functions_bindings = None
         functions: list[Function] = super().get_functions()
-        if self._durable_app is not None:
-            self._durable_app.functions_bindings = None
-            functions.extend(self._durable_app.get_functions())
+        if self._durable_agents or self._hosted_workflows:
+            durable_app = self._ensure_durable_app()
+            durable_app.functions_bindings = None
+            functions.extend(durable_app.get_functions())
 
         names: set[str] = set()
         for function in functions:
@@ -327,9 +486,21 @@ class AgentFunctionApp(
         decorator = sdk(**options)
 
         def decorate(handler: _F) -> Any:
-            declared_context = getattr(handler, "_durable_agent_context_name", None)
-            if declared_context is not None and declared_context != context_name:
-                raise TypeError("Binding and trigger context_name must match.")
+            declared_context = getattr(handler, "_durable_binding_context_name", None)
+            if declared_context is not None:
+                if declared_context != context_name:
+                    raise TypeError("Binding and trigger context_name must match.")
+                parameters = list(inspect.signature(handler).parameters.values())
+                if (
+                    not parameters or parameters[0].name != context_name
+                    or len(parameters) > 2
+                    or any(p.kind != inspect.Parameter.POSITIONAL_OR_KEYWORD
+                           for p in parameters)
+                ):
+                    raise TypeError(
+                        "The orchestrator must accept context first "
+                        "and optionally input."
+                    )
             return decorator(handler)
 
         return decorate

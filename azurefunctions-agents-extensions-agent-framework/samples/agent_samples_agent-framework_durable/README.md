@@ -53,10 +53,11 @@ The logical Agent name `order-fulfillment` resolves
 Foundry client and model configuration remain explicit in
 `create_chat_client()`.
 
-The binding registers the selected markdown definition and enables its Agent
-HTTP endpoint without `durable=True`. Clients are created and closed per entity
+The binding registers only the selected markdown definition, without bulk
+discovery or an automatic Agent HTTP endpoint. Clients are created and closed per entity
 execution through the compiled markdown binding, not during indexing or replay.
 No custom orchestration context wrapper or hidden Agent activity is used.
+The inner DAFX host is created when the outer app indexes its functions.
 
 ## Project structure
 
@@ -212,21 +213,17 @@ failure.
   closes a fresh Foundry client and Agent for each entity execution.
 - The output contains only the order ID, `assessment.text`, and `plan.text`.
 
-### Direct Agent endpoint
+### Private Agent registration
 
-This sample's `host.json` removes the default `api` prefix. The binding also
-publishes `POST /agents/order-fulfillment/run`:
+This sample's `host.json` removes the default `api` prefix. The handwritten
+`POST /orders/orchestrations` starter is the only application HTTP route.
+The binding's `expose_http_endpoint=False` default keeps the agent private, so
+there is no `POST /agents/order-fulfillment/run` route.
 
-```bash
-curl -X POST http://localhost:7071/agents/order-fulfillment/run \
-  -H "Content-Type: application/json" \
-  -d '{"message":"Describe the fulfillment review process.","session_id":"order-demo"}'
-```
-
-Reuse the `session_id` to continue that conversation. This direct route accepts
-a message and bypasses the order-preparation activity. Use the orchestration
-route above for the validated order flow. Include a function key when invoking
-the Agent endpoint on a hosted app.
+An explicit `expose_http_endpoint=True` on the binding would publish that direct
+agent route. It would bypass `prepare_order_activity` and its order validation.
+Do not enable it merely to access the agent from the orchestrator. HTTP exposure
+and business policy are separate decisions.
 
 ## Troubleshooting
 

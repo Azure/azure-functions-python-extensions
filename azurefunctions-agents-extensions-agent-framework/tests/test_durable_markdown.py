@@ -40,8 +40,12 @@ def test_discovery_is_opt_in_and_creates_recipes_not_live_agents(tmp_path):
     assert plain.get_functions() == []
     assert plain._durable_app is None
 
-    app = AgentFunctionApp(client_factory=factory, app_root=tmp_path, durable=True)
-    assert set(app._durable_app.agents) == {"orders", "shipping"}
+    app = AgentFunctionApp(
+        client_factory=factory, app_root=tmp_path, discover_agents=True,
+    )
+    assert app._durable_app is None
+    assert set(app._durable_agents) == {"orders", "shipping"}
+    assert app._durable_agents == app._markdown_agents
     indexed = app.get_functions()
     assert set(fn.get_function_name() for fn in indexed) == {
         "dafx-orders", "dafx-shipping", "http-orders", "http-shipping",
@@ -53,9 +57,9 @@ def test_discovery_is_opt_in_and_creates_recipes_not_live_agents(tmp_path):
 
 
 @pytest.mark.parametrize("value", [None, 0, 1, "true", [], {}])
-def test_durable_flag_is_explicit_bool(tmp_path, value):
-    with pytest.raises(TypeError, match="durable must be a bool"):
-        make_app(tmp_path, durable=value)
+def test_discover_agents_flag_is_explicit_bool(tmp_path, value):
+    with pytest.raises(TypeError, match="discover_agents must be a bool"):
+        make_app(tmp_path, discover_agents=value)
 
 
 @pytest.mark.parametrize("second", ["orders", "ORDERS"])
@@ -65,17 +69,20 @@ def test_discovery_rejects_ambiguous_names_before_registration(
     definition(tmp_path, "orders")
     definition(tmp_path / "agents", second)
     ensure = Mock(side_effect=AssertionError("partial durable registration"))
+    register = Mock(side_effect=AssertionError("partial agent registration"))
     monkeypatch.setattr(AgentFunctionApp, "_ensure_durable_app", ensure)
+    monkeypatch.setattr(AgentFunctionApp, "add_durable_agent", register)
     with pytest.raises(ValueError, match="[Aa]mbiguous"):
-        make_app(tmp_path, durable=True)
+        make_app(tmp_path, discover_agents=True)
     ensure.assert_not_called()
+    register.assert_not_called()
 
 
 def test_discovery_ignores_unrelated_files_and_rejects_definition_directories(tmp_path):
     (tmp_path / "readme.md").write_text("ignore", encoding="utf-8")
     (tmp_path / "orders.agent.md").mkdir()
     with pytest.raises(ValueError, match="not a file"):
-        make_app(tmp_path, durable=True)
+        make_app(tmp_path, discover_agents=True)
 
 
 def test_discovery_rejects_escaping_symlink(tmp_path):
@@ -86,7 +93,7 @@ def test_discovery_rejects_escaping_symlink(tmp_path):
     except OSError as error:
         pytest.skip(f"Symlinks unavailable: {error}")
     with pytest.raises(ValueError, match="outside app root"):
-        make_app(tmp_path, durable=True)
+        make_app(tmp_path, discover_agents=True)
 
 
 def test_compile_preserves_raw_instructions(tmp_path):
@@ -109,7 +116,9 @@ def test_binding_registers_once_and_hides_injected_parameter(tmp_path):
     def second(context, agent):
         yield agent
 
-    assert len(app._durable_app.agents) == 1
+    assert set(app._durable_agents) == {"orders"}
+    assert app._agent_http_endpoints == {"orders": False}
+    assert app._durable_app is None
     assert list(inspect.signature(first).parameters) == ["context"]
     proxy = object()
     app.get_agent = Mock(return_value=proxy)
@@ -119,20 +128,25 @@ def test_binding_registers_once_and_hides_injected_parameter(tmp_path):
     app.get_agent.assert_called_with(context, "orders")
     with pytest.raises(TypeError):
         next(first(context, agent=object()))
+    indexed = app.get_functions()
+    assert "dafx-orders" in {fn.get_function_name() for fn in indexed}
+    assert not any(fn.is_http_function() for fn in indexed)
 
 
 def test_binding_and_discovery_share_one_entity(tmp_path):
     definition(tmp_path)
-    app = make_app(tmp_path, durable=True)
-    original = app._durable_app.agents["orders"]
+    app = make_app(tmp_path, discover_agents=True)
+    original = app._durable_agents["orders"]
 
     @app.orchestration_trigger(context_name="context")
     @app.durable_markdown_agent(arg_name="agent", agent_name="orders")
     def workflow(context, agent):
         yield agent.run("hello")
 
-    assert app._durable_app.agents["orders"] is original
+    assert app._durable_agents["orders"] is original
+    assert app._durable_app is None
     assert len(app.get_functions()) == 5
+    assert app._durable_app.agents["orders"] is original
 
 
 def test_binding_custom_context_and_native_input_are_forwarded(tmp_path):
@@ -227,6 +241,8 @@ def test_binding_invalid_or_escaping_names_fail_without_dafx(tmp_path, name):
 
     with pytest.raises(ValueError):
         app.durable_markdown_agent(arg_name="agent", agent_name=name)(workflow)
+    assert app._durable_agents == {}
+    assert app._markdown_agents == {}
     assert app._durable_app is None
 
 
@@ -269,6 +285,8 @@ def test_binding_missing_file_fails_before_registration(tmp_path):
 
     with pytest.raises(FileNotFoundError):
         app.durable_markdown_agent(arg_name="agent", agent_name="missing")(workflow)
+    assert app._durable_agents == {}
+    assert app._markdown_agents == {}
     assert app._durable_app is None
 
 
@@ -299,6 +317,8 @@ def test_binding_invalid_handler_shapes_do_not_register(tmp_path):
                     missing_context, wrong_order, variadic]:
         with pytest.raises(TypeError):
             bind(handler)
+        assert app._durable_agents == {}
+        assert app._markdown_agents == {}
         assert app._durable_app is None
 
 
@@ -312,13 +332,15 @@ def test_binding_late_declaration_fails(tmp_path):
 
     with pytest.raises(RuntimeError, match="before function indexing"):
         app.durable_markdown_agent(arg_name="agent", agent_name="orders")(workflow)
+    assert app._durable_agents == {}
+    assert app._markdown_agents == {}
     assert app._durable_app is None
 
 
 def test_generated_http_function_name_collision_is_not_silent(tmp_path):
     definition(tmp_path, "order-one")
     definition(tmp_path, "order_one")
-    app = make_app(tmp_path, durable=True)
+    app = make_app(tmp_path, discover_agents=True)
     with pytest.raises(ValueError, match="unique function name"):
         app.get_functions()
 

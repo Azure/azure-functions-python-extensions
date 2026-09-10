@@ -66,9 +66,11 @@ def make_app(root):
     before = len(LocalClient.instances)
     factory = WORKFLOW_FACTORY_BUILDER(root) if WORKFLOW_FACTORY_BUILDER else None
     app = AgentFunctionApp(
-        client_factory=LocalClient, app_root=root, durable=True, workflows=True,
+        client_factory=LocalClient, app_root=root,
+        discover_agents=True, discover_workflows=True,
         workflow_factory=factory,
     )
+    assert app._durable_app is None, "Host created before function indexing"
     if factory is None:
         assert len(LocalClient.instances) == before, (
             "Live client created during loading"
@@ -318,7 +320,7 @@ def validation_checks():
                 root / "probe.workflow.yaml"
             )
             app = make_app(root)
-            loaded = app._hosted_workflows[0]
+            loaded = app._hosted_workflows[native.name]
             assert loaded.name == native.name
             loaded_nodes = [
                 (key, type(value)) for key, value in loaded.executors.items()

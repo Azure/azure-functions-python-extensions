@@ -109,13 +109,16 @@ def test_dafx_import_errors_are_actionable_without_hiding_broken_installs(
     original_import = builtins.__import__
 
     def fail_dafx_import(name, *args, **kwargs):
-        if name == "agent_framework_azurefunctions":
+        if name == "_hosting":
             raise ModuleNotFoundError(f"No module named {missing!r}", name=missing)
         return original_import(name, *args, **kwargs)
 
     monkeypatch.setattr(builtins, "__import__", fail_dafx_import)
+    app.add_durable_agent(SimpleNamespace(name="Orders"))
+    assert set(app._durable_agents) == {"Orders"}
+    assert app._durable_app is None
     with pytest.raises(ImportError) as caught:
-        app.add_durable_agent(SimpleNamespace(name="Orders"))
+        app.get_functions()
     if missing == "agent_framework_azurefunctions":
         assert "[durable]" in str(caught.value)
         assert isinstance(caught.value.__cause__, ModuleNotFoundError)

@@ -1,6 +1,6 @@
 # Durable YAML workflows
 
-[function_app.py](function_app.py) enables `durable=True, workflows=True` with no
+[function_app.py](function_app.py) enables `discover_workflows=True` with no
 handwritten handlers or orchestrators. The extension loads YAML through MAF's
 public `WorkflowFactory.create_workflow_from_yaml_path()` and passes the
 resulting graphs to DAFX's `workflows=` constructor. The default factory receives
@@ -97,27 +97,29 @@ gets these generated routes.
 | GET | `/api/workflow/NAME/status/{instanceId}` |
 | POST | `/api/workflow/NAME/respond/{instanceId}/{requestId}` |
 
-The pinned dependencies index 20 functions. Workflow suffixes below are appended
-to the prefix with `-`; each prefix itself is the orchestrator function.
+The sample indexes 18 functions. Workflow suffixes below are appended to the
+prefix with `-`. Each prefix itself is the orchestrator function.
 
 | Prefix | Generated suffixes |
 | --- | --- |
 | `dafx-OrderReview` | `start`, `status`, `respond`, `_workflow_entry`, `capture_order`, `prepare_prompt`, `review_order`, `send_review` |
 | `dafx-Approval` | `start`, `status`, `respond`, `_workflow_entry`, `request_approval`, `send_answer` |
 
-The other functions are `dafx-writer`, `http-writer`, `BuiltIn__HttpActivity`,
-and `BuiltIn__HttpPollOrchestrator`.
+The other functions are `BuiltIn__HttpActivity` and
+`BuiltIn__HttpPollOrchestrator`.
 
-`durable=True` still discovers and publishes every Markdown agent directly in
-the app root or `agents/`, including `POST /api/agents/writer/run`. Calling that
-endpoint bypasses both workflows. Hosted requests need a function key, including
-requests to returned status and response URLs.
+`discover_workflows=True` registers the two graphs and publishes their routes
+with the default `expose_workflow_endpoints=True`. Agent discovery is disabled,
+so there is no `dafx-writer` entity or `POST /api/agents/writer/run` route. The
+default factory still receives the writer Markdown adapter for workflow actions.
+The inner DAFX host is created at `app.get_functions()`, not app construction.
+Hosted requests need a function key, including requests to returned status and
+response URLs.
 
 Inside this sample's YAML graph, the writer action runs as a **durable activity**
 through the `MarkdownDurableAgent` lifecycle. Each execution opens and closes a
 fresh Agent, client, and tools. It does not call the writer's durable entity or
-share that endpoint's entity session. DAFX carries workflow shared state between
-actions.
+use an entity session. DAFX carries workflow shared state between actions.
 
 Inline YAML agents and custom-factory agents instead follow MAF's or the
 factory's construction and resource lifecycle. Agents and clients may be created
@@ -131,7 +133,9 @@ well as Markdown references such as `agent: writer`. Supply `workflow_factory=`
 to configure a public `WorkflowFactory` with an `agent_factory`, agents, tools,
 HTTP or MCP handlers, or configuration. The supplied object is used unchanged,
 without automatically merging discovered Markdown agents into its registry.
-All discovered Markdown agents still get their standalone endpoints.
+Supplying a factory does not enable agent discovery or standalone endpoints.
+Factory configuration is also allowed without bulk discovery, for use with a
+selective `durable_workflow` binding.
 
 See the [configured factory sample](../configured-workflow-factory/README.md)
 for a tool-only workflow using `register_tool()` and `configuration`, with no
@@ -139,9 +143,15 @@ agent client or external service.
 
 ## Boundaries
 
-See [VALIDATION.md](VALIDATION.md) for measured results and test limitations.
+See [VALIDATION.md](VALIDATION.md) for historical results and test limitations.
 
-- `workflows=True` requires `durable=True` and the `[durable,workflows]` extras.
+- Workflow hosting needs the `[durable,workflows]` extras. `discover_workflows`
+  and `discover_agents` are independent switches, both disabled by default.
+- Constructor exposure options apply only to bulk discovery. Selective bindings
+  are private unless their own `expose_http_endpoint=True` is set. See the
+  [child workflow sample](../durable-workflow-binding/README.md).
+- Generated workflow routes bypass any handwritten parent policy. Disabling a
+  standalone route is not a separate authorization boundary.
 - Only `*.workflow.yaml` and `*.workflow.yml` directly in the app root or its
   `workflows/` directory are discovered. Discovery is not recursive and does not
   load arbitrary YAML files. Discovered entry files must stay within the app root.

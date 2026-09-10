@@ -52,23 +52,27 @@ def test_initialization_does_not_construct_dafx(app):
     assert app._durable_app is None
 
 
-def test_registration_owns_one_real_dafx_app(app):
+def test_indexing_constructs_one_real_dafx_app_from_registered_agents(app):
     from agent_framework_azurefunctions import AgentFunctionApp as DafxApp
 
     first = make_agent()
+    app.add_durable_agent(first, expose_http_endpoint=True)
     app.add_durable_agent(first)
+    app.add_durable_agent(make_agent("Shipping"), expose_http_endpoint=True)
+
+    assert app._durable_app is None
+    assert set(app._durable_agents) == {"Orders", "Shipping"}
+    assert app._durable_agents["Orders"] is first
+    functions = app.get_functions()
     inner = app._durable_app
     assert isinstance(inner, DafxApp)
-    app.add_durable_agent(first)
-    app.add_durable_agent(make_agent("Shipping"))
-
-    assert app._durable_app is inner
     assert set(inner.agents) == {"Orders", "Shipping"}
     assert not inner.enable_health_check
-    assert inner.enable_http_endpoints
+    assert not inner.enable_http_endpoints
     assert not inner.enable_mcp_tool_trigger
     assert inner.auth_level == app.auth_level
-    functions = app.get_functions()
+    assert app.get_functions() == functions
+    assert app._durable_app is inner
     entities = {
         function.get_function_name()
         for function in functions
@@ -82,6 +86,7 @@ def test_registration_owns_one_real_dafx_app(app):
 def test_invalid_name_does_not_enable_dafx(app, name):
     with pytest.raises(ValueError, match="non-empty string name"):
         app.add_durable_agent(SimpleNamespace(name=name))
+    assert app._durable_agents == {}
     assert app._durable_app is None
 
 
@@ -90,19 +95,24 @@ def test_different_agent_with_duplicate_name_is_rejected(app, name):
     app.add_durable_agent(make_agent())
     with pytest.raises(ValueError, match="already registered"):
         app.add_durable_agent(make_agent(name))
-    assert len(app._durable_app.agents) == 1
+    assert len(app._durable_agents) == 1
+    assert app._durable_app is None
 
 
 def test_lookup_does_not_enable_dafx(app):
-    with pytest.raises(RuntimeError, match="durable=True"):
+    with pytest.raises(ValueError, match="not registered"):
         app.get_agent(object(), "Orders")
     assert app._durable_app is None
 
 
-def test_unknown_agent_uses_dafx_validation(app):
+def test_agent_lookup_validates_registry_without_constructing_host(app):
+    from agent_framework_durabletask import DurableAIAgent
+
     app.add_durable_agent(make_agent())
+    assert isinstance(app.get_agent(Mock(), "Orders"), DurableAIAgent)
     with pytest.raises(ValueError, match="not registered"):
         app.get_agent(object(), "Unknown")
+    assert app._durable_app is None
 
 
 def test_distinct_apps_do_not_share_durable_registries(app, tmp_path):
@@ -110,6 +120,11 @@ def test_distinct_apps_do_not_share_durable_registries(app, tmp_path):
     app.add_durable_agent(make_agent("First"))
     assert other._durable_app is None
     other.add_durable_agent(make_agent("Second"))
+    assert app._durable_app is other._durable_app is None
+    assert set(app._durable_agents) == {"First"}
+    assert set(other._durable_agents) == {"Second"}
+    app.get_functions()
+    other.get_functions()
     assert app._durable_app is not other._durable_app
     assert set(app._durable_app.agents) == {"First"}
     assert set(other._durable_app.agents) == {"Second"}
@@ -161,7 +176,7 @@ def test_combined_index_preserves_http_auth_and_is_repeatable(tmp_path, auth):
     def orders(req):
         return func.HttpResponse("ok")
 
-    app.add_durable_agent(make_agent())
+    app.add_durable_agent(make_agent(), expose_http_endpoint=True)
     first = app.get_functions()
     second = app.get_functions()
     assert [fn.get_function_name() for fn in first] == [
@@ -195,7 +210,7 @@ def test_cross_registry_collision_is_rejected_on_every_index(app, name):
 def test_sdk_builtin_names_cannot_be_shadowed(app, tmp_path):
     app.add_durable_agent(make_agent())
     # Derive the SDK-owned names rather than duplicating a hard-coded list.
-    sdk_functions = app._durable_app.get_functions()
+    sdk_functions = app.get_functions()
     builtins = [
         fn for fn in sdk_functions
         if fn.get_function_name().startswith("BuiltIn__")

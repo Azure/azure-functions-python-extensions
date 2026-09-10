@@ -15,16 +15,26 @@ from azurefunctions.agents.extensions.agent_framework import _workflows
 
 
 @pytest.mark.parametrize("value", [None, 0, 1, "true", [], {}])
-def test_workflows_flag_requires_bool(tmp_path, value):
-    with pytest.raises(TypeError, match="workflows must be a bool"):
+def test_discover_workflows_flag_requires_bool(tmp_path, value):
+    with pytest.raises(TypeError, match="discover_workflows must be a bool"):
         AgentFunctionApp(
-            client_factory=lambda: None, app_root=tmp_path, workflows=value,
+            client_factory=lambda: None, app_root=tmp_path, discover_workflows=value,
         )
 
 
-def test_workflows_requires_explicit_durable_opt_in(tmp_path):
-    with pytest.raises(ValueError, match="requires durable=True"):
-        AgentFunctionApp(client_factory=lambda: None, app_root=tmp_path, workflows=True)
+def test_workflow_discovery_does_not_register_standalone_agents(tmp_path, monkeypatch):
+    (tmp_path / "orders.agent.md").write_text("Handle orders.", encoding="utf-8")
+    load = Mock(return_value=[])
+    monkeypatch.setattr(_workflows, "load_workflows", load)
+    app = AgentFunctionApp(
+        client_factory=lambda: None, app_root=tmp_path, discover_workflows=True,
+    )
+    assert set(app._markdown_agents) == {"orders"}
+    load.assert_called_once_with(tmp_path, app._markdown_agents, factory=None)
+    assert app._durable_agents == {}
+    assert app._hosted_workflows == {}
+    assert app.get_functions() == []
+    assert app._durable_app is None
 
 
 def test_workflow_files_are_ignored_without_workflow_opt_in(tmp_path):
@@ -32,19 +42,28 @@ def test_workflow_files_are_ignored_without_workflow_opt_in(tmp_path):
     plain = AgentFunctionApp(client_factory=lambda: None, app_root=tmp_path)
     assert plain.get_functions() == []
     durable = AgentFunctionApp(
-        client_factory=lambda: None, app_root=tmp_path, durable=True,
+        client_factory=lambda: None, app_root=tmp_path, discover_agents=True,
     )
-    assert durable._durable_app.workflows == {}
+    assert durable._hosted_workflows == {}
+    assert durable.get_functions() == []
+    assert durable._durable_app is None
 
 
-def test_factory_requires_workflow_opt_in(tmp_path):
-    with pytest.raises(ValueError, match="workflow_factory requires workflows=True"):
-        AgentFunctionApp(client_factory=lambda: None, app_root=tmp_path,
-                         workflow_factory=Mock())
+def test_factory_can_be_configured_without_workflow_discovery(tmp_path):
+    (tmp_path / "bad.workflow.yaml").write_text("not valid: [", encoding="utf-8")
+    factory = Mock()
+    app = AgentFunctionApp(client_factory=lambda: None, app_root=tmp_path,
+                           workflow_factory=factory)
+    assert app._workflow_factory is factory
+    assert factory.mock_calls == []
+    assert app._hosted_workflows == {}
+    assert app.get_functions() == []
+    assert app._durable_app is None
 
 
 @pytest.mark.parametrize("missing", ["agent_framework_declarative", "yaml", "clr"])
 def test_missing_workflow_dependencies(tmp_path, monkeypatch, missing):
+    (tmp_path / "orders.workflow.yaml").write_text("name: Orders", encoding="utf-8")
     original = builtins.__import__
 
     def blocked(name, *args, **kwargs):

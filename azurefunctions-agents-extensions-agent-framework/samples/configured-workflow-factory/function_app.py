@@ -23,7 +23,6 @@ workflow_factory.register_tool("format_order", format_order)
 
 app = AgentFunctionApp(
     client_factory=no_agent_client,
-    durable=True,
-    workflows=True,
+    discover_workflows=True,
     workflow_factory=workflow_factory,
 )

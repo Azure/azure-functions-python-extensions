@@ -40,6 +40,9 @@ def load_workflows(
     root: Path,
     agents: Mapping[str, SupportsAgentRun],
     factory: WorkflowLoader | None = None,
+    *,
+    workflow_name: str | None = None,
+    workflow_file: str | Path | None = None,
 ) -> list[Workflow]:
     """Discover files and hand them to MAF without interpreting its YAML schema.
 
@@ -48,7 +51,36 @@ def load_workflows(
     agent factory, tools, handlers, configuration, and resource ownership.
     MAF owns parsing, relative references, validation and agent construction.
     """
-    paths = _definition_paths(root)
+    if workflow_file is not None:
+        path = root / workflow_file
+        if not path.name.endswith(_SUFFIXES):
+            raise ValueError(
+                "workflow_file must end in .workflow.yaml or .workflow.yml"
+            )
+        if not path.resolve().is_relative_to(root.resolve()):
+            raise ValueError("workflow_file escapes app root.")
+        if not path.is_file():
+            raise FileNotFoundError(f"Workflow definition {workflow_file!s} not found.")
+        paths = [path]
+    elif workflow_name is not None:
+        # Select before parsing: unrelated definitions must not be loaded merely
+        # because a function declares a binding to one workflow.
+        paths = [
+            path for directory in (root, root / "workflows") if directory.is_dir()
+            for path in directory.iterdir()
+            if any(path.name == workflow_name + suffix for suffix in _SUFFIXES)
+        ]
+        if not paths:
+            raise FileNotFoundError(f"Workflow definition {workflow_name!r} not found.")
+        if len(paths) != 1:
+            raise ValueError(f"Ambiguous workflow definition {workflow_name!r}.")
+        if (
+            not paths[0].is_file()
+            or not paths[0].resolve().is_relative_to(root.resolve())
+        ):
+            raise ValueError("Selected workflow must be a file inside app root.")
+    else:
+        paths = _definition_paths(root)
     if factory is None:
         try:
             from agent_framework.declarative import WorkflowFactory
@@ -68,6 +100,10 @@ def load_workflows(
         if not isinstance(workflow, Workflow):
             raise TypeError("The workflow factory must return a MAF Workflow.")
         name = workflow.name
+        if workflow_name is not None and name != workflow_name:
+            raise ValueError(
+                f"Selected workflow name {name!r} does not match {workflow_name!r}."
+            )
         if not isinstance(name, str) or _WORKFLOW_NAME.fullmatch(name) is None:
             raise ValueError(
                 f"Workflow {path.name!r} needs a stable name of 1-63 ASCII "

@@ -12,7 +12,8 @@ variables for these workflow expressions.
 `SendActivity`. The function only formats text. No Markdown definition, agent
 client, model credentials, or external service is needed. `client_factory` is
 still a required app argument, so `no_agent_client()` raises if it is called.
-There are no handwritten HTTP handlers or orchestrators.
+Its return annotation is `NoReturn`. The app enables only
+`discover_workflows=True`. There are no handwritten HTTP handlers or orchestrators.
 
 ## Run
 
@@ -41,8 +42,14 @@ workflow does not request human input.
 The extension calls `create_workflow_from_yaml_path()` on the supplied factory
 unchanged, without merging discovered Markdown adapters into its agent registry.
 This sample has no Markdown files or standalone agent endpoints. Adding Markdown
-files would still publish their standalone endpoints because `durable=True`, but
-would not add them to this factory's registry.
+files would neither publish standalone endpoints nor add them to this factory's
+registry. Agent discovery is a separate opt-in.
+
+The default `expose_workflow_endpoints=True` publishes the discovered workflow.
+Set it to `False` to register the graph without standalone HTTP routes. That
+constructor option controls bulk discovery only. A `workflow_factory` can also
+be passed without discovery for a private `durable_workflow` binding. The inner
+DAFX host is deferred until `app.get_functions()`.
 
 MAF owns parsing and building, including warnings, errors, and native agent/tool
 configuration. The extension does not impose a separate action allowlist.

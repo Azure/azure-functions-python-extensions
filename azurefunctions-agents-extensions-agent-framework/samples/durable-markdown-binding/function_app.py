@@ -6,7 +6,7 @@ from agent_framework_durabletask import DurableAgentTask, DurableAIAgent
 from azurefunctions.agents.extensions.agent_framework import AgentFunctionApp
 from local_chat_client import LocalChatClient
 
-# The binding below opts in only the selected agent, without durable=True.
+# The binding registers only the selected agent, without an agent HTTP endpoint.
 app = AgentFunctionApp(client_factory=LocalChatClient)
 
 

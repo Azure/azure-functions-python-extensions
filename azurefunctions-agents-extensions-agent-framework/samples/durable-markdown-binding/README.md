@@ -2,8 +2,9 @@
 
 This local example places `durable_markdown_agent` below `orchestration_trigger`
 on a synchronous generator. The binding selects `agents/orders.agent.md`,
-registers its DAFX entity and HTTP endpoint, and injects an orchestration proxy.
-It does not require `durable=True` or explicit agent instance registration.
+registers its private DAFX entity, and injects an orchestration proxy.
+It needs neither bulk discovery nor explicit agent instance registration.
+The inner DAFX host is deferred until `app.get_functions()`.
 
 The orchestrator creates one session and yields two `agent.run()` tasks with
 that session. The deterministic client counts user messages in the restored
@@ -39,9 +40,14 @@ The HTTP starter returns a check-status response. Follow its status URL to read
 the orchestration output. The starter uses fixed prompts and ignores the request
 body. Each orchestration creates a new session.
 
-The binding also enables `POST /api/agents/orders/run`. Send JSON with `message`
-and `session_id` to use the agent directly instead of starting the orchestration.
-Add a function key when calling a hosted app.
+The binding defaults to `expose_http_endpoint=False`, so there is no
+`POST /api/agents/orders/run` route. Only the handwritten starter exposes this
+flow. Add a function key when calling a hosted app.
+
+To deliberately expose the agent directly, add `expose_http_endpoint=True` to
+the binding. That route bypasses the parent orchestration. The constructor's
+`expose_agent_endpoints` controls bulk discovery only. Discovery and a binding
+reuse one registration, with HTTP exposure enabled if either opts in.
 
 For automatic registration of all root and `agents/` markdown files without
 handwritten functions, see the [endpoint-only sample](../lazy-owned-dafx/README.md).

@@ -272,7 +272,7 @@ def run_case(label, definition, name, expected, *, input_data=None,
              agent_definitions=(), agent_paths=(), agents=(), files=None,
              filename="probe.workflow.yaml", configure=None,
              expected_client_calls=(), human_response=None, default_factory=False):
-    """Require native construction at index time and one call per replayed effect."""
+    """Require native construction at app init and one call per replayed effect."""
     with tempfile.TemporaryDirectory() as temp:
         root = Path(temp).resolve()
         harness.write_workflow(root, definition, filename)
@@ -330,7 +330,11 @@ def run_case(label, definition, name, expected, *, input_data=None,
 
         with patch.object(harness, "WORKFLOW_FACTORY_BUILDER",
                           None if default_factory else build):
-            harness.index(root)
+            app = harness.make_app(root)
+            check_construction()
+            assert app._durable_app is None
+            assert set(app._hosted_workflows) == {name}
+            app.get_functions()
             check_construction()
             assert not NativeClient.calls and not harness.LocalClient.calls
             output, activities, answered = harness.run_workflow(

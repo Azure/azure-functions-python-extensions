@@ -15,7 +15,7 @@ _SAMPLE_INDEXES = {
     "agent_samples_agent-framework": {"process_order", "process_order_event"},
     "agent_samples_agent-framework_durable": {
         "order_orchestrator", "prepare_order_activity", "start_order_orchestration",
-        "dafx-order-fulfillment", "http-order_fulfillment",
+        "dafx-order-fulfillment",
         "BuiltIn__HttpActivity", "BuiltIn__HttpPollOrchestrator",
     },
     "lazy-owned-dafx": {
@@ -23,12 +23,11 @@ _SAMPLE_INDEXES = {
         "BuiltIn__HttpActivity", "BuiltIn__HttpPollOrchestrator",
     },
     "durable-markdown-binding": {
-        "orders", "start_orders", "dafx-orders", "http-orders",
+        "orders", "start_orders", "dafx-orders",
         "BuiltIn__HttpActivity", "BuiltIn__HttpPollOrchestrator",
     },
     "durable-yaml-workflow": {
         "BuiltIn__HttpActivity", "BuiltIn__HttpPollOrchestrator",
-        "dafx-writer", "http-writer",
         "dafx-OrderReview", "dafx-OrderReview-start", "dafx-OrderReview-status",
         "dafx-OrderReview-respond", "dafx-OrderReview-_workflow_entry",
         "dafx-OrderReview-capture_order", "dafx-OrderReview-prepare_prompt",
@@ -44,8 +43,23 @@ _SAMPLE_INDEXES = {
         "dafx-ConfiguredTools-send_result", "BuiltIn__HttpActivity",
         "BuiltIn__HttpPollOrchestrator",
     },
+    "durable-workflow-binding": {
+        "parent", "start_parent", "dafx-Child", "dafx-Child-_workflow_entry",
+        "dafx-Child-send_result", "BuiltIn__HttpActivity",
+        "BuiltIn__HttpPollOrchestrator",
+    },
 }
 _LOCAL_SAMPLES = ("lazy-owned-dafx", "durable-markdown-binding")
+_LOCAL_ENDPOINT_SAMPLES = tuple(
+    sample for sample in _LOCAL_SAMPLES if "http-orders" in _SAMPLE_INDEXES[sample]
+)
+
+
+def _require_workflows():
+    from importlib.util import find_spec
+
+    if sys.version_info >= (3, 14) or find_spec("agent_framework_declarative") is None:
+        pytest.skip("YAML samples tested on 3.13 with workflows extra")
 
 
 def _run_sample(sample_path, script):
@@ -78,13 +92,8 @@ def test_index_cases_cover_every_sample_app():
 
 @pytest.mark.parametrize("sample_path", _SAMPLE_INDEXES)
 def test_sample_indexes_all_functions(sample_path):
-    if sample_path in {"durable-yaml-workflow", "configured-workflow-factory"}:
-        from importlib.util import find_spec
-        if (
-            sys.version_info >= (3, 14)
-            or find_spec("agent_framework_declarative") is None
-        ):
-            pytest.skip("YAML expression samples tested on 3.13 with workflows extra")
+    if any((_SAMPLES_ROOT / sample_path).rglob("*.workflow.y*ml")):
+        _require_workflows()
     # Exact names were recorded from the SDK 2/DAFX PR #72 index. DAFX sanitizes
     # HTTP names (_build_function_name), but preserves hyphens in entity names.
     result = _run_sample(sample_path, """
@@ -96,6 +105,7 @@ def test_sample_indexes_all_functions(sample_path):
         with patch.object(AgentFrameworkBinding, '_create_agent',
                           side_effect=AssertionError('live agent during indexing')):
             import function_app
+            assert function_app.app._durable_app is None, 'host built before indexing'
             first = function_app.app.get_functions()
             second = function_app.app.get_functions()
         names = [fn.get_function_name() for fn in first]
@@ -319,7 +329,7 @@ def test_local_sample_preserves_history_with_fresh_execution_clients(sample_path
     ]
 
 
-@pytest.mark.parametrize("sample_path", _LOCAL_SAMPLES)
+@pytest.mark.parametrize("sample_path", _LOCAL_ENDPOINT_SAMPLES)
 @pytest.mark.parametrize("body", ["{not json", "{}", '{"message":""}'])
 def test_local_agent_endpoint_rejects_invalid_input(sample_path, body):
     result = _run_sample(sample_path, f"""
@@ -339,6 +349,94 @@ def test_local_agent_endpoint_rejects_invalid_input(sample_path, body):
         print(json.dumps(response.status_code))
     """)
     assert result == 400
+
+
+def test_workflow_binding_sample_starts_parent():
+    _require_workflows()
+    result = _run_sample("durable-workflow-binding", """
+        import asyncio, json
+        import azure.functions as func
+        import function_app
+        class FakeClient:
+            async def start_new(self, name, *, client_input):
+                assert name == 'parent' and client_input == {}
+                return 'parent-42'
+            def create_check_status_response(self, request, instance_id):
+                assert request is not None and instance_id == 'parent-42'
+                return func.HttpResponse(status_code=202)
+        request = func.HttpRequest(method='POST', url='https://example.test', body=b'')
+        handler = function_app.start_parent._function.get_user_function().__wrapped__
+        response = asyncio.run(handler(request, FakeClient()))
+        print(json.dumps(response.status_code))
+    """)
+    assert result == 202
+
+
+def test_workflow_binding_sample_yields_child_and_returns_decoded_outputs():
+    _require_workflows()
+    probe_path = str(_PACKAGE_ROOT / "tests" / "_yaml_workflow_probe.py")
+    result = _run_sample("durable-workflow-binding", f"""
+        import importlib, importlib.util, json, os, sys
+        from pathlib import Path
+        from unittest.mock import Mock, patch
+        from azure.durable_functions import DurableOrchestrationContext
+        from durabletask.task import CompletableTask
+        from azurefunctions.agents.extensions.agent_framework.provider import (
+            AgentFrameworkBinding,
+        )
+        import function_app
+
+        spec = importlib.util.spec_from_file_location('sample_probe', {probe_path!r})
+        probe = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(probe)
+        def index_sample(root):
+            module = importlib.reload(function_app)
+            assert module.app._durable_app is None
+            functions = {{f.get_function_name(): f for f in module.app.get_functions()}}
+            assert not any(name.startswith('http-') for name in functions)
+            assert not any(name.endswith(('-start', '-status', '-respond'))
+                           for name in functions)
+            return module.app, functions
+        probe.index = index_sample
+        raw_outputs = []
+        decode = probe.deserialize_workflow_output
+        def record_output(value):
+            raw_outputs.append(value)
+            return decode(value)
+        probe.deserialize_workflow_output = record_output
+        with patch.object(AgentFrameworkBinding, '_create_agent',
+                          side_effect=AssertionError('unexpected agent')):
+            outputs, activities, answered = probe.run_workflow(
+                Path.cwd(), 'Child', {{'order': '42'}})
+        assert outputs == ['Child workflow completed.'], outputs
+        assert activities == ['dafx-Child-_workflow_entry', 'dafx-Child-send_result']
+        assert answered == []
+
+        pending = CompletableTask()
+        scheduler = Mock()
+        scheduler.call_sub_orchestrator.return_value = pending
+        context = DurableOrchestrationContext(scheduler, {{'order': '42'}})
+        handler = function_app.parent._function.get_user_function()
+        generator = handler.orchestrator_function(context)
+        task = next(generator)
+        scheduler.call_sub_orchestrator.assert_called_once_with(
+            'dafx-Child', input={{'order': '42'}}, instance_id=None)
+        assert not task.is_complete
+        assert len(raw_outputs) == 1
+        pending.complete(raw_outputs[0])
+        assert task.is_complete and task.get_result() == outputs
+        try:
+            generator.send(task.get_result())
+        except StopIteration as done:
+            result = done.value
+        else:
+            raise AssertionError('parent did not finish')
+        print(json.dumps(result), flush=True)
+        sys.stdout.flush()
+        sys.stderr.flush()
+        os._exit(0)  # Isolate embedded CLR shutdown after all assertions.
+    """)
+    assert result == {"child_outputs": ["Child workflow completed."]}
 
 
 def test_agent_framework_durable_sample_uses_prepared_order_and_shared_session():

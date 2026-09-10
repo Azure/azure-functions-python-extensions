@@ -9,15 +9,17 @@ from azurefunctions.agents.extensions.agent_framework import AgentFunctionApp
 from azurefunctions.agents.extensions.agent_framework import apps
 
 
-def test_typed_api_exposes_only_v1_options():
+def test_typed_api_exposes_registration_options():
     assert list(inspect.signature(AgentFunctionApp.__init__).parameters) == [
         "self",
         "client_factory",
         "app_root",
         "tools",
         "http_auth_level",
-        "durable",
-        "workflows",
+        "discover_agents",
+        "discover_workflows",
+        "expose_agent_endpoints",
+        "expose_workflow_endpoints",
         "workflow_factory",
     ]
     assert list(inspect.signature(AgentFunctionApp.markdown_agent).parameters) == [

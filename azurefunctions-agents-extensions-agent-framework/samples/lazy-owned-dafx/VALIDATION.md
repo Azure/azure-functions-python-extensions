@@ -1,11 +1,15 @@
-# Durable markdown prototype verification
+# Historical durable markdown prototype verification
+
+These results predate the rebase onto PR #185 at `2777aa3` and the separate
+discovery/exposure API. They are historical totals, not validation of the current
+revision. Current behavior is documented in [README.md](README.md).
 
 Verified on Windows with Python 3.13.11 on 2026-09-09. This revision replaces
 the explicit-registration example at `5d77570`. Branch base is extensions
 PR #185 at `db2526586348513ff86ed2c61ffc685815a8d212`. Both DAFX packages remain
 pinned to PR #72 at `aa9529ec489e16ac64b73bd68d5adbb8e4945258`.
 
-## Results
+## Historical results
 
 | Configuration | Result |
 | --- | --- |
@@ -22,14 +26,14 @@ It is not suppressed. Tests exercise the SDK's real orchestration and entity
 protobuf handlers, not a running Functions host or storage backend. Local clients
 substitute for the model service; external MCP servers were not contacted.
 
-## Change analysis
+## Historical change analysis
 
 - Normal markdown binding construction/invocation remains import-safe without
   DAFX. Durable discovery is explicit and creates recipes, not clients. The old
   context wrapper, hidden activity, exports, and activity-specific tests are removed.
-- Both discovery and the binding publish entity and HTTP functions before indexing.
-  Binding and discovery share one registration. The SDK's built-in functions remain
-  in the combined index. Existing auth, collision, reindex, and isolation tests pass.
+- The earlier revision published entity and HTTP functions for both discovery and
+  bindings. That exposure behavior is superseded. Bindings are now private by
+  default, and the inner DAFX host is deferred until indexing.
 - Raw instructions are preserved. Discovery rejects duplicate names across both
   directories, case collisions, directories masquerading as files, and symlinks
   escaping the app root. Durable markdown names are restricted to safe ASCII
@@ -54,7 +58,7 @@ substitute for the model service; external MCP servers were not contacted.
   mutations disabling discovery fail two tests, substituting a non-agent proxy
   fails three, and dropping the final response fails one. The unmodified adapter
   suite then passes all 40 tests. No source files were mutated by the probes.
-- Current docs and samples use discovery or binding declarations, not the deleted
+- That revision's docs and samples used discovery or binding declarations, not the deleted
   custom activity API. `add_durable_agent()` remains a lower-level instance API but
   is not required by either markdown sample.
 
