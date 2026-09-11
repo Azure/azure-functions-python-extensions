@@ -1,0 +1,64 @@
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "azurefunctions-agents-extensions-base"
+dynamic = ["version"]
+requires-python = ">=3.13"
+authors = [
+    { name = "Azure Functions team at Microsoft Corp.", email = "azurefunctions@microsoft.com" },
+]
+description = "Framework-neutral Agent integration for Azure Functions."
+readme = "README.md"
+license = { text = "MIT License" }
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX",
+    "Operating System :: MacOS :: MacOS X",
+    "Environment :: Web Environment",
+    "Development Status :: 3 - Alpha",
+]
+dependencies = [
+    "azure-functions>=2.3.0,<3",
+]
+
+[project.optional-dependencies]
+durable = [
+    "azure-functions-durable>=2.0.0b2",
+]
+dev = [
+    "azure-functions-durable>=2.0.0b2",
+    "coverage",
+    "flake8",
+    "mypy",
+    "pre-commit",
+    "pytest",
+    "pytest-cov",
+    "pytest-instafail",
+]
+
+[tool.setuptools.dynamic]
+version = { attr = "azurefunctions.agents.extensions.base.__version__" }
+
+[tool.setuptools.packages.find]
+include = ["azurefunctions.agents.extensions.base*"]
+
+[tool.setuptools.package-data]
+"azurefunctions.agents.extensions.base" = ["py.typed"]
+
+[tool.mypy]
+strict = true
+
+[[tool.mypy.overrides]]
+module = ["azure", "azure.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["azure.durable_functions", "azure.durable_functions.*"]
+follow_untyped_imports = true
