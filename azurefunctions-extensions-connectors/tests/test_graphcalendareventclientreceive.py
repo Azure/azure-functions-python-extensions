@@ -32,6 +32,34 @@ class TestGraphCalendarEventClientReceive(unittest.TestCase):
         event = GraphCalendarEventClientReceive(data=test_data)
         self.assertEqual(event._json_payload, test_data)
 
+    def test_get_sdk_type_deserializes_calendar_events(self):
+        """Test calendar event fields are mapped by the extension."""
+        data = Datum(
+            value={
+                "body": {
+                    "value": [
+                        {
+                            "id": "event-1",
+                            "subject": "Planning",
+                            "startWithTimeZone": "2026-09-02T10:00:00Z",
+                            "isAllDay": False,
+                        }
+                    ]
+                }
+            },
+            type="json",
+        )
+
+        events = GraphCalendarEventClientReceive(data=data).get_sdk_type()
+
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events[0].subject, "Planning")
+        self.assertEqual(
+            events[0].start_with_time_zone,
+            "2026-09-02T10:00:00Z",
+        )
+        self.assertFalse(events[0].is_all_day)
+
 
 if __name__ == "__main__":
     unittest.main()
