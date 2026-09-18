@@ -1,0 +1,9 @@
+{
+  "servers": {
+    "inventory": {
+      "type": "streamable-http",
+      "url": "$INVENTORY_MCP_URL",
+      "tools": ["lookup_stock", "reserve_stock"]
+    }
+  }
+}
