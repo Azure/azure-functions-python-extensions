@@ -19,7 +19,7 @@ The supported ServiceBus SDK types include:
 ## Getting started
 
 ### Prerequisites
-* Python 3.9 through 3.13 is required to use this package. Python 3.14 is not currently supported because `uamqp` does not publish Python 3.14 wheels. For more details, please read our page on [Python Functions version support policy](https://learn.microsoft.com/azure/azure-functions/functions-versions?tabs=isolated-process%2Cv4&pivots=programming-language-python#languages).
+* Python 3.9 through 3.14 is required to use this package. For more details, please read our page on [Python Functions version support policy](https://learn.microsoft.com/azure/azure-functions/functions-versions?tabs=isolated-process%2Cv4&pivots=programming-language-python#languages).
 
 * You must have an [Azure subscription](https://azure.microsoft.com/free/) and a
 [ServiceBus Resource](https://learn.microsoft.com/azure/azure-functions/functions-bindings-service-bus?tabs=isolated-process%2Cextensionv5%2Cextensionv3&pivots=programming-language-python) to use this package.

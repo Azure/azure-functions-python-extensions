@@ -18,6 +18,7 @@ classifiers= [
         'Programming Language :: Python :: 3.11',
         'Programming Language :: Python :: 3.12',
         'Programming Language :: Python :: 3.13',
+        'Programming Language :: Python :: 3.14',
         'Operating System :: Microsoft :: Windows',
         'Operating System :: POSIX',
         'Operating System :: MacOS :: MacOS X',
@@ -26,8 +27,7 @@ classifiers= [
     ]
 dependencies = [
     'azurefunctions-extensions-base>=1.1.0',
-    'azure-servicebus>=7.14.2,<8.0',
-    'uamqp>=1.6.11,<2.0',
+    'azure-servicebus>=7.15.0b2,<8.0',
     'protobuf>=6.32.0,<7.0',
     'grpcio>=1.74.0,<2.0',
     'grpcio-tools>=1.74.0,<2.0'
