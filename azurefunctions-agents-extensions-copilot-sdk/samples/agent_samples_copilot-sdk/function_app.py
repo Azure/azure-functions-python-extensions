@@ -12,6 +12,7 @@ def create_copilot_client() -> CopilotClient:
     return CopilotClient(
         mode="empty",
         github_token=os.environ["COPILOT_GITHUB_TOKEN"],
+        base_directory=os.environ["COPILOT_BASE_DIRECTORY"],
         use_logged_in_user=False,
         log_level="none",
         telemetry=None,

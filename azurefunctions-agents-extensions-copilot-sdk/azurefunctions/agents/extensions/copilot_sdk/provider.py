@@ -11,7 +11,7 @@ from ipaddress import ip_address
 from typing import Any, AsyncIterator, cast, get_origin
 from urllib.parse import urlsplit
 
-from copilot import CopilotClient
+from copilot import CopilotClient, ToolSet
 from copilot.session import (
     CopilotSession,
     MCPHTTPServerConfig,
@@ -86,9 +86,17 @@ class CopilotSdkBinding(CompiledAgent):
                 stack,
             )
             skill_directories = _skill_directories(self.capabilities.skills)
+            available_tools = ToolSet()
+            if skill_directories:
+                available_tools.add_builtin("skill")
+            if mcp_servers:
+                available_tools.add_mcp("*")
+            for tool in self.options.tools:
+                available_tools.add_custom(tool.name)
             session = await entered_client.create_session(
                 model=self.options.model,
                 tools=list(self.options.tools),
+                available_tools=available_tools,
                 system_message=SystemMessageReplaceConfig(
                     mode="replace",
                     content=self.instructions,

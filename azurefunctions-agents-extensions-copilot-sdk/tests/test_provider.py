@@ -17,6 +17,7 @@ from azurefunctions.agents.extensions.base import (
 from azurefunctions.agents.extensions.copilot_sdk import provider
 from copilot.session import CopilotSession
 from copilot.session_events import AssistantMessageData
+from copilot.tools import Tool
 
 
 class _Session:
@@ -105,6 +106,7 @@ def test_binding_creates_and_closes_fresh_clients_and_sessions():
     assert options["enable_config_discovery"] is False
     assert options["enable_session_store"] is False
     assert options["included_builtin_skills"] == []
+    assert list(options["available_tools"]) == []
 
 
 def test_binding_run_agent_returns_assistant_content():
@@ -203,6 +205,25 @@ def test_binding_maps_discovered_skills_and_mcp(monkeypatch):
         }
     }
     assert options["mcp_oauth_token_storage"] == "in-memory"
+    assert list(options["available_tools"]) == ["builtin:skill", "mcp:*"]
+
+
+def test_binding_allowlists_explicit_python_tools():
+    binding = _compile(
+        tools=Tool(
+            name="lookup_order",
+            description="Look up an order",
+        )
+    )
+
+    async def invoke():
+        async with binding.open_agent(InvocationMetadata()):
+            pass
+
+    asyncio.run(invoke())
+
+    options = _Client.created[0].session_options
+    assert list(options["available_tools"]) == ["custom:lookup_order"]
 
 
 def test_mcp_credentials_require_https(monkeypatch):
