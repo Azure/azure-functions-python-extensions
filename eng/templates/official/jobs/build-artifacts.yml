@@ -13,6 +13,9 @@ jobs:
         agents_framework_extension:
           EXTENSION_DIRECTORY: 'azurefunctions-agents-extensions-agent-framework'
           EXTENSION_NAME: 'Agents Framework'
+        agents_copilot_sdk_extension:
+          EXTENSION_DIRECTORY: 'azurefunctions-agents-extensions-copilot-sdk'
+          EXTENSION_NAME: 'Agents Copilot SDK'
         blob_extension:
           EXTENSION_DIRECTORY: 'azurefunctions-extensions-bindings-blob'
           EXTENSION_NAME: 'Blob'

@@ -74,6 +74,35 @@ jobs:
           python -m pytest -q --instafail azurefunctions-agents-extensions-agent-framework/tests/
         displayName: "Run Agents Framework Tests for Python $(PYTHON_VERSION)"
 
+  - job: "AgentsCopilotSdkTests"
+    displayName: "Agents Copilot SDK Extension Tests"
+    dependsOn: []
+    strategy:
+      matrix:
+        python313:
+          PYTHON_VERSION: '3.13'
+        python314:
+          PYTHON_VERSION: '3.14'
+    condition: always()
+    steps:
+      - task: PipAuthenticate@1
+        displayName: 'Pip Authenticate'
+        inputs:
+          artifactFeeds: public/upstream-public
+          onlyAddExtraIndex: false
+      - task: UsePythonVersion@0
+        inputs:
+          versionSpec: $(PYTHON_VERSION)
+      - bash: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ./azurefunctions-agents-extensions-base
+          cd azurefunctions-agents-extensions-copilot-sdk
+          python -m pip install -U -e .[dev,mcp]
+        displayName: 'Install Agents Copilot SDK Dependencies'
+      - bash: |
+          python -m pytest -q --instafail azurefunctions-agents-extensions-copilot-sdk/tests/
+        displayName: "Run Agents Copilot SDK Tests for Python $(PYTHON_VERSION)"
+
   - job: "BaseTests"
     displayName: "Base Extension Tests"
     dependsOn: []

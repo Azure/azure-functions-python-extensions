@@ -1,0 +1,9 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "python",
+    "COPILOT_GITHUB_TOKEN": "<set-locally-or-use-an-app-setting>",
+    "COPILOT_MODEL": "gpt-5"
+  }
+}

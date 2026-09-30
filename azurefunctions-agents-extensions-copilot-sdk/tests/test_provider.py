@@ -1,0 +1,371 @@
+from __future__ import annotations
+
+import asyncio
+import inspect
+from pathlib import Path
+from types import SimpleNamespace
+
+import pytest
+from azurefunctions.agents.extensions.base import (
+    AgentCapabilities,
+    InvocationMetadata,
+    MCPAuthConfig,
+    MCPHTTPConfig,
+    MCPServerDefinition,
+    SkillDefinition,
+)
+from azurefunctions.agents.extensions.copilot_sdk import provider
+from copilot.session import CopilotSession
+from copilot.session_events import AssistantMessageData
+
+
+class _Session:
+    def __init__(self) -> None:
+        self.entered = False
+        self.closed = False
+        self.prompts: list[str] = []
+
+    async def __aenter__(self):
+        self.entered = True
+        return self
+
+    async def __aexit__(self, exc_type, exc_value, traceback):
+        self.closed = True
+
+    async def send_and_wait(self, prompt: str):
+        self.prompts.append(prompt)
+        return SimpleNamespace(
+            data=AssistantMessageData(
+                content=f"response:{prompt}",
+                message_id="message-1",
+            )
+        )
+
+
+class _Client:
+    created: list[_Client] = []
+
+    def __init__(self) -> None:
+        self.entered = False
+        self.closed = False
+        self.session = _Session()
+        self.session_options = None
+        self.created.append(self)
+
+    async def __aenter__(self):
+        self.entered = True
+        return self
+
+    async def __aexit__(self, exc_type, exc_value, traceback):
+        self.closed = True
+
+    async def create_session(self, **options):
+        self.session_options = options
+        return self.session
+
+
+@pytest.fixture(autouse=True)
+def fake_client(monkeypatch):
+    _Client.created.clear()
+    monkeypatch.setattr(provider, "CopilotClient", _Client)
+
+
+def _compile(*, capabilities=AgentCapabilities(), **overrides):
+    options = {"client_factory": _Client, "model": "gpt-5"}
+    options.update(overrides)
+    return provider.CopilotSdkProvider().compile_binding(
+        instructions="raw instructions",
+        agent_name="orders",
+        options=options,
+        annotation=CopilotSession,
+        capabilities=capabilities,
+    )
+
+
+def test_binding_creates_and_closes_fresh_clients_and_sessions():
+    binding = _compile()
+
+    async def invoke_twice():
+        async with binding.open_agent(InvocationMetadata()) as first:
+            assert first.entered
+        async with binding.open_agent(InvocationMetadata()) as second:
+            assert second.entered
+
+    asyncio.run(invoke_twice())
+
+    assert len(_Client.created) == 2
+    assert all(client.closed for client in _Client.created)
+    assert all(client.session.closed for client in _Client.created)
+    options = _Client.created[0].session_options
+    assert options["model"] == "gpt-5"
+    assert options["system_message"] == {
+        "mode": "replace",
+        "content": "raw instructions",
+    }
+    assert options["enable_config_discovery"] is False
+    assert options["enable_session_store"] is False
+    assert options["included_builtin_skills"] == []
+
+
+def test_binding_run_agent_returns_assistant_content():
+    assert (
+        asyncio.run(_compile().run_agent("hello", InvocationMetadata()))
+        == "response:hello"
+    )
+    assert _Client.created[0].session.prompts == ["hello"]
+    assert _Client.created[0].closed
+
+
+def test_provider_validates_required_options_and_annotation():
+    with pytest.raises(TypeError, match="client_factory"):
+        provider.CopilotSdkProvider().compile_binding(
+            instructions="instructions",
+            agent_name="orders",
+            options={"model": "gpt-5"},
+            annotation=CopilotSession,
+            capabilities=AgentCapabilities(),
+        )
+    with pytest.raises(TypeError, match="model option"):
+        _compile(model="")
+    with pytest.raises(TypeError, match="CopilotSession"):
+        provider.CopilotSdkProvider().compile_binding(
+            instructions="instructions",
+            agent_name="orders",
+            options={"client_factory": _Client, "model": "gpt-5"},
+            annotation=str,
+            capabilities=AgentCapabilities(),
+        )
+
+
+def test_provider_accepts_missing_annotation_for_durable_activity():
+    binding = provider.CopilotSdkProvider().compile_binding(
+        instructions="instructions",
+        agent_name="orders",
+        options={"client_factory": _Client, "model": "gpt-5"},
+        annotation=inspect.Signature.empty,
+        capabilities=AgentCapabilities(),
+    )
+
+    assert binding.agent_name == "orders"
+
+
+def test_factory_and_invocation_errors_still_close_resources(monkeypatch):
+    binding = _compile()
+
+    async def fail_create(self, **options):
+        raise RuntimeError("session failed")
+
+    monkeypatch.setattr(_Client, "create_session", fail_create)
+
+    with pytest.raises(RuntimeError, match="session failed"):
+        asyncio.run(binding.run_agent("hello", InvocationMetadata()))
+
+    assert _Client.created[0].closed
+
+
+def test_binding_maps_discovered_skills_and_mcp(monkeypatch):
+    monkeypatch.setenv("MCP_URL", "https://mcp.example.test")
+    binding = _compile(
+        capabilities=AgentCapabilities(
+            skills=(
+                SkillDefinition(Path("skills/inventory")),
+                SkillDefinition(Path("skills/orders")),
+            ),
+            mcp_servers=(
+                MCPServerDefinition(
+                    "orders",
+                    MCPHTTPConfig(
+                        "$MCP_URL",
+                        allowed_tools=("lookup",),
+                        headers=(("X-Tenant", "%TENANT_ID%"),),
+                    ),
+                ),
+            ),
+        )
+    )
+    monkeypatch.setenv("TENANT_ID", "tenant-1")
+
+    async def invoke():
+        async with binding.open_agent(InvocationMetadata()):
+            pass
+
+    asyncio.run(invoke())
+
+    options = _Client.created[0].session_options
+    assert options["enable_skills"] is True
+    assert options["skill_directories"] == ["skills"]
+    assert options["mcp_servers"] == {
+        "orders": {
+            "type": "http",
+            "url": "https://mcp.example.test",
+            "headers": {"X-Tenant": "tenant-1"},
+            "tools": ["lookup"],
+        }
+    }
+    assert options["mcp_oauth_token_storage"] == "in-memory"
+
+
+def test_mcp_credentials_require_https(monkeypatch):
+    binding = _compile(
+        capabilities=AgentCapabilities(
+            mcp_servers=(
+                MCPServerDefinition(
+                    "orders",
+                    MCPHTTPConfig(
+                        "http://mcp.example.test",
+                        headers=(("X-Key", "secret"),),
+                    ),
+                ),
+            ),
+        )
+    )
+
+    with pytest.raises(ValueError, match="must use HTTPS"):
+        asyncio.run(binding.run_agent("hello", InvocationMetadata()))
+
+    assert _Client.created[0].closed
+
+
+def test_cancellation_closes_client_and_session(monkeypatch):
+    async def cancel(self, prompt):
+        raise asyncio.CancelledError
+
+    monkeypatch.setattr(_Session, "send_and_wait", cancel)
+
+    with pytest.raises(asyncio.CancelledError):
+        asyncio.run(_compile().run_agent("hello", InvocationMetadata()))
+
+    assert _Client.created[0].closed
+    assert _Client.created[0].session.closed
+
+
+@pytest.mark.parametrize(
+    "response",
+    [None, SimpleNamespace(data=object())],
+)
+def test_binding_rejects_missing_final_assistant_message(monkeypatch, response):
+    async def send(self, prompt):
+        return response
+
+    monkeypatch.setattr(_Session, "send_and_wait", send)
+
+    with pytest.raises(TypeError, match="final assistant message"):
+        asyncio.run(_compile().run_agent("hello", InvocationMetadata()))
+
+    assert _Client.created[0].closed
+    assert _Client.created[0].session.closed
+
+
+def test_binding_rejects_non_string_assistant_content(monkeypatch):
+    class FakeAssistantMessageData:
+        content = None
+
+    async def send(self, prompt):
+        return SimpleNamespace(data=FakeAssistantMessageData())
+
+    monkeypatch.setattr(provider, "AssistantMessageData", FakeAssistantMessageData)
+    monkeypatch.setattr(_Session, "send_and_wait", send)
+
+    with pytest.raises(TypeError, match="content must be a string"):
+        asyncio.run(_compile().run_agent("hello", InvocationMetadata()))
+
+    assert _Client.created[0].closed
+    assert _Client.created[0].session.closed
+
+
+@pytest.mark.parametrize("factory_kind", ["async_callable", "returns_awaitable"])
+def test_binding_rejects_awaitable_factory_results(factory_kind):
+    async def create_client():
+        return _Client()
+
+    if factory_kind == "async_callable":
+
+        class AsyncFactory:
+            async def __call__(self):
+                return _Client()
+
+        client_factory = AsyncFactory()
+    else:
+        client_factory = lambda: create_client()
+
+    binding = _compile(client_factory=client_factory)
+
+    with pytest.raises(TypeError, match="must return.*not an awaitable"):
+        asyncio.run(binding.run_agent("hello", InvocationMetadata()))
+
+
+def test_provider_rejects_async_factory_function():
+    async def create_client():
+        return _Client()
+
+    with pytest.raises(TypeError, match="must be a synchronous function"):
+        _compile(client_factory=create_client)
+
+
+@pytest.mark.parametrize(
+    ("overrides", "message"),
+    [
+        ({"unknown": True}, "Unsupported"),
+        ({"tools": ["lookup"]}, "copilot.tools.Tool"),
+        ({"provider": "custom"}, "ProviderConfig"),
+    ],
+)
+def test_provider_rejects_unsupported_options(overrides, message):
+    with pytest.raises(TypeError, match=message):
+        _compile(**overrides)
+
+
+def test_mcp_entra_token_is_injected_and_credential_is_closed(monkeypatch):
+    import azure.identity
+
+    credentials = []
+
+    class FakeCredential:
+        def __init__(self, *, managed_identity_client_id):
+            self.managed_identity_client_id = managed_identity_client_id
+            self.scopes = []
+            self.closed = False
+            credentials.append(self)
+
+        def get_token(self, scope):
+            self.scopes.append(scope)
+            return SimpleNamespace(token="entra-token")
+
+        def close(self):
+            self.closed = True
+
+    monkeypatch.setattr(azure.identity, "DefaultAzureCredential", FakeCredential)
+    monkeypatch.setenv("MCP_SCOPE", "api://inventory/.default")
+    monkeypatch.setenv("MCP_CLIENT_ID", "client-id")
+    binding = _compile(
+        capabilities=AgentCapabilities(
+            mcp_servers=(
+                MCPServerDefinition(
+                    "inventory",
+                    MCPHTTPConfig(
+                        "https://mcp.example.test",
+                        auth=MCPAuthConfig(
+                            scope="$MCP_SCOPE",
+                            client_id="%MCP_CLIENT_ID%",
+                        ),
+                    ),
+                ),
+            ),
+        )
+    )
+
+    async def invoke():
+        async with binding.open_agent(InvocationMetadata()):
+            assert not credentials[0].closed
+
+    asyncio.run(invoke())
+
+    assert credentials[0].managed_identity_client_id == "client-id"
+    assert credentials[0].scopes == ["api://inventory/.default"]
+    assert credentials[0].closed
+    assert _Client.created[0].session_options["mcp_servers"]["inventory"] == {
+        "type": "http",
+        "url": "https://mcp.example.test",
+        "headers": {"Authorization": "Bearer entra-token"},
+        "tools": ["*"],
+    }
