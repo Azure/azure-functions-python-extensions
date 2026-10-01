@@ -42,7 +42,7 @@ _SUPPORTED_OPTIONS = frozenset(
         "client_factory",
         "model",
         "on_permission_request",
-        "provider",
+        "session_provider",
         "session_options",
         "tools",
     }
@@ -123,10 +123,13 @@ class CopilotSdkBinding(CompiledAgent):
         client = self.options.client_factory()
 
         async with AsyncExitStack() as stack:
-            mcp_servers = await _build_mcp_servers(
-                self.capabilities.mcp_servers,
-                stack,
-            )
+            if "mcp_servers" in self.options.session_options:
+                mcp_servers = self.options.session_options["mcp_servers"]
+            else:
+                mcp_servers = await _build_mcp_servers(
+                    self.capabilities.mcp_servers,
+                    stack,
+                )
             skill_directories = _skill_directories(self.capabilities.skills)
             available_tools = ToolSet()
             if skill_directories:
@@ -229,7 +232,7 @@ class CopilotSdkProvider(AgentProvider):
         permission_handler = options.get("on_permission_request")
         if permission_handler is not None and not callable(permission_handler):
             raise TypeError("on_permission_request must be callable")
-        provider = options.get("provider")
+        provider = options.get("session_provider")
         if provider is not None and not isinstance(provider, Mapping):
             raise TypeError("provider must be a Copilot SDK ProviderConfig mapping")
 

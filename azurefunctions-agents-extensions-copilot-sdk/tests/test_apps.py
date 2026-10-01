@@ -127,3 +127,41 @@ def test_typed_markdown_agent_forwards_supported_overrides(monkeypatch):
         "streaming": True,
         "reasoning_effort": "high",
     }
+
+
+def test_typed_markdown_agent_forwards_sdk_provider_without_keyword_collision(
+    monkeypatch,
+):
+    parent_decorator = Mock(return_value=object())
+    monkeypatch.setattr(apps, "base_markdown_agent", parent_decorator)
+    app = object.__new__(AgentFunctionApp)
+    sdk_provider = {
+        "type": "openai",
+        "wire_api": "responses",
+        "base_url": "https://models.example.test",
+        "api_key": "test-key",
+    }
+
+    result = app.markdown_agent(
+        arg_name="agent",
+        agent_name="orders",
+        provider=sdk_provider,
+    )
+
+    assert result is parent_decorator.return_value
+    call = parent_decorator.call_args
+    assert call.kwargs["provider"] == "copilot_sdk"
+    assert call.kwargs["session_provider"] is sdk_provider
+
+
+def test_typed_markdown_agent_omits_empty_session_options(monkeypatch):
+    parent_decorator = Mock(return_value=object())
+    monkeypatch.setattr(apps, "base_markdown_agent", parent_decorator)
+    app = object.__new__(AgentFunctionApp)
+
+    app.markdown_agent(
+        arg_name="agent",
+        agent_name="orders",
+    )
+
+    assert "session_options" not in parent_decorator.call_args.kwargs

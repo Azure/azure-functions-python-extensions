@@ -45,7 +45,7 @@ def _provider_options(
     if on_permission_request is not None:
         options["on_permission_request"] = on_permission_request
     if provider is not None:
-        options["provider"] = provider
+        options["session_provider"] = provider
     if tools is not None:
         options["tools"] = tools
     if session_options is not None:
@@ -77,7 +77,7 @@ class _CopilotSdkAppMixin:
                 on_permission_request=on_permission_request,
                 provider=provider,
                 tools=tools,
-                session_options=session_options,
+                session_options=(session_options or None),
             ),
         )
 

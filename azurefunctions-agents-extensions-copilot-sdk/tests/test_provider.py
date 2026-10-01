@@ -134,6 +134,20 @@ def test_binding_applies_create_session_overrides():
     assert options["system_message"] == {"mode": "append", "content": "extra"}
 
 
+def test_binding_applies_sdk_provider():
+    sdk_provider = {
+        "type": "openai",
+        "wire_api": "responses",
+        "base_url": "https://models.example.test",
+        "api_key": "test-key",
+    }
+    binding = _compile(session_provider=sdk_provider)
+
+    asyncio.run(binding.run_agent("hello", InvocationMetadata()))
+
+    assert _Client.created[0].session_options["provider"] is sdk_provider
+
+
 def test_provider_rejects_unknown_create_session_override():
     with pytest.raises(TypeError, match="Unsupported Copilot create_session option"):
         _compile(session_options={"not_a_session_option": True})
@@ -283,6 +297,45 @@ def test_binding_maps_discovered_skills_and_mcp(monkeypatch):
     assert list(options["available_tools"]) == ["builtin:skill", "mcp:*"]
 
 
+@pytest.mark.parametrize(
+    ("mcp_servers", "expected_available_tools"),
+    [
+        ({}, []),
+        (
+            {
+                "custom": {
+                    "type": "http",
+                    "url": "https://custom.example.test/mcp",
+                    "tools": ["lookup"],
+                }
+            },
+            ["mcp:*"],
+        ),
+    ],
+)
+def test_explicit_mcp_servers_replace_discovered_servers(
+    mcp_servers,
+    expected_available_tools,
+):
+    binding = _compile(
+        capabilities=AgentCapabilities(
+            mcp_servers=(
+                MCPServerDefinition(
+                    "discovered",
+                    MCPHTTPConfig("$MISSING_MCP_URL"),
+                ),
+            ),
+        ),
+        session_options={"mcp_servers": mcp_servers},
+    )
+
+    asyncio.run(binding.run_agent("hello", InvocationMetadata()))
+
+    options = _Client.created[0].session_options
+    assert options["mcp_servers"] == mcp_servers
+    assert list(options["available_tools"]) == expected_available_tools
+
+
 def test_binding_allowlists_explicit_python_tools():
     binding = _compile(
         tools=Tool(
@@ -403,7 +456,7 @@ def test_provider_rejects_async_factory_function():
     [
         ({"unknown": True}, "Unsupported"),
         ({"tools": ["lookup"]}, "copilot.tools.Tool"),
-        ({"provider": "custom"}, "ProviderConfig"),
+        ({"session_provider": "custom"}, "ProviderConfig"),
     ],
 )
 def test_provider_rejects_unsupported_options(overrides, message):
