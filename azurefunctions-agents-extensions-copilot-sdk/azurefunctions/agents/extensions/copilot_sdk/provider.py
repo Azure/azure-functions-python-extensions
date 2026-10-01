@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import inspect
 import os
 import re
@@ -375,17 +374,18 @@ async def _build_mcp_servers(
                 or config.auth is not None
                 or parsed_url.username is not None
                 or parsed_url.password is not None
+                or bool(parsed_url.query)
             )
             and not _is_loopback_host(parsed_url.hostname)
         ):
             raise ValueError(
                 f"MCP server {definition.name!r} must use HTTPS when credentials, "
-                "headers, or auth are configured; HTTP is allowed only for loopback "
-                "hosts"
+                "query parameters, headers, or auth are configured; HTTP is allowed "
+                "only for loopback hosts"
             )
         if config.auth is not None:
             try:
-                from azure.identity import DefaultAzureCredential
+                from azure.identity.aio import DefaultAzureCredential
             except ImportError as error:
                 raise ImportError(
                     "MCP Entra authentication is not installed. Install "
@@ -406,8 +406,8 @@ async def _build_mcp_servers(
             credential = DefaultAzureCredential(
                 managed_identity_client_id=client_id,
             )
-            stack.callback(credential.close)
-            token = await asyncio.to_thread(credential.get_token, scope)
+            stack.push_async_callback(credential.close)
+            token = await credential.get_token(scope)
             headers["Authorization"] = f"Bearer {token.token}"
 
         servers[definition.name] = MCPHTTPServerConfig(

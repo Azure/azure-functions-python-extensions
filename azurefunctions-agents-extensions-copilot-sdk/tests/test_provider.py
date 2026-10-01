@@ -440,6 +440,26 @@ def test_mcp_url_credentials_require_https():
     assert not _Client.created[0].closed
 
 
+def test_mcp_url_query_requires_https():
+    binding = _compile(
+        capabilities=AgentCapabilities(
+            mcp_servers=(
+                MCPServerDefinition(
+                    "orders",
+                    MCPHTTPConfig(
+                        "http://mcp.example.test/mcp?access_token=secret"
+                    ),
+                ),
+            ),
+        )
+    )
+
+    with pytest.raises(ValueError, match="must use HTTPS"):
+        asyncio.run(binding.run_agent("hello", InvocationMetadata()))
+
+    assert not _Client.created[0].closed
+
+
 def test_cancellation_closes_session_but_keeps_cached_client_open(monkeypatch):
     async def cancel(self, prompt):
         raise asyncio.CancelledError
@@ -530,7 +550,7 @@ def test_provider_rejects_unsupported_options(overrides, message):
 
 
 def test_mcp_entra_token_is_injected_and_credential_is_closed(monkeypatch):
-    import azure.identity
+    import azure.identity.aio
 
     credentials = []
 
@@ -541,14 +561,18 @@ def test_mcp_entra_token_is_injected_and_credential_is_closed(monkeypatch):
             self.closed = False
             credentials.append(self)
 
-        def get_token(self, scope):
+        async def get_token(self, scope):
             self.scopes.append(scope)
             return SimpleNamespace(token="entra-token")
 
-        def close(self):
+        async def close(self):
             self.closed = True
 
-    monkeypatch.setattr(azure.identity, "DefaultAzureCredential", FakeCredential)
+    monkeypatch.setattr(
+        azure.identity.aio,
+        "DefaultAzureCredential",
+        FakeCredential,
+    )
     monkeypatch.setenv("MCP_SCOPE", "api://inventory/.default")
     monkeypatch.setenv("MCP_CLIENT_ID", "client-id")
     binding = _compile(
@@ -583,3 +607,58 @@ def test_mcp_entra_token_is_injected_and_credential_is_closed(monkeypatch):
         "headers": {"Authorization": "Bearer entra-token"},
         "tools": ["*"],
     }
+
+
+def test_mcp_entra_cancellation_waits_for_token_acquisition_before_close(monkeypatch):
+    import azure.identity.aio
+
+    started = asyncio.Event()
+    token_finished = False
+    close_states = []
+
+    class BlockingAsyncCredential:
+        def __init__(self, *, managed_identity_client_id):
+            pass
+
+        async def get_token(self, scope):
+            nonlocal token_finished
+            started.set()
+            try:
+                await asyncio.Event().wait()
+            finally:
+                token_finished = True
+
+        async def close(self):
+            close_states.append(token_finished)
+
+    monkeypatch.setattr(
+        azure.identity.aio,
+        "DefaultAzureCredential",
+        BlockingAsyncCredential,
+    )
+    binding = _compile(
+        capabilities=AgentCapabilities(
+            mcp_servers=(
+                MCPServerDefinition(
+                    "inventory",
+                    MCPHTTPConfig(
+                        "https://mcp.example.test",
+                        auth=MCPAuthConfig(scope="api://inventory/.default"),
+                    ),
+                ),
+            ),
+        )
+    )
+
+    async def cancel_during_token_acquisition():
+        task = asyncio.create_task(
+            binding.run_agent("hello", InvocationMetadata())
+        )
+        await started.wait()
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+
+    asyncio.run(cancel_during_token_acquisition())
+
+    assert close_states == [True]
