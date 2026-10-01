@@ -126,13 +126,35 @@ class CopilotSdkBinding(CompiledAgent):
             if "mcp_servers" in self.options.session_options:
                 mcp_servers = self.options.session_options["mcp_servers"]
             else:
+                disabled_mcp_servers = cast(
+                    list[str] | None,
+                    self.options.session_options.get("disabled_mcp_servers"),
+                )
+                disabled_names = set(disabled_mcp_servers or ())
                 mcp_servers = await _build_mcp_servers(
-                    self.capabilities.mcp_servers,
+                    tuple(
+                        definition
+                        for definition in self.capabilities.mcp_servers
+                        if definition.name not in disabled_names
+                    ),
                     stack,
                 )
-            skill_directories = _skill_directories(self.capabilities.skills)
+            skill_directories = cast(
+                list[str] | None,
+                self.options.session_options.get(
+                    "skill_directories",
+                    _skill_directories(self.capabilities.skills),
+                ),
+            )
+            enable_skills = cast(
+                bool | None,
+                self.options.session_options.get(
+                    "enable_skills",
+                    bool(skill_directories),
+                ),
+            )
             available_tools = ToolSet()
-            if skill_directories:
+            if enable_skills:
                 available_tools.add_builtin("skill")
             if mcp_servers:
                 available_tools.add_mcp("*")
@@ -154,7 +176,7 @@ class CopilotSdkBinding(CompiledAgent):
                 "request_extensions": False,
                 "enable_session_store": False,
                 "included_builtin_skills": [],
-                "enable_skills": bool(skill_directories),
+                "enable_skills": enable_skills,
                 "skill_directories": skill_directories,
                 "mcp_servers": mcp_servers,
                 "mcp_oauth_token_storage": "in-memory",
@@ -348,12 +370,18 @@ async def _build_mcp_servers(
         }
         if (
             parsed_url.scheme == "http"
-            and (headers or config.auth is not None)
+            and (
+                headers
+                or config.auth is not None
+                or parsed_url.username is not None
+                or parsed_url.password is not None
+            )
             and not _is_loopback_host(parsed_url.hostname)
         ):
             raise ValueError(
-                f"MCP server {definition.name!r} must use HTTPS when headers or auth "
-                "are configured; HTTP is allowed only for loopback hosts"
+                f"MCP server {definition.name!r} must use HTTPS when credentials, "
+                "headers, or auth are configured; HTTP is allowed only for loopback "
+                "hosts"
             )
         if config.auth is not None:
             try:

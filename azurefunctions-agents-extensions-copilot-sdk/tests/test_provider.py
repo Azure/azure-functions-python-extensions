@@ -336,6 +336,53 @@ def test_explicit_mcp_servers_replace_discovered_servers(
     assert list(options["available_tools"]) == expected_available_tools
 
 
+def test_disabled_discovered_mcp_server_is_not_prepared():
+    binding = _compile(
+        capabilities=AgentCapabilities(
+            mcp_servers=(
+                MCPServerDefinition(
+                    "inventory",
+                    MCPHTTPConfig("$MISSING_INVENTORY_MCP_URL"),
+                ),
+            ),
+        ),
+        session_options={"disabled_mcp_servers": ["inventory"]},
+    )
+
+    asyncio.run(binding.run_agent("hello", InvocationMetadata()))
+
+    options = _Client.created[0].session_options
+    assert options["mcp_servers"] == {}
+    assert list(options["available_tools"]) == []
+
+
+@pytest.mark.parametrize(
+    ("available_tools", "expected_available_tools"),
+    [
+        (None, ["builtin:skill"]),
+        (["builtin:custom"], ["builtin:custom"]),
+    ],
+)
+def test_explicit_skill_configuration_uses_effective_available_tools(
+    available_tools,
+    expected_available_tools,
+):
+    session_options = {
+        "enable_skills": True,
+        "skill_directories": ["custom-skills"],
+    }
+    if available_tools is not None:
+        session_options["available_tools"] = available_tools
+    binding = _compile(session_options=session_options)
+
+    asyncio.run(binding.run_agent("hello", InvocationMetadata()))
+
+    options = _Client.created[0].session_options
+    assert options["enable_skills"] is True
+    assert options["skill_directories"] == ["custom-skills"]
+    assert list(options["available_tools"]) == expected_available_tools
+
+
 def test_binding_allowlists_explicit_python_tools():
     binding = _compile(
         tools=Tool(
@@ -364,6 +411,24 @@ def test_mcp_credentials_require_https(monkeypatch):
                         "http://mcp.example.test",
                         headers=(("X-Key", "secret"),),
                     ),
+                ),
+            ),
+        )
+    )
+
+    with pytest.raises(ValueError, match="must use HTTPS"):
+        asyncio.run(binding.run_agent("hello", InvocationMetadata()))
+
+    assert not _Client.created[0].closed
+
+
+def test_mcp_url_credentials_require_https():
+    binding = _compile(
+        capabilities=AgentCapabilities(
+            mcp_servers=(
+                MCPServerDefinition(
+                    "orders",
+                    MCPHTTPConfig("http://user:password@mcp.example.test/mcp"),
                 ),
             ),
         )
