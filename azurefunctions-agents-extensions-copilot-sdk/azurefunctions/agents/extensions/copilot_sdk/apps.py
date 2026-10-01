@@ -5,8 +5,10 @@ from collections.abc import Callable, Sequence
 from typing import Any, TypeVar
 
 import azure.functions as func
+from copilot.session import PermissionHandler as CopilotPermissionHandler
 from copilot.session import ProviderConfig
 from copilot.tools import Tool
+from typing_extensions import Unpack
 
 from azurefunctions.agents.extensions.base import (
     configure_app,
@@ -14,7 +16,14 @@ from azurefunctions.agents.extensions.base import (
 )
 from azurefunctions.agents.extensions.base import markdown_agent as base_markdown_agent
 
-from .provider import COPILOT_SDK_PROVIDER_ID, ClientFactory, PermissionHandler
+from .options import CopilotSessionOptions
+from .provider import (
+    COPILOT_SDK_PROVIDER_ID,
+    ClientFactory,
+    PermissionHandler,
+    _cache_client_factory,
+    _default_client_factory,
+)
 
 _F = TypeVar("_F", bound=Callable[..., Any])
 
@@ -26,10 +35,11 @@ def _provider_options(
     on_permission_request: PermissionHandler | None = None,
     provider: ProviderConfig | None = None,
     tools: Tool | Sequence[Tool] | None = None,
+    session_options: CopilotSessionOptions | None = None,
 ) -> dict[str, object]:
     options: dict[str, object] = {}
     if client_factory is not None:
-        options["client_factory"] = client_factory
+        options["client_factory"] = _cache_client_factory(client_factory)
     if model is not None:
         options["model"] = model
     if on_permission_request is not None:
@@ -38,6 +48,8 @@ def _provider_options(
         options["provider"] = provider
     if tools is not None:
         options["tools"] = tools
+    if session_options is not None:
+        options["session_options"] = session_options
     return options
 
 
@@ -52,6 +64,7 @@ class _CopilotSdkAppMixin:
         on_permission_request: PermissionHandler | None = None,
         provider: ProviderConfig | None = None,
         tools: Tool | Sequence[Tool] | None = None,
+        **session_options: Unpack[CopilotSessionOptions],
     ) -> Callable[[_F], _F]:
         return base_markdown_agent(
             self,
@@ -64,6 +77,7 @@ class _CopilotSdkAppMixin:
                 on_permission_request=on_permission_request,
                 provider=provider,
                 tools=tools,
+                session_options=session_options,
             ),
         )
 
@@ -77,12 +91,15 @@ class AgentFunctionApp(
     def __init__(
         self,
         *,
-        client_factory: ClientFactory,
-        model: str,
+        model: str | None = None,
+        client_factory: ClientFactory | None = None,
         app_root: str | os.PathLike[str] | None = None,
-        on_permission_request: PermissionHandler | None = None,
+        on_permission_request: PermissionHandler | None = (
+            CopilotPermissionHandler.approve_all
+        ),
         provider: ProviderConfig | None = None,
         tools: Tool | Sequence[Tool] | None = None,
+        session_options: CopilotSessionOptions | None = None,
         http_auth_level: func.AuthLevel | str = func.AuthLevel.FUNCTION,
     ) -> None:
         super().__init__(http_auth_level=http_auth_level)
@@ -91,11 +108,16 @@ class AgentFunctionApp(
             provider=COPILOT_SDK_PROVIDER_ID,
             app_root=app_root,
             provider_options=_provider_options(
-                client_factory=client_factory,
-                model=model,
+                client_factory=(
+                    client_factory
+                    if client_factory is not None
+                    else _default_client_factory
+                ),
+                model=(model if model is not None else os.environ["COPILOT_MODEL"]),
                 on_permission_request=on_permission_request,
                 provider=provider,
                 tools=tools,
+                session_options=session_options,
             ),
         )
 

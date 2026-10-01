@@ -4,18 +4,25 @@ import inspect
 from unittest.mock import Mock
 
 import azure.functions as func
-from azurefunctions.agents.extensions.copilot_sdk import AgentFunctionApp, apps
+from copilot import CopilotClient
+from copilot.session import PermissionHandler
+from azurefunctions.agents.extensions.copilot_sdk import (
+    AgentFunctionApp,
+    CopilotSessionOptions,
+    apps,
+)
 
 
 def test_typed_api_exposes_only_v1_options():
     assert list(inspect.signature(AgentFunctionApp.__init__).parameters) == [
         "self",
-        "client_factory",
         "model",
+        "client_factory",
         "app_root",
         "on_permission_request",
         "provider",
         "tools",
+        "session_options",
         "http_auth_level",
     ]
     assert list(inspect.signature(AgentFunctionApp.markdown_agent).parameters) == [
@@ -27,7 +34,25 @@ def test_typed_api_exposes_only_v1_options():
         "on_permission_request",
         "provider",
         "tools",
+        "session_options",
     ]
+    assert (
+        inspect.signature(AgentFunctionApp.markdown_agent)
+        .parameters["session_options"]
+        .kind
+        is inspect.Parameter.VAR_KEYWORD
+    )
+    assert "streaming" in CopilotSessionOptions.__optional_keys__
+
+
+def test_typed_session_options_match_create_session():
+    top_level_options = {"self", "model", "on_permission_request", "provider", "tools"}
+    create_session_options = (
+        set(inspect.signature(CopilotClient.create_session).parameters)
+        - top_level_options
+    )
+
+    assert CopilotSessionOptions.__optional_keys__ == create_session_options
 
 
 def test_typed_agent_function_app_pins_copilot_provider(monkeypatch):
@@ -36,20 +61,38 @@ def test_typed_agent_function_app_pins_copilot_provider(monkeypatch):
     monkeypatch.setattr(func.FunctionApp, "__init__", parent_init)
     monkeypatch.setattr(apps, "configure_app", configure_app)
     factory = lambda: object()
+    permission_handler = lambda *args: None
 
-    app = AgentFunctionApp(
+    AgentFunctionApp(
         client_factory=factory,
         model="gpt-5",
         app_root="app",
+        on_permission_request=permission_handler,
     )
 
     parent_init.assert_called_once_with(http_auth_level=func.AuthLevel.FUNCTION)
-    configure_app.assert_called_once_with(
-        app,
-        provider="copilot_sdk",
-        app_root="app",
-        provider_options={"client_factory": factory, "model": "gpt-5"},
-    )
+    options = configure_app.call_args.kwargs["provider_options"]
+    assert callable(options["client_factory"])
+    assert options["client_factory"] is not factory
+    assert options["model"] == "gpt-5"
+    assert options["on_permission_request"] is permission_handler
+    assert configure_app.call_args.kwargs["provider"] == "copilot_sdk"
+    assert configure_app.call_args.kwargs["app_root"] == "app"
+
+
+def test_typed_agent_function_app_configures_default_client(monkeypatch):
+    parent_init = Mock()
+    configure_app = Mock()
+    monkeypatch.setattr(func.FunctionApp, "__init__", parent_init)
+    monkeypatch.setattr(apps, "configure_app", configure_app)
+    monkeypatch.setenv("COPILOT_MODEL", "gpt-5")
+
+    AgentFunctionApp()
+
+    options = configure_app.call_args.kwargs["provider_options"]
+    assert callable(options["client_factory"])
+    assert options["model"] == "gpt-5"
+    assert options["on_permission_request"] is PermissionHandler.approve_all
 
 
 def test_agent_function_app_uses_function_app_directly():
@@ -67,14 +110,20 @@ def test_typed_markdown_agent_forwards_supported_overrides(monkeypatch):
         agent_name="orders",
         client_factory=factory,
         model="gpt-5",
+        streaming=True,
+        reasoning_effort="high",
     )
 
     assert result is parent_decorator.return_value
-    parent_decorator.assert_called_once_with(
-        app,
-        provider="copilot_sdk",
-        arg_name="agent",
-        agent_name="orders",
-        client_factory=factory,
-        model="gpt-5",
-    )
+    call = parent_decorator.call_args
+    assert call.args == (app,)
+    assert call.kwargs["provider"] == "copilot_sdk"
+    assert call.kwargs["arg_name"] == "agent"
+    assert call.kwargs["agent_name"] == "orders"
+    assert callable(call.kwargs["client_factory"])
+    assert call.kwargs["client_factory"] is not factory
+    assert call.kwargs["model"] == "gpt-5"
+    assert call.kwargs["session_options"] == {
+        "streaming": True,
+        "reasoning_effort": "high",
+    }

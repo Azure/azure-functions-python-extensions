@@ -30,6 +30,7 @@ classifiers = [
 dependencies = [
     "azurefunctions-agents-extensions-base>=1.0.0b1",
     "github-copilot-sdk>=1.0.14,<2",
+    "typing-extensions>=4.12",
 ]
 
 [project.optional-dependencies]

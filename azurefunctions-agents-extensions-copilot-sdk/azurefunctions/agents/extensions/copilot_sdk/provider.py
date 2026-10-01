@@ -4,7 +4,8 @@ import asyncio
 import inspect
 import os
 import re
-from collections.abc import Callable, Mapping, Sequence
+import threading
+from collections.abc import Awaitable, Callable, Mapping, Sequence
 from contextlib import AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass
 from ipaddress import ip_address
@@ -42,9 +43,13 @@ _SUPPORTED_OPTIONS = frozenset(
         "model",
         "on_permission_request",
         "provider",
+        "session_options",
         "tools",
     }
 )
+_CREATE_SESSION_OPTIONS = frozenset(
+    inspect.signature(CopilotClient.create_session).parameters
+) - {"self"}
 
 
 @dataclass(frozen=True)
@@ -54,6 +59,53 @@ class _CopilotSdkOptions:
     on_permission_request: PermissionHandler | None
     provider: ProviderConfig | None
     tools: tuple[Tool, ...]
+    session_options: Mapping[str, object]
+
+
+class _CachedClientFactory:
+    def __init__(self, factory: ClientFactory) -> None:
+        self._factory = factory
+        self._client: CopilotClient | None = None
+        self._lock = threading.Lock()
+
+    def __call__(self) -> CopilotClient:
+        with self._lock:
+            if self._client is None:
+                client = self._factory()
+                if inspect.isawaitable(client):
+                    if inspect.iscoroutine(client):
+                        client.close()
+                    raise TypeError(
+                        "client_factory must return a CopilotClient synchronously, "
+                        "not an awaitable"
+                    )
+                if not isinstance(client, CopilotClient):
+                    raise TypeError("client_factory must return a CopilotClient")
+                self._client = client
+            return self._client
+
+
+def _cache_client_factory(factory: ClientFactory) -> ClientFactory:
+    if isinstance(factory, _CachedClientFactory):
+        return factory
+    return _CachedClientFactory(factory)
+
+
+def _default_client_factory() -> CopilotClient:
+    github_token = os.environ.get("COPILOT_GITHUB_TOKEN")
+    if not github_token:
+        raise ValueError("COPILOT_GITHUB_TOKEN must be set")
+    base_directory = os.environ.get("COPILOT_BASE_DIRECTORY")
+    if not base_directory:
+        raise ValueError("COPILOT_BASE_DIRECTORY must be set")
+    return CopilotClient(
+        mode="empty",
+        github_token=github_token,
+        base_directory=base_directory,
+        use_logged_in_user=False,
+        log_level="none",
+        telemetry=None,
+    )
 
 
 @dataclass(frozen=True)
@@ -69,18 +121,8 @@ class CopilotSdkBinding(CompiledAgent):
         invocation: InvocationMetadata,
     ) -> AsyncIterator[CopilotSession]:
         client = self.options.client_factory()
-        if inspect.isawaitable(client):
-            if inspect.iscoroutine(client):
-                client.close()
-            raise TypeError(
-                "client_factory must return a CopilotClient synchronously, "
-                "not an awaitable"
-            )
-        if not isinstance(client, CopilotClient):
-            raise TypeError("client_factory must return a CopilotClient")
 
         async with AsyncExitStack() as stack:
-            entered_client = await stack.enter_async_context(client)
             mcp_servers = await _build_mcp_servers(
                 self.capabilities.mcp_servers,
                 stack,
@@ -93,31 +135,37 @@ class CopilotSdkBinding(CompiledAgent):
                 available_tools.add_mcp("*")
             for tool in self.options.tools:
                 available_tools.add_custom(tool.name)
-            session = await entered_client.create_session(
-                model=self.options.model,
-                tools=list(self.options.tools),
-                available_tools=available_tools,
-                system_message=SystemMessageReplaceConfig(
+            create_session_options: dict[str, object] = {
+                "model": self.options.model,
+                "tools": list(self.options.tools),
+                "available_tools": available_tools,
+                "system_message": SystemMessageReplaceConfig(
                     mode="replace",
                     content=self.instructions,
                 ),
-                provider=self.options.provider,
-                on_permission_request=self.options.on_permission_request,
-                streaming=False,
-                enable_config_discovery=False,
-                enable_session_telemetry=False,
-                request_extensions=False,
-                enable_session_store=False,
-                included_builtin_skills=[],
-                enable_skills=bool(skill_directories),
-                skill_directories=skill_directories,
-                mcp_servers=mcp_servers,
-                mcp_oauth_token_storage="in-memory",
-                skip_custom_instructions=True,
-                tool_search={"enabled": False},
-                infinite_sessions={"enabled": False},
-                memory={"enabled": False},
+                "provider": self.options.provider,
+                "on_permission_request": self.options.on_permission_request,
+                "streaming": False,
+                "enable_config_discovery": False,
+                "enable_session_telemetry": False,
+                "request_extensions": False,
+                "enable_session_store": False,
+                "included_builtin_skills": [],
+                "enable_skills": bool(skill_directories),
+                "skill_directories": skill_directories,
+                "mcp_servers": mcp_servers,
+                "mcp_oauth_token_storage": "in-memory",
+                "skip_custom_instructions": True,
+                "tool_search": {"enabled": False},
+                "infinite_sessions": {"enabled": False},
+                "memory": {"enabled": False},
+            }
+            create_session_options.update(self.options.session_options)
+            create_session = cast(
+                Callable[..., Awaitable[CopilotSession]],
+                client.create_session,
             )
+            session = await create_session(**create_session_options)
             entered_session = await stack.enter_async_context(session)
             yield entered_session
 
@@ -158,7 +206,7 @@ class CopilotSdkProvider(AgentProvider):
             )
         client_factory = options.get("client_factory")
         if client_factory is None:
-            raise TypeError("client_factory option is required")
+            client_factory = _default_client_factory
         if not callable(client_factory):
             raise TypeError("client_factory must be callable")
         if inspect.iscoroutinefunction(client_factory):
@@ -189,7 +237,9 @@ class CopilotSdkProvider(AgentProvider):
             instructions=instructions,
             agent_name=agent_name,
             options=_CopilotSdkOptions(
-                client_factory=cast(ClientFactory, client_factory),
+                client_factory=_cache_client_factory(
+                    cast(ClientFactory, client_factory),
+                ),
                 model=model.strip(),
                 on_permission_request=cast(
                     PermissionHandler | None,
@@ -197,6 +247,9 @@ class CopilotSdkProvider(AgentProvider):
                 ),
                 provider=cast(ProviderConfig | None, provider),
                 tools=_normalize_tools(options.get("tools")),
+                session_options=_normalize_session_options(
+                    options.get("session_options")
+                ),
             ),
             capabilities=capabilities,
         )
@@ -213,6 +266,22 @@ def _normalize_tools(value: object) -> tuple[Tool, ...]:
     if any(not isinstance(tool, Tool) for tool in tools):
         raise TypeError("tools must contain only copilot.tools.Tool values")
     return cast(tuple[Tool, ...], tools)
+
+
+def _normalize_session_options(value: object) -> Mapping[str, object]:
+    if value is None:
+        return {}
+    if not isinstance(value, Mapping):
+        raise TypeError("session_options must be a mapping")
+    if any(not isinstance(name, str) for name in value):
+        raise TypeError("session_options keys must be strings")
+    options = cast(Mapping[str, object], value)
+    unknown = sorted(set(options) - _CREATE_SESSION_OPTIONS)
+    if unknown:
+        raise TypeError(
+            "Unsupported Copilot create_session option(s): " + ", ".join(unknown)
+        )
+    return dict(options)
 
 
 def _skill_directories(skills: Sequence[SkillDefinition]) -> list[str]:

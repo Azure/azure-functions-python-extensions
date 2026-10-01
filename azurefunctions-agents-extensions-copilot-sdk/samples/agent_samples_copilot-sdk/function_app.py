@@ -1,36 +1,11 @@
 import json
-import os
 
 import azure.functions as func
-from copilot import CopilotClient
-from copilot.session import CopilotSession, PermissionHandler
+from copilot.session import CopilotSession
 from copilot.session_events import AssistantMessageData
 from azurefunctions.agents.extensions.copilot_sdk import AgentFunctionApp
 
-
-def create_copilot_client() -> CopilotClient:
-    return CopilotClient(
-        mode="empty",
-        github_token=os.environ["COPILOT_GITHUB_TOKEN"],
-        base_directory=os.environ["COPILOT_BASE_DIRECTORY"],
-        use_logged_in_user=False,
-        log_level="none",
-        telemetry=None,
-    )
-
-
-app = AgentFunctionApp(
-    client_factory=create_copilot_client,
-    model=os.environ["COPILOT_MODEL"],
-    on_permission_request=PermissionHandler.approve_all,
-)
-
-
-async def _run(session: CopilotSession, prompt: str) -> str:
-    response = await session.send_and_wait(prompt)
-    if response is None or not isinstance(response.data, AssistantMessageData):
-        raise RuntimeError("Copilot did not return a final assistant message")
-    return response.data.content
+app = AgentFunctionApp()
 
 
 @app.route(route="orders/{orderId}", methods=["POST"])
@@ -48,8 +23,7 @@ async def process_order(
             mimetype="application/json",
         )
 
-    assessment = await _run(
-        order_agent,
+    response = await order_agent.send_and_wait(
         json.dumps(
             {
                 "order_id": req.route_params["orderId"],
@@ -58,8 +32,10 @@ async def process_order(
             }
         ),
     )
+    if response is None or not isinstance(response.data, AssistantMessageData):
+        raise RuntimeError("Copilot did not return a final assistant message")
     return func.HttpResponse(
-        body=json.dumps({"assessment": assessment}),
+        body=json.dumps({"assessment": response.data.content}),
         mimetype="application/json",
     )
 
@@ -74,4 +50,8 @@ async def process_order_event(
     message: func.QueueMessage,
     order_agent: CopilotSession,
 ) -> None:
-    await _run(order_agent, message.get_body().decode("utf-8"))
+    response = await order_agent.send_and_wait(
+        message.get_body().decode("utf-8")
+    )
+    if response is None or not isinstance(response.data, AssistantMessageData):
+        raise RuntimeError("Copilot did not return a final assistant message")

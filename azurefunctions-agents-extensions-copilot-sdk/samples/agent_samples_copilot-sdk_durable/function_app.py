@@ -1,32 +1,13 @@
 import json
-import os
 
 import azure.durable_functions as df
 import azure.functions as func
-from copilot import CopilotClient
-from copilot.session import PermissionHandler
 from azurefunctions.agents.extensions.copilot_sdk import (
     AgentFunctionApp,
     DurableAgentContext,
 )
 
-
-def create_copilot_client() -> CopilotClient:
-    return CopilotClient(
-        mode="empty",
-        github_token=os.environ["COPILOT_GITHUB_TOKEN"],
-        base_directory=os.environ["COPILOT_BASE_DIRECTORY"],
-        use_logged_in_user=False,
-        log_level="none",
-        telemetry=None,
-    )
-
-
-app = AgentFunctionApp(
-    client_factory=create_copilot_client,
-    model=os.environ["COPILOT_MODEL"],
-    on_permission_request=PermissionHandler.approve_all,
-)
+app = AgentFunctionApp()
 
 
 @app.route(route="orders/orchestrations", methods=["POST"])

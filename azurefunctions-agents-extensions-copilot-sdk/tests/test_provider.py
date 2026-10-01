@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import asyncio
 import inspect
+import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -46,10 +48,11 @@ class _Session:
 class _Client:
     created: list[_Client] = []
 
-    def __init__(self) -> None:
+    def __init__(self, **options) -> None:
         self.entered = False
         self.closed = False
-        self.session = _Session()
+        self.client_options = options
+        self.sessions: list[_Session] = []
         self.session_options = None
         self.created.append(self)
 
@@ -61,8 +64,10 @@ class _Client:
         self.closed = True
 
     async def create_session(self, **options):
+        session = _Session()
+        self.sessions.append(session)
         self.session_options = options
-        return self.session
+        return session
 
 
 @pytest.fixture(autouse=True)
@@ -83,7 +88,7 @@ def _compile(*, capabilities=AgentCapabilities(), **overrides):
     )
 
 
-def test_binding_creates_and_closes_fresh_clients_and_sessions():
+def test_binding_reuses_client_and_closes_fresh_sessions():
     binding = _compile()
 
     async def invoke_twice():
@@ -94,9 +99,10 @@ def test_binding_creates_and_closes_fresh_clients_and_sessions():
 
     asyncio.run(invoke_twice())
 
-    assert len(_Client.created) == 2
-    assert all(client.closed for client in _Client.created)
-    assert all(client.session.closed for client in _Client.created)
+    assert len(_Client.created) == 1
+    assert not _Client.created[0].closed
+    assert len(_Client.created[0].sessions) == 2
+    assert all(session.closed for session in _Client.created[0].sessions)
     options = _Client.created[0].session_options
     assert options["model"] == "gpt-5"
     assert options["system_message"] == {
@@ -109,24 +115,93 @@ def test_binding_creates_and_closes_fresh_clients_and_sessions():
     assert list(options["available_tools"]) == []
 
 
+def test_binding_applies_create_session_overrides():
+    binding = _compile(
+        session_options={
+            "streaming": True,
+            "enable_session_store": True,
+            "reasoning_effort": "high",
+            "system_message": {"mode": "append", "content": "extra"},
+        }
+    )
+
+    asyncio.run(binding.run_agent("hello", InvocationMetadata()))
+
+    options = _Client.created[0].session_options
+    assert options["streaming"] is True
+    assert options["enable_session_store"] is True
+    assert options["reasoning_effort"] == "high"
+    assert options["system_message"] == {"mode": "append", "content": "extra"}
+
+
+def test_provider_rejects_unknown_create_session_override():
+    with pytest.raises(TypeError, match="Unsupported Copilot create_session option"):
+        _compile(session_options={"not_a_session_option": True})
+
+
+def test_client_cache_is_safe_during_concurrent_first_use():
+    factory_calls = 0
+
+    def create_client():
+        nonlocal factory_calls
+        factory_calls += 1
+        time.sleep(0.01)
+        return _Client()
+
+    binding = _compile(client_factory=create_client)
+
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        clients = list(
+            executor.map(
+                lambda _: binding.options.client_factory(),
+                range(8),
+            )
+        )
+
+    assert factory_calls == 1
+    assert all(client is clients[0] for client in clients)
+
+
+def test_app_level_client_cache_is_shared_across_bindings():
+    client_factory = provider._cache_client_factory(_Client)
+
+    first = _compile(client_factory=client_factory)
+    second = _compile(client_factory=client_factory)
+
+    assert first.options.client_factory() is second.options.client_factory()
+    assert len(_Client.created) == 1
+
+
 def test_binding_run_agent_returns_assistant_content():
     assert (
         asyncio.run(_compile().run_agent("hello", InvocationMetadata()))
         == "response:hello"
     )
-    assert _Client.created[0].session.prompts == ["hello"]
-    assert _Client.created[0].closed
+    assert _Client.created[0].sessions[0].prompts == ["hello"]
+    assert not _Client.created[0].closed
 
 
-def test_provider_validates_required_options_and_annotation():
-    with pytest.raises(TypeError, match="client_factory"):
-        provider.CopilotSdkProvider().compile_binding(
-            instructions="instructions",
-            agent_name="orders",
-            options={"model": "gpt-5"},
-            annotation=CopilotSession,
-            capabilities=AgentCapabilities(),
-        )
+def test_provider_uses_secure_default_client_and_validates_options(monkeypatch):
+    monkeypatch.setenv("COPILOT_GITHUB_TOKEN", "github-token")
+    monkeypatch.setenv("COPILOT_BASE_DIRECTORY", "copilot-data")
+    binding = provider.CopilotSdkProvider().compile_binding(
+        instructions="instructions",
+        agent_name="orders",
+        options={"model": "gpt-5"},
+        annotation=CopilotSession,
+        capabilities=AgentCapabilities(),
+    )
+
+    asyncio.run(binding.run_agent("hello", InvocationMetadata()))
+
+    assert _Client.created[0].client_options == {
+        "mode": "empty",
+        "github_token": "github-token",
+        "base_directory": "copilot-data",
+        "use_logged_in_user": False,
+        "log_level": "none",
+        "telemetry": None,
+    }
     with pytest.raises(TypeError, match="model option"):
         _compile(model="")
     with pytest.raises(TypeError, match="CopilotSession"):
@@ -151,7 +226,7 @@ def test_provider_accepts_missing_annotation_for_durable_activity():
     assert binding.agent_name == "orders"
 
 
-def test_factory_and_invocation_errors_still_close_resources(monkeypatch):
+def test_session_creation_error_keeps_cached_client_open(monkeypatch):
     binding = _compile()
 
     async def fail_create(self, **options):
@@ -162,7 +237,7 @@ def test_factory_and_invocation_errors_still_close_resources(monkeypatch):
     with pytest.raises(RuntimeError, match="session failed"):
         asyncio.run(binding.run_agent("hello", InvocationMetadata()))
 
-    assert _Client.created[0].closed
+    assert not _Client.created[0].closed
 
 
 def test_binding_maps_discovered_skills_and_mcp(monkeypatch):
@@ -244,10 +319,10 @@ def test_mcp_credentials_require_https(monkeypatch):
     with pytest.raises(ValueError, match="must use HTTPS"):
         asyncio.run(binding.run_agent("hello", InvocationMetadata()))
 
-    assert _Client.created[0].closed
+    assert not _Client.created[0].closed
 
 
-def test_cancellation_closes_client_and_session(monkeypatch):
+def test_cancellation_closes_session_but_keeps_cached_client_open(monkeypatch):
     async def cancel(self, prompt):
         raise asyncio.CancelledError
 
@@ -256,8 +331,8 @@ def test_cancellation_closes_client_and_session(monkeypatch):
     with pytest.raises(asyncio.CancelledError):
         asyncio.run(_compile().run_agent("hello", InvocationMetadata()))
 
-    assert _Client.created[0].closed
-    assert _Client.created[0].session.closed
+    assert not _Client.created[0].closed
+    assert _Client.created[0].sessions[0].closed
 
 
 @pytest.mark.parametrize(
@@ -273,8 +348,8 @@ def test_binding_rejects_missing_final_assistant_message(monkeypatch, response):
     with pytest.raises(TypeError, match="final assistant message"):
         asyncio.run(_compile().run_agent("hello", InvocationMetadata()))
 
-    assert _Client.created[0].closed
-    assert _Client.created[0].session.closed
+    assert not _Client.created[0].closed
+    assert _Client.created[0].sessions[0].closed
 
 
 def test_binding_rejects_non_string_assistant_content(monkeypatch):
@@ -290,8 +365,8 @@ def test_binding_rejects_non_string_assistant_content(monkeypatch):
     with pytest.raises(TypeError, match="content must be a string"):
         asyncio.run(_compile().run_agent("hello", InvocationMetadata()))
 
-    assert _Client.created[0].closed
-    assert _Client.created[0].session.closed
+    assert not _Client.created[0].closed
+    assert _Client.created[0].sessions[0].closed
 
 
 @pytest.mark.parametrize("factory_kind", ["async_callable", "returns_awaitable"])

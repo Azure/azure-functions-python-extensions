@@ -73,29 +73,25 @@ def test_direct_sample_assets_follow_discovery_conventions():
     "sample_name",
     ["agent_samples_copilot-sdk", "agent_samples_copilot-sdk_durable"],
 )
-def test_sample_client_factories_use_explicit_storage(sample_name, tmp_path):
-    environment = os.environ.copy()
-    environment["PYTHONPATH"] = os.pathsep.join(
-        filter(None, [str(_PACKAGE_ROOT), environment.get("PYTHONPATH")])
-    )
-    environment.update(
-        {
-            "COPILOT_BASE_DIRECTORY": str(tmp_path),
-            "COPILOT_GITHUB_TOKEN": "factory-only-placeholder",
-            "COPILOT_MODEL": "gpt-5",
-            "INVENTORY_MCP_URL": "https://inventory.example.test/mcp",
-        }
+def test_samples_use_extension_default_client(sample_name):
+    source = (_SAMPLES_ROOT / sample_name / "function_app.py").read_text()
+
+    assert "CopilotClient" not in source
+    assert "client_factory=" not in source
+    assert "app = AgentFunctionApp()" in source
+
+
+@pytest.mark.parametrize(
+    "sample_name",
+    ["agent_samples_copilot-sdk", "agent_samples_copilot-sdk_durable"],
+)
+def test_sample_templates_use_standard_copilot_settings(sample_name):
+    settings = json.loads(
+        (_SAMPLES_ROOT / sample_name / "local.settings.template.json").read_text()
     )
 
-    subprocess.run(
-        [
-            sys.executable,
-            "-c",
-            "import function_app; function_app.create_copilot_client()",
-        ],
-        cwd=_SAMPLES_ROOT / sample_name,
-        env=environment,
-        check=True,
-        capture_output=True,
-        text=True,
-    )
+    assert {
+        "COPILOT_GITHUB_TOKEN",
+        "COPILOT_BASE_DIRECTORY",
+        "COPILOT_MODEL",
+    } <= settings["Values"].keys()

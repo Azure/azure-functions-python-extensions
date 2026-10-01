@@ -31,34 +31,25 @@ python -m copilot download-runtime
 
 ## Use a Copilot SDK Agent app
 
-Create a zero-argument synchronous factory that returns a fresh
-`CopilotClient`. Server environments should use explicit authentication rather
-than an interactive logged-in user:
+The extension uses these standard Function App settings:
+
+| Setting | Purpose |
+| --- | --- |
+| `COPILOT_GITHUB_TOKEN` | GitHub token used by the default client. |
+| `COPILOT_BASE_DIRECTORY` | Writable directory for isolated Copilot runtime state. |
+| `COPILOT_MODEL` | Model used by Agent sessions. |
+
+Use these exact names in `local.settings.json` and Azure Function App settings.
+The extension creates the default `CopilotClient` in `mode="empty"`, disables
+SDK telemetry, and does not use interactive logged-in-user authentication:
 
 ```python
-import os
-
 import azure.functions as func
-from copilot import CopilotClient
-from copilot.session import CopilotSession, PermissionHandler
+from copilot.session import CopilotSession
 from copilot.session_events import AssistantMessageData
 from azurefunctions.agents.extensions.copilot_sdk import AgentFunctionApp
 
-
-def create_copilot_client() -> CopilotClient:
-	return CopilotClient(
-		mode="empty",
-		github_token=os.environ["COPILOT_GITHUB_TOKEN"],
-		use_logged_in_user=False,
-		telemetry=None,
-	)
-
-
-app = AgentFunctionApp(
-	client_factory=create_copilot_client,
-	model=os.environ["COPILOT_MODEL"],
-	on_permission_request=PermissionHandler.approve_all,
-)
+app = AgentFunctionApp()
 
 
 @app.route(route="orders", methods=["POST"])
@@ -78,20 +69,70 @@ Agent binding in the app to this provider. Place the complete instructions at
 `orders.agent.md` or `agents/orders.agent.md`. The file is raw UTF-8 text; no
 front matter or runtime configuration is interpreted.
 
-The app-level options are defaults. A `markdown_agent()` decorator can override
-`client_factory`, `model`, `on_permission_request`, `provider`, and `tools` for
-one binding. `app_root` can be set only on `AgentFunctionApp`.
+`AgentFunctionApp()` reads its model from `COPILOT_MODEL` and defaults
+`on_permission_request` to `PermissionHandler.approve_all`. Pass `model=` or
+`on_permission_request=` only to override those defaults. A `markdown_agent()`
+decorator can override `client_factory`, `model`, `on_permission_request`,
+`provider`, `tools`, and any typed Copilot session option for one binding.
+`app_root` can be set only on `AgentFunctionApp`.
 
 `PermissionHandler.approve_all` should be used only when every exposed tool is
 trusted. Supply a restrictive SDK permission handler when tools can access
 privileged data or perform external actions.
 
+### Customize Copilot sessions
+
+Pass Copilot session options directly to `markdown_agent()`. The typed keyword
+arguments provide editor completion and static validation without string keys:
+
+```python
+@app.markdown_agent(
+	arg_name="agent",
+	agent_name="orders",
+	reasoning_effort="high",
+	streaming=True,
+	enable_session_store=True,
+)
+async def process_order(
+	req: func.HttpRequest,
+	agent: CopilotSession,
+) -> str:
+	...
+```
+
+Unknown option names fail static validation and are also rejected when the
+binding is compiled. Session options are applied after the extension defaults,
+so they take precedence. This includes
+extension-generated values such as `system_message`, `tools`,
+`available_tools`, `mcp_servers`, `skill_directories`, and their enablement
+flags. Override those values only when intentionally replacing the Agent's
+instructions or discovered capabilities.
+
+For app-wide defaults, construct the exported typed options object:
+
+```python
+from azurefunctions.agents.extensions.copilot_sdk import (
+	AgentFunctionApp,
+	CopilotSessionOptions,
+)
+
+app = AgentFunctionApp(
+	session_options=CopilotSessionOptions(
+		reasoning_effort="high",
+		streaming=True,
+	),
+)
+```
+
+Supplying any session option to `markdown_agent()` replaces the app-wide
+`session_options` object for that binding.
+
 ## Authentication and BYOK
 
 Keep GitHub tokens and model-provider credentials in Function App settings or a
-secret store. Do not put them in source, `.agent.md`, or `mcp.json` files. A
-factory is called once per invocation, so it can read current settings without
-sharing a client across requests.
+secret store. Do not put them in source, `.agent.md`, or `mcp.json` files. The
+default client reads `COPILOT_GITHUB_TOKEN` and `COPILOT_BASE_DIRECTORY` when it
+is first needed.
 
 The optional `provider` value is passed to the Copilot SDK session for bring
 your own key (BYOK) scenarios. For example:
@@ -109,8 +150,6 @@ provider: ProviderConfig = {
 }
 
 app = AgentFunctionApp(
-	client_factory=create_copilot_client,
-	model=os.environ["COPILOT_MODEL"],
 	provider=provider,
 )
 ```
@@ -118,6 +157,27 @@ app = AgentFunctionApp(
 The Copilot SDK also supports Azure and Anthropic provider configurations. Use
 the provider fields supported by the installed SDK version, and keep all
 credentials outside checked-in configuration.
+
+For advanced client authentication or runtime transports, pass a synchronous
+zero-argument `client_factory`. The extension calls it once, validates the
+result, and caches that `CopilotClient`:
+
+```python
+from copilot import CopilotClient
+
+
+def create_copilot_client() -> CopilotClient:
+	return CopilotClient(...)
+
+
+app = AgentFunctionApp(
+	client_factory=create_copilot_client,
+)
+```
+
+App-level bindings share the app's cached client. A decorator-level
+`client_factory` override has a separate cache for that binding. Factories must
+return `CopilotClient` synchronously; awaitable results are rejected.
 
 ## Skills and MCP servers
 
@@ -162,15 +222,17 @@ Function Apps when capability sets require isolation.
 
 ## Invocation lifecycle
 
-A new client and session are created for every Function invocation. The
-extension replaces the session system message with the raw Agent instructions
-and disables ambient Copilot configuration discovery, session persistence,
-memory, telemetry, built-in Skills, and tool search. Explicit Python tools,
-discovered Skills, and discovered MCP servers remain available.
+The extension creates one client lazily and reuses it across invocations for the
+lifetime of the Python worker process. Each invocation creates and closes a
+fresh session. The extension replaces the session system message with the raw
+Agent instructions and disables ambient Copilot configuration discovery,
+session persistence, memory, telemetry, built-in Skills, and tool search.
+Explicit Python tools, discovered Skills, and discovered MCP servers remain
+available.
 
-Clients, sessions, and Entra credentials are closed on success, error, and
-cancellation. The factory must return `CopilotClient` synchronously; shared or
-awaitable clients are rejected.
+Sessions and Entra credentials are closed on success, error, and cancellation.
+The cached client remains open so later invocations can reuse its runtime
+connection.
 
 ## Durable Agents
 
