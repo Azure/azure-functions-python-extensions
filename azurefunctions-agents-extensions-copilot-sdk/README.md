@@ -82,7 +82,7 @@ privileged data or perform external actions.
 
 ### Customize Copilot sessions
 
-Pass Copilot session options directly to `markdown_agent()`. The typed keyword
+Pass Copilot session options directly to `markdown_agent()`. Known keyword
 arguments provide editor completion and static validation without string keys:
 
 ```python
@@ -100,9 +100,12 @@ async def process_order(
 	...
 ```
 
-Unknown option names fail static validation and are also rejected when the
-binding is compiled. Session options are applied after the extension defaults,
-so they take precedence. This includes
+The options type remains open so arguments added by newer compatible Copilot
+SDK releases can be passed without an extension update. At compile time, the
+extension validates every name against the installed SDK's
+`CopilotClient.create_session()` signature and rejects unsupported names with a
+clear error. Session options are applied after the extension defaults, so they
+take precedence. This includes
 extension-generated values such as `system_message`, `tools`,
 `available_tools`, `mcp_servers`, `skill_directories`, and their enablement
 flags. Override those values only when intentionally replacing the Agent's
@@ -224,9 +227,12 @@ Function Apps when capability sets require isolation.
 
 The extension creates one client lazily and reuses it across invocations for the
 lifetime of the Python worker process. Each invocation creates and closes a
-fresh session. The extension replaces the session system message with the raw
-Agent instructions and disables ambient Copilot configuration discovery,
-session persistence, memory, telemetry, built-in Skills, and tool search.
+fresh session. Default ephemeral sessions are deleted after disconnect so they
+do not accumulate in the cached client's registry. Setting
+`enable_session_store=True` preserves session data instead. The extension
+replaces the session system message with the raw Agent instructions and disables
+ambient Copilot configuration discovery, session persistence, memory,
+telemetry, built-in Skills, and tool search.
 Explicit Python tools, discovered Skills, and discovered MCP servers remain
 available.
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any, Literal, TypedDict
+from typing import Any, Literal
 
 from copilot import ToolSet
 from copilot.canvas import (
@@ -46,9 +46,14 @@ from copilot.session import (
     ToolSearchConfig,
     UserInputHandler,
 )
+from typing_extensions import TypedDict
 
 
-class CopilotSessionOptions(TypedDict, total=False):
+class CopilotSessionOptions(  # type: ignore[call-arg]  # mypy lacks PEP 728
+    TypedDict,
+    total=False,
+    extra_items=object,
+):
     """Optional arguments forwarded to ``CopilotClient.create_session``."""
 
     session_id: str | None

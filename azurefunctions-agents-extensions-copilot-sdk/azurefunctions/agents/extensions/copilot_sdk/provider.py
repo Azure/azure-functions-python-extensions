@@ -190,6 +190,11 @@ class CopilotSdkBinding(CompiledAgent):
                 client.create_session,
             )
             session = await create_session(**create_session_options)
+            if create_session_options["enable_session_store"] is not True:
+                stack.push_async_callback(
+                    client.delete_session,
+                    session.session_id,
+                )
             entered_session = await stack.enter_async_context(session)
             yield entered_session
 

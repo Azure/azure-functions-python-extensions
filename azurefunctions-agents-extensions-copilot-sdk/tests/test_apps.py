@@ -52,7 +52,8 @@ def test_typed_session_options_match_create_session():
         - top_level_options
     )
 
-    assert CopilotSessionOptions.__optional_keys__ == create_session_options
+    assert CopilotSessionOptions.__optional_keys__ <= create_session_options
+    assert CopilotSessionOptions.__extra_items__ is object
 
 
 def test_typed_agent_function_app_pins_copilot_provider(monkeypatch):

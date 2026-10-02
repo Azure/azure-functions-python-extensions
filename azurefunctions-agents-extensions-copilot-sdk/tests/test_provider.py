@@ -23,7 +23,8 @@ from copilot.tools import Tool
 
 
 class _Session:
-    def __init__(self) -> None:
+    def __init__(self, session_id: str) -> None:
+        self.session_id = session_id
         self.entered = False
         self.closed = False
         self.prompts: list[str] = []
@@ -47,12 +48,16 @@ class _Session:
 
 class _Client:
     created: list[_Client] = []
+    next_session_id = 0
 
     def __init__(self, **options) -> None:
         self.entered = False
         self.closed = False
         self.client_options = options
         self.sessions: list[_Session] = []
+        self._sessions: dict[str, _Session] = {}
+        self.deleted_session_ids: list[str] = []
+        self.deleted_closed_states: list[bool] = []
         self.session_options = None
         self.created.append(self)
 
@@ -64,15 +69,24 @@ class _Client:
         self.closed = True
 
     async def create_session(self, **options):
-        session = _Session()
+        type(self).next_session_id += 1
+        session_id = options.get("session_id") or f"session-{self.next_session_id}"
+        session = _Session(session_id)
         self.sessions.append(session)
+        self._sessions[session_id] = session
         self.session_options = options
         return session
+
+    async def delete_session(self, session_id):
+        session = self._sessions.pop(session_id)
+        self.deleted_session_ids.append(session_id)
+        self.deleted_closed_states.append(session.closed)
 
 
 @pytest.fixture(autouse=True)
 def fake_client(monkeypatch):
     _Client.created.clear()
+    _Client.next_session_id = 0
     monkeypatch.setattr(provider, "CopilotClient", _Client)
 
 
@@ -103,6 +117,9 @@ def test_binding_reuses_client_and_closes_fresh_sessions():
     assert not _Client.created[0].closed
     assert len(_Client.created[0].sessions) == 2
     assert all(session.closed for session in _Client.created[0].sessions)
+    assert _Client.created[0]._sessions == {}
+    assert _Client.created[0].deleted_session_ids == ["session-1", "session-2"]
+    assert _Client.created[0].deleted_closed_states == [True, True]
     options = _Client.created[0].session_options
     assert options["model"] == "gpt-5"
     assert options["system_message"] == {
@@ -134,6 +151,16 @@ def test_binding_applies_create_session_overrides():
     assert options["system_message"] == {"mode": "append", "content": "extra"}
 
 
+def test_binding_preserves_sessions_when_store_is_enabled():
+    binding = _compile(session_options={"enable_session_store": True})
+
+    asyncio.run(binding.run_agent("hello", InvocationMetadata()))
+
+    client = _Client.created[0]
+    assert list(client._sessions) == ["session-1"]
+    assert client.deleted_session_ids == []
+
+
 def test_binding_applies_sdk_provider():
     sdk_provider = {
         "type": "openai",
@@ -151,6 +178,19 @@ def test_binding_applies_sdk_provider():
 def test_provider_rejects_unknown_create_session_override():
     with pytest.raises(TypeError, match="Unsupported Copilot create_session option"):
         _compile(session_options={"not_a_session_option": True})
+
+
+def test_provider_accepts_option_supported_by_installed_sdk(monkeypatch):
+    monkeypatch.setattr(
+        provider,
+        "_CREATE_SESSION_OPTIONS",
+        provider._CREATE_SESSION_OPTIONS | {"future_sdk_option"},
+    )
+    binding = _compile(session_options={"future_sdk_option": "value"})
+
+    asyncio.run(binding.run_agent("hello", InvocationMetadata()))
+
+    assert _Client.created[0].session_options["future_sdk_option"] == "value"
 
 
 def test_client_cache_is_safe_during_concurrent_first_use():
@@ -471,6 +511,7 @@ def test_cancellation_closes_session_but_keeps_cached_client_open(monkeypatch):
 
     assert not _Client.created[0].closed
     assert _Client.created[0].sessions[0].closed
+    assert _Client.created[0]._sessions == {}
 
 
 @pytest.mark.parametrize(
@@ -488,6 +529,7 @@ def test_binding_rejects_missing_final_assistant_message(monkeypatch, response):
 
     assert not _Client.created[0].closed
     assert _Client.created[0].sessions[0].closed
+    assert _Client.created[0]._sessions == {}
 
 
 def test_binding_rejects_non_string_assistant_content(monkeypatch):
