@@ -29,6 +29,44 @@ class TestClientReceiveMessage(unittest.TestCase):
         msg = ClientReceiveMessage(data=test_data)
         self.assertEqual(msg._json_payload, test_data)
 
+    def test_get_sdk_type_deserializes_batch_and_nested_attachment(self):
+        """Test extension-owned email and attachment deserialization."""
+        data = Datum(
+            value=(
+                '{"body":{"value":[{"id":"message-1",'
+                '"toRecipients":"recipient@example.com",'
+                '"importance":"high","hasAttachments":true,'
+                '"attachments":[{"id":"attachment-1",'
+                '"contentType":"text/plain"}]}]}}'
+            ),
+            type="json",
+        )
+
+        messages = ClientReceiveMessage(data=data).get_sdk_type()
+
+        self.assertEqual(len(messages), 1)
+        self.assertEqual(messages[0].id, "message-1")
+        self.assertEqual(messages[0].to, "recipient@example.com")
+        self.assertEqual(messages[0].importance, 2)
+        self.assertTrue(messages[0].has_attachment)
+        self.assertEqual(messages[0].attachments[0].id, "attachment-1")
+        self.assertEqual(
+            messages[0].attachments[0].content_type,
+            "text/plain",
+        )
+
+    def test_get_sdk_type_deserializes_single_item(self):
+        """Test single-item callbacks are normalized to a list."""
+        data = Datum(
+            value={"body": {"id": "message-1", "subject": "Hello"}},
+            type="json",
+        )
+
+        messages = ClientReceiveMessage(data=data).get_sdk_type()
+
+        self.assertEqual(len(messages), 1)
+        self.assertEqual(messages[0].subject, "Hello")
+
 
 if __name__ == "__main__":
     unittest.main()

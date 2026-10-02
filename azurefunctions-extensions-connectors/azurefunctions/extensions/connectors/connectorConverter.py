@@ -5,22 +5,7 @@ import collections.abc
 from typing import Any, Optional, get_args, get_origin
 
 from azurefunctions.extensions.base import Datum, InConverter
-from .office365.clientReceiveMessage import ClientReceiveMessage
-from .office365.graphClientReceiveMessage import GraphClientReceiveMessage
-from .office365.graphCalendarEventListWithActionType import (
-    GraphCalendarEventListWithActionType
-)
-from .office365.graphCalendarEventClientReceive import (
-    GraphCalendarEventClientReceive
-)
-
-# Tuple of all supported SDK types for type checking
-SUPPORTED_SDK_TYPES = (
-    ClientReceiveMessage,
-    GraphClientReceiveMessage,
-    GraphCalendarEventListWithActionType,
-    GraphCalendarEventClientReceive
-)
+from ._sdk_type import ConnectorSdkType
 
 
 class ConnectorConverter(
@@ -34,7 +19,7 @@ class ConnectorConverter(
 
         # The annotation is a class/type (not an object) - not iterable
         if (isinstance(pytype, type)
-                and issubclass(pytype, SUPPORTED_SDK_TYPES)):
+                and issubclass(pytype, ConnectorSdkType)):
             return True
 
         # An iterable who only has one inner type and is a subclass of
@@ -56,7 +41,7 @@ class ConnectorConverter(
         inner_type = inner_types[0]
 
         return (isinstance(inner_type, type)
-                and issubclass(inner_type, SUPPORTED_SDK_TYPES))
+                and issubclass(inner_type, ConnectorSdkType))
 
     @classmethod
     def _get_sdk_type(cls, pytype: type) -> Optional[type]:
@@ -65,7 +50,7 @@ class ConnectorConverter(
         and List[Type] annotations.
         """
         # Direct type check
-        if isinstance(pytype, type) and issubclass(pytype, SUPPORTED_SDK_TYPES):
+        if isinstance(pytype, type) and issubclass(pytype, ConnectorSdkType):
             return pytype
 
         # Check for List[Type] and extract inner type
@@ -79,9 +64,8 @@ class ConnectorConverter(
     @classmethod
     def decode(cls, data: Datum, *, trigger_metadata, pytype) -> Optional[Any]:
         """
-        Office365 Connector allows for batches. This means the cardinality
-        can be one or many. This functionality is handled by the Connector
-        SDK.
+        Connector triggers can have one or many values. The selected SDK type
+        handles the connector-specific payload shape.
         """
         if data is None or data.type is None:
             return None
@@ -90,23 +74,12 @@ class ConnectorConverter(
         sdk_type = cls._get_sdk_type(pytype)
 
         try:
-            # Determines which sdk type to return based on pytype
-            if sdk_type == ClientReceiveMessage:
-                return ClientReceiveMessage(data=data).get_sdk_type()
-            elif sdk_type == GraphClientReceiveMessage:
-                return GraphClientReceiveMessage(data=data).get_sdk_type()
-            elif sdk_type == GraphCalendarEventListWithActionType:
-                return GraphCalendarEventListWithActionType(
-                    data=data
-                ).get_sdk_type()
-            elif sdk_type == GraphCalendarEventClientReceive:
-                return GraphCalendarEventClientReceive(
-                    data=data
-                ).get_sdk_type()
-            else:
+            if sdk_type is None:
                 return None
+
+            return sdk_type(data=data).get_sdk_type()
         except Exception as e:
             raise ValueError(
-                "Failed to decode incoming Office365 Connector batch: "
+                "Failed to decode incoming connector payload: "
                 + repr(e)
             ) from e
