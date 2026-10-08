@@ -136,6 +136,16 @@ class ServiceBusMessageActions(GrpcClientType):
         except Exception as e:
             raise SettlementError("renew_message_lock",
                                   f"Failed to renew lock for {locktoken}", e)
+        
+    def get_session_state(self, session_id: str) -> bytes:
+        try:
+            request = GetSessionStateRequest()
+            request.sessionId = session_id
+            response = self._client.GetSessionState(request)
+            return response.sessionState
+        except Exception as e:
+            raise SettlementError("get_session_state",
+                                  f"Failed to get state for session {session_id}", e)
 
     def get_session_state(self, session_id: str) -> bytes:
         try:
