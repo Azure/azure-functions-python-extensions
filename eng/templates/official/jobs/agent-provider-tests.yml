@@ -1,0 +1,37 @@
+parameters:
+  - name: job_name
+    type: string
+  - name: extension_name
+    type: string
+  - name: extension_directory
+    type: string
+
+jobs:
+  - job: ${{ parameters.job_name }}
+    displayName: "${{ parameters.extension_name }} Extension Tests"
+    dependsOn: []
+    strategy:
+      matrix:
+        python313:
+          PYTHON_VERSION: '3.13'
+        python314:
+          PYTHON_VERSION: '3.14'
+    condition: always()
+    steps:
+      - task: PipAuthenticate@1
+        displayName: 'Pip Authenticate'
+        inputs:
+          artifactFeeds: public/upstream-public
+          onlyAddExtraIndex: false
+      - task: UsePythonVersion@0
+        inputs:
+          versionSpec: $(PYTHON_VERSION)
+      - bash: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ./azurefunctions-agents-extensions-base
+          cd ${{ parameters.extension_directory }}
+          python -m pip install -U -e .[dev,mcp]
+        displayName: "Install ${{ parameters.extension_name }} Dependencies"
+      - bash: |
+          python -m pytest -q --instafail ${{ parameters.extension_directory }}/tests/
+        displayName: "Run ${{ parameters.extension_name }} Tests for Python $(PYTHON_VERSION)"

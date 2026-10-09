@@ -1,0 +1,68 @@
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "azurefunctions-agents-extensions-copilot-sdk"
+dynamic = ["version"]
+requires-python = ">=3.13"
+authors = [
+    { name = "Azure Functions team at Microsoft Corp.", email = "azurefunctions@microsoft.com" },
+]
+description = "GitHub Copilot SDK integration for Azure Functions."
+readme = "README.md"
+license = { text = "MIT License" }
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX",
+    "Operating System :: MacOS :: MacOS X",
+    "Environment :: Web Environment",
+    "Development Status :: 3 - Alpha",
+]
+dependencies = [
+    "azurefunctions-agents-extensions-base>=1.0.0b1",
+    "github-copilot-sdk>=1.0.14,<2",
+]
+
+[project.optional-dependencies]
+mcp = [
+    "azure-identity>=1.25.3,<2",
+]
+durable = [
+    "azurefunctions-agents-extensions-base[durable]>=1.0.0b1",
+]
+dev = [
+    "azure-functions-durable>=2.0.0b2",
+    "azure-identity>=1.25.3,<2",
+    "coverage",
+    "flake8",
+    "mypy",
+    "pre-commit",
+    "pytest",
+    "pytest-cov",
+    "pytest-instafail",
+]
+
+[project.entry-points."azurefunctions.agents.extensions.providers"]
+copilot_sdk = "azurefunctions.agents.extensions.copilot_sdk.provider:create_provider"
+
+[tool.setuptools.dynamic]
+version = { attr = "azurefunctions.agents.extensions.copilot_sdk.__version__" }
+
+[tool.setuptools.packages.find]
+include = ["azurefunctions.agents.extensions.copilot_sdk*"]
+
+[tool.setuptools.package-data]
+"azurefunctions.agents.extensions.copilot_sdk" = ["py.typed"]
+
+[tool.mypy]
+strict = true
+
+[[tool.mypy.overrides]]
+module = ["azure", "azure.*"]
+ignore_missing_imports = true

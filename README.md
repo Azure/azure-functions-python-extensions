@@ -19,6 +19,7 @@ A supported Python version is required - see
 * [Base extension](azurefunctions-extensions-base/README.md)
 * [Agent provider base](azurefunctions-agents-extensions-base/README.md)
 * [Microsoft Agent Framework](azurefunctions-agents-extensions-agent-framework/README.md)
+* [GitHub Copilot SDK](azurefunctions-agents-extensions-copilot-sdk/README.md)
 * [Azure Blob Storage bindings](azurefunctions-extensions-bindings-blob/README.md)
 * [Azure Cosmos DB bindings](azurefunctions-extensions-bindings-cosmosdb/README.md)
 * [Azure Event Hubs bindings](azurefunctions-extensions-bindings-eventhub/README.md)

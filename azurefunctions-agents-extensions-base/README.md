@@ -31,18 +31,21 @@ directory; decorators cannot override it.
 
 ## Markdown lookup
 
-An `agent_name` resolves exactly one UTF-8 file:
+An `agent_name` resolves exactly one UTF-8 file from these candidates:
 
 ```text
 <app_root>/<agent_name>.agent.md
+<app_root>/<agent_name>.md
 <app_root>/agents/<agent_name>.agent.md
+<app_root>/agents/<agent_name>.md
 ```
 
-The entire file is passed to the provider unchanged. Front matter, YAML,
-substitutions, tools, skills, MCP configuration, and history are not parsed by
-this package. If both locations exist, lookup fails as ambiguous. Absolute
-paths, separators, traversal components, and symlinks outside `app_root` are
-rejected.
+The `.agent.md` suffix is recommended because it makes Agent instructions easy
+to identify, but plain `.md` is also supported. The entire file is passed to the
+provider unchanged. Front matter, YAML, substitutions, tools, skills, MCP
+configuration, and history are not parsed by this package. If multiple
+candidates exist, lookup fails as ambiguous. Absolute paths, separators,
+traversal components, and symlinks outside `app_root` are rejected.
 
 ## Skills and MCP discovery
 

@@ -1,6 +1,6 @@
 # Azure Functions Microsoft Agent Framework Extension
 
-Inject Microsoft Agent Framework Agents built from raw `.agent.md` instructions
+Inject Microsoft Agent Framework Agents built from raw Markdown instructions
 into Python Azure Functions.
 
 ## Install
@@ -54,9 +54,11 @@ async def process_order(req: func.HttpRequest, agent: Agent):
 or modifications. One app uses the Microsoft Agent Framework provider selected
 by this package.
 
-Place the complete instructions at `orders.agent.md` or
-`agents/orders.agent.md`. The file is raw UTF-8 text; no front matter or runtime
-configuration is interpreted.
+Place the complete instructions at `orders.agent.md`, `orders.md`, or the same
+filename under `agents/`. The `.agent.md` suffix is recommended; plain `.md` is
+also supported. The file is raw UTF-8 text; no front matter or runtime
+configuration is interpreted. If multiple candidates exist, lookup fails as
+ambiguous.
 
 ## Skills and MCP servers
 
