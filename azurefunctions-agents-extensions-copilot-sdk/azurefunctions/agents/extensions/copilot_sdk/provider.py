@@ -8,7 +8,7 @@ from collections.abc import Awaitable, Callable, Mapping, Sequence
 from contextlib import AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass
 from ipaddress import ip_address
-from typing import Any, AsyncIterator, cast, get_origin
+from typing import Any, AsyncIterator, TypedDict, cast, get_origin
 from urllib.parse import urlsplit
 
 from copilot import CopilotClient, ToolSet
@@ -31,21 +31,24 @@ from azurefunctions.agents.extensions.base import (
     SkillDefinition,
 )
 
+from .options import CopilotSessionOptions
+
 COPILOT_SDK_PROVIDER_ID = "copilot_sdk"
 ClientFactory = Callable[[], CopilotClient]
 PermissionHandler = Callable[..., Any]
 _ENV_REFERENCE = re.compile(r"\$([A-Za-z_][A-Za-z0-9_]*)|%([A-Za-z_][A-Za-z0-9_]*)%")
 
-_SUPPORTED_OPTIONS = frozenset(
-    {
-        "client_factory",
-        "model",
-        "on_permission_request",
-        "session_provider",
-        "session_options",
-        "tools",
-    }
-)
+
+class _CopilotProviderOptions(TypedDict, total=False):
+    client_factory: ClientFactory
+    model: str
+    on_permission_request: PermissionHandler
+    session_provider: ProviderConfig
+    session_options: CopilotSessionOptions
+    tools: Tool | Sequence[Tool]
+
+
+_SUPPORTED_OPTIONS = frozenset(_CopilotProviderOptions.__optional_keys__)
 _CREATE_SESSION_OPTIONS = frozenset(
     inspect.signature(CopilotClient.create_session).parameters
 ) - {"self"}

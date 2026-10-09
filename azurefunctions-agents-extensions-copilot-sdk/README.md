@@ -1,6 +1,6 @@
 # Azure Functions GitHub Copilot SDK Extension
 
-Inject GitHub Copilot SDK sessions built from raw `.agent.md` instructions into
+Inject GitHub Copilot SDK sessions built from raw Markdown instructions into
 Python Azure Functions.
 
 ## Install
@@ -66,8 +66,10 @@ async def process_order(
 
 `AgentFunctionApp` subclasses `azure.functions.FunctionApp` and pins every
 Agent binding in the app to this provider. Place the complete instructions at
-`orders.agent.md` or `agents/orders.agent.md`. The file is raw UTF-8 text; no
-front matter or runtime configuration is interpreted.
+`orders.agent.md`, `orders.md`, or the same filename under `agents/`. The
+`.agent.md` suffix is recommended; plain `.md` is also supported. The file is
+raw UTF-8 text; no front matter or runtime configuration is interpreted. If
+multiple candidates exist, lookup fails as ambiguous.
 
 `AgentFunctionApp()` reads its model from `COPILOT_MODEL` and defaults
 `on_permission_request` to `PermissionHandler.approve_all`. Pass `model=` or

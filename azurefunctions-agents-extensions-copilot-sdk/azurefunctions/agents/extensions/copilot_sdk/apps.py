@@ -21,6 +21,7 @@ from .provider import (
     COPILOT_SDK_PROVIDER_ID,
     ClientFactory,
     PermissionHandler,
+    _CopilotProviderOptions,
     _cache_client_factory,
     _default_client_factory,
 )
@@ -36,8 +37,8 @@ def _provider_options(
     provider: ProviderConfig | None = None,
     tools: Tool | Sequence[Tool] | None = None,
     session_options: CopilotSessionOptions | None = None,
-) -> dict[str, object]:
-    options: dict[str, object] = {}
+) -> _CopilotProviderOptions:
+    options: _CopilotProviderOptions = {}
     if client_factory is not None:
         options["client_factory"] = _cache_client_factory(client_factory)
     if model is not None:
