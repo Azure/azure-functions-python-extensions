@@ -31,8 +31,6 @@ from azurefunctions.agents.extensions.base import (
     SkillDefinition,
 )
 
-from .options import CopilotSessionOptions
-
 COPILOT_SDK_PROVIDER_ID = "copilot_sdk"
 ClientFactory = Callable[[], CopilotClient]
 PermissionHandler = Callable[..., Any]
@@ -44,14 +42,11 @@ class _CopilotProviderOptions(TypedDict, total=False):
     model: str
     on_permission_request: PermissionHandler
     session_provider: ProviderConfig
-    session_options: CopilotSessionOptions
+    session_options: Mapping[str, object]
     tools: Tool | Sequence[Tool]
 
 
 _SUPPORTED_OPTIONS = frozenset(_CopilotProviderOptions.__optional_keys__)
-_CREATE_SESSION_OPTIONS = frozenset(
-    inspect.signature(CopilotClient.create_session).parameters
-) - {"self"}
 
 
 @dataclass(frozen=True)
@@ -279,8 +274,9 @@ class CopilotSdkProvider(AgentProvider):
                 ),
                 provider=cast(ProviderConfig | None, provider),
                 tools=_normalize_tools(options.get("tools")),
-                session_options=_normalize_session_options(
-                    options.get("session_options")
+                session_options=cast(
+                    Mapping[str, object],
+                    options.get("session_options") or {},
                 ),
             ),
             capabilities=capabilities,
@@ -298,22 +294,6 @@ def _normalize_tools(value: object) -> tuple[Tool, ...]:
     if any(not isinstance(tool, Tool) for tool in tools):
         raise TypeError("tools must contain only copilot.tools.Tool values")
     return cast(tuple[Tool, ...], tools)
-
-
-def _normalize_session_options(value: object) -> Mapping[str, object]:
-    if value is None:
-        return {}
-    if not isinstance(value, Mapping):
-        raise TypeError("session_options must be a mapping")
-    if any(not isinstance(name, str) for name in value):
-        raise TypeError("session_options keys must be strings")
-    options = cast(Mapping[str, object], value)
-    unknown = sorted(set(options) - _CREATE_SESSION_OPTIONS)
-    if unknown:
-        raise TypeError(
-            "Unsupported Copilot create_session option(s): " + ", ".join(unknown)
-        )
-    return dict(options)
 
 
 def _skill_directories(skills: Sequence[SkillDefinition]) -> list[str]:

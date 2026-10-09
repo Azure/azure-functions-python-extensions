@@ -75,7 +75,7 @@ multiple candidates exist, lookup fails as ambiguous.
 `on_permission_request` to `PermissionHandler.approve_all`. Pass `model=` or
 `on_permission_request=` only to override those defaults. A `markdown_agent()`
 decorator can override `client_factory`, `model`, `on_permission_request`,
-`provider`, `tools`, and any typed Copilot session option for one binding.
+`provider`, `tools`, and any Copilot session option for one binding.
 `app_root` can be set only on `AgentFunctionApp`.
 
 `PermissionHandler.approve_all` should be used only when every exposed tool is
@@ -84,8 +84,7 @@ privileged data or perform external actions.
 
 ### Customize Copilot sessions
 
-Pass Copilot session options directly to `markdown_agent()`. Known keyword
-arguments provide editor completion and static validation without string keys:
+Pass Copilot session options directly to `markdown_agent()`:
 
 ```python
 @app.markdown_agent(
@@ -102,30 +101,25 @@ async def process_order(
 	...
 ```
 
-The options type remains open so arguments added by newer compatible Copilot
-SDK releases can be passed without an extension update. At compile time, the
-extension validates every name against the installed SDK's
-`CopilotClient.create_session()` signature and rejects unsupported names with a
-clear error. Session options are applied after the extension defaults, so they
+The extension forwards these arguments to `CopilotClient.create_session()`
+without validating their names or values. The installed Copilot SDK accepts or
+rejects them. Session options are applied after the extension defaults, so they
 take precedence. This includes
 extension-generated values such as `system_message`, `tools`,
 `available_tools`, `mcp_servers`, `skill_directories`, and their enablement
 flags. Override those values only when intentionally replacing the Agent's
 instructions or discovered capabilities.
 
-For app-wide defaults, construct the exported typed options object:
+For app-wide defaults, pass a mapping to `AgentFunctionApp`:
 
 ```python
-from azurefunctions.agents.extensions.copilot_sdk import (
-	AgentFunctionApp,
-	CopilotSessionOptions,
-)
+from azurefunctions.agents.extensions.copilot_sdk import AgentFunctionApp
 
 app = AgentFunctionApp(
-	session_options=CopilotSessionOptions(
-		reasoning_effort="high",
-		streaming=True,
-	),
+	session_options={
+		"reasoning_effort": "high",
+		"streaming": True,
+	},
 )
 ```
 

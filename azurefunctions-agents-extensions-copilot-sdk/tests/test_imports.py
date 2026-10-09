@@ -7,7 +7,7 @@ def test_copilot_sdk_exports_supported_api():
     from azurefunctions.agents.extensions.base.durable import DurableAgentContext
 
     assert copilot_sdk.AgentFunctionApp is not None
-    assert copilot_sdk.CopilotSessionOptions is not None
+    assert not hasattr(copilot_sdk, "CopilotSessionOptions")
     assert copilot_sdk.DurableAgentContext is DurableAgentContext
     assert copilot_sdk.COPILOT_SDK_PROVIDER_ID == "copilot_sdk"
     assert not hasattr(copilot_sdk, "markdown_agent")

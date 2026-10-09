@@ -1,14 +1,12 @@
 from azurefunctions.agents.extensions.base.durable import DurableAgentContext
 
 from .apps import AgentFunctionApp
-from .options import CopilotSessionOptions
 from .provider import COPILOT_SDK_PROVIDER_ID, ClientFactory
 
 __all__ = [
     "COPILOT_SDK_PROVIDER_ID",
     "AgentFunctionApp",
     "ClientFactory",
-    "CopilotSessionOptions",
     "DurableAgentContext",
 ]
 

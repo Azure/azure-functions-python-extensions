@@ -4,16 +4,14 @@ import inspect
 from unittest.mock import Mock
 
 import azure.functions as func
-from copilot import CopilotClient
 from copilot.session import PermissionHandler
 from azurefunctions.agents.extensions.copilot_sdk import (
     AgentFunctionApp,
-    CopilotSessionOptions,
     apps,
 )
 
 
-def test_typed_api_exposes_only_v1_options():
+def test_api_exposes_extension_options_and_arbitrary_session_options():
     assert list(inspect.signature(AgentFunctionApp.__init__).parameters) == [
         "self",
         "model",
@@ -42,18 +40,6 @@ def test_typed_api_exposes_only_v1_options():
         .kind
         is inspect.Parameter.VAR_KEYWORD
     )
-    assert "streaming" in CopilotSessionOptions.__optional_keys__
-
-
-def test_typed_session_options_match_create_session():
-    top_level_options = {"self", "model", "on_permission_request", "provider", "tools"}
-    create_session_options = (
-        set(inspect.signature(CopilotClient.create_session).parameters)
-        - top_level_options
-    )
-
-    assert CopilotSessionOptions.__optional_keys__ <= create_session_options
-    assert CopilotSessionOptions.__extra_items__ is object
 
 
 def test_typed_agent_function_app_pins_copilot_provider(monkeypatch):
@@ -100,7 +86,7 @@ def test_agent_function_app_uses_function_app_directly():
     assert func.FunctionApp in AgentFunctionApp.__bases__
 
 
-def test_typed_markdown_agent_forwards_supported_overrides(monkeypatch):
+def test_typed_markdown_agent_forwards_arbitrary_session_options(monkeypatch):
     parent_decorator = Mock(return_value=object())
     monkeypatch.setattr(apps, "base_markdown_agent", parent_decorator)
     app = object.__new__(AgentFunctionApp)
@@ -112,7 +98,7 @@ def test_typed_markdown_agent_forwards_supported_overrides(monkeypatch):
         client_factory=factory,
         model="gpt-5",
         streaming=True,
-        reasoning_effort="high",
+        custom_session_option="value",
     )
 
     assert result is parent_decorator.return_value
@@ -126,7 +112,7 @@ def test_typed_markdown_agent_forwards_supported_overrides(monkeypatch):
     assert call.kwargs["model"] == "gpt-5"
     assert call.kwargs["session_options"] == {
         "streaming": True,
-        "reasoning_effort": "high",
+        "custom_session_option": "value",
     }
 
 

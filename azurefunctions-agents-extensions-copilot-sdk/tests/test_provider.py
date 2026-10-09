@@ -175,22 +175,27 @@ def test_binding_applies_sdk_provider():
     assert _Client.created[0].session_options["provider"] is sdk_provider
 
 
-def test_provider_rejects_unknown_create_session_override():
-    with pytest.raises(TypeError, match="Unsupported Copilot create_session option"):
-        _compile(session_options={"not_a_session_option": True})
-
-
-def test_provider_accepts_option_supported_by_installed_sdk(monkeypatch):
-    monkeypatch.setattr(
-        provider,
-        "_CREATE_SESSION_OPTIONS",
-        provider._CREATE_SESSION_OPTIONS | {"future_sdk_option"},
-    )
-    binding = _compile(session_options={"future_sdk_option": "value"})
+def test_provider_forwards_arbitrary_create_session_options():
+    custom_option = object()
+    binding = _compile(session_options={"custom_session_option": custom_option})
 
     asyncio.run(binding.run_agent("hello", InvocationMetadata()))
 
-    assert _Client.created[0].session_options["future_sdk_option"] == "value"
+    assert _Client.created[0].session_options["custom_session_option"] is custom_option
+
+
+def test_provider_defers_session_option_validation_to_client():
+    class RejectingClient(_Client):
+        async def create_session(self, **options):
+            raise TypeError("Copilot SDK rejected the session options")
+
+    binding = _compile(
+        client_factory=RejectingClient,
+        session_options={"custom_session_option": "value"},
+    )
+
+    with pytest.raises(TypeError, match="Copilot SDK rejected"):
+        asyncio.run(binding.run_agent("hello", InvocationMetadata()))
 
 
 def test_client_cache_is_safe_during_concurrent_first_use():
