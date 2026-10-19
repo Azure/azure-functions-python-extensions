@@ -19,10 +19,10 @@ The supported ServiceBus SDK types include:
 ## Getting started
 
 ### Prerequisites
-* Python 3.9 or later is required to use this package. For more details, please read our page on [Python Functions version support policy](https://learn.microsoft.com/en-us/azure/azure-functions/functions-versions?tabs=isolated-process%2Cv4&pivots=programming-language-python#languages).
+* Python 3.9 through 3.13 is required to use this package. Python 3.14 is not currently supported because `uamqp` does not publish Python 3.14 wheels. For more details, please read our page on [Python Functions version support policy](https://learn.microsoft.com/azure/azure-functions/functions-versions?tabs=isolated-process%2Cv4&pivots=programming-language-python#languages).
 
 * You must have an [Azure subscription](https://azure.microsoft.com/free/) and a
-[ServiceBus Resource](https://learn.microsoft.com/en-us/azure/azure-functions/functions-bindings-service-bus?tabs=isolated-process%2Cextensionv5%2Cextensionv3&pivots=programming-language-python) to use this package.
+[ServiceBus Resource](https://learn.microsoft.com/azure/azure-functions/functions-bindings-service-bus?tabs=isolated-process%2Cextensionv5%2Cextensionv3&pivots=programming-language-python) to use this package.
 
 ### Install the package
 Install the Azure Functions Extensions Bindings ServiceBus library for Python with pip:
@@ -85,17 +85,17 @@ Several samples are available in this GitHub repository. These samples provide e
     * From ServiceBus Queue Trigger (Single Message)
     * From ServiceBus Topic Trigger (Single Message)
 
-* [servicebus_samples_batch](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-bindings-servicebus/samples/service_samples_batch) - Examples for interacting with batches:
+* [servicebus_samples_batch](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-bindings-servicebus/samples/servicebus_samples_batch) - Examples for interacting with batches:
     * From ServiceBus Queue Trigger (Batch)
     * From ServiceBus Topic Trigger (Batch)
 
 
 ### Additional documentation
-For more information on the Azure ServiceBus SDK, see the [Azure ServiceBus SDK documentation](https://learn.microsoft.com/en-us/python/api/overview/azure/servicebus-readme?view=azure-python) on docs.microsoft.com
-and the [Azure ServiceBus README](https://github.com/Azure/azure-sdk-for-python/blob/azure-servicebus_7.14.1/sdk/servicebus/azure-servicebus/README.md).
+For more information on the Azure ServiceBus SDK, see the [Azure ServiceBus SDK documentation](https://learn.microsoft.com/python/api/overview/azure/servicebus-readme?view=azure-python) on Microsoft Learn
+and the [Azure ServiceBus README](https://github.com/Azure/azure-sdk-for-python/blob/main/sdk/servicebus/azure-servicebus/README.md).
 
 ## Contributing
-This project welcomes contributions and suggestions.  Most contributions require you to agree to a Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us the rights to use your contribution. For details, visit https://cla.microsoft.com.
+This project welcomes contributions and suggestions.  Most contributions require you to agree to a Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us the rights to use your contribution. For details, visit https://cla.opensource.microsoft.com.
 
 When you submit a pull request, a CLA-bot will automatically determine whether you need to provide a CLA and decorate the PR appropriately (e.g., label, comment). Simply follow the instructions provided by the bot. You will only need to do this once across all repos using our CLA.
 

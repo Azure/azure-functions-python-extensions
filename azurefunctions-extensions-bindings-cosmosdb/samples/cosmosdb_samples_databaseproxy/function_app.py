@@ -22,7 +22,7 @@ USAGE:
 
 
 @app.route(route="database")
-@app.cosmos_db_input(arg_name="container",
+@app.cosmos_db_input(arg_name="database",
                      connection="CosmosDBConnection",
                      database_name="db_name",
                      container_name=None)

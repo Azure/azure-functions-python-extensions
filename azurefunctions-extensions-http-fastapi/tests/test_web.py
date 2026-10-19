@@ -129,7 +129,7 @@ class TestWebServer(unittest.TestCase):
             serve  # Mock the serve method to return a CoroutineMock
         )
 
-        asyncio.get_event_loop().run_until_complete(self.web_server.serve())
+        asyncio.run(self.web_server.serve())
 
         config_mock.assert_called_once_with(
             self.test_app, host=self.hostname, port=self.port

@@ -7,6 +7,12 @@ jobs:
         base_extension:
           EXTENSION_DIRECTORY: 'azurefunctions-extensions-base'
           EXTENSION_NAME: 'Base'
+        agents_base_extension:
+          EXTENSION_DIRECTORY: 'azurefunctions-agents-extensions-base'
+          EXTENSION_NAME: 'Agents Base'
+        agents_framework_extension:
+          EXTENSION_DIRECTORY: 'azurefunctions-agents-extensions-agent-framework'
+          EXTENSION_NAME: 'Agents Framework'
         blob_extension:
           EXTENSION_DIRECTORY: 'azurefunctions-extensions-bindings-blob'
           EXTENSION_NAME: 'Blob'
@@ -16,9 +22,9 @@ jobs:
         eventhub_extension:
           EXTENSION_DIRECTORY: 'azurefunctions-extensions-bindings-eventhub'
           EXTENSION_NAME: 'EventHub'
-        # servicebus_extension:
-        #   EXTENSION_DIRECTORY: 'azurefunctions-extensions-bindings-servicebus'
-        #   EXTENSION_NAME: 'ServiceBus'
+        servicebus_extension:
+          EXTENSION_DIRECTORY: 'azurefunctions-extensions-bindings-servicebus'
+          EXTENSION_NAME: 'ServiceBus'
         fastapi_extension:
           EXTENSION_DIRECTORY: 'azurefunctions-extensions-http-fastapi'
           EXTENSION_NAME: 'Http'

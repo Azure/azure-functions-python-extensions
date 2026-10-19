@@ -1,0 +1,78 @@
+parameters:
+- name: folderLocation
+  type: string
+- name: owners
+  type: string
+- name: approvers
+  type: string
+- name: displayName
+  type: string
+  default: Publish Python package through ESRP
+
+steps:
+- pwsh: |
+    $ErrorActionPreference = 'Stop'
+
+    function Assert-ResolvedValue {
+      param(
+        [string] $Name,
+        [string] $Value
+      )
+
+      $value = "$Value".Trim()
+      if (!$value -or $value -match '^\$\([^)]+\)$') {
+        throw "$Name is empty or unresolved. Configure it in an authorized Azure DevOps variable group."
+      }
+
+      return $value
+    }
+
+    $folder = Assert-ResolvedValue 'folderLocation' $env:ESRP_FOLDER_LOCATION
+    if (!(Test-Path -LiteralPath $folder -PathType Container)) {
+      throw "ESRP Python package folder does not exist: $folder"
+    }
+
+    $ownersValue = Assert-ResolvedValue 'owners' $env:ESRP_OWNERS
+    $approversValue = Assert-ResolvedValue 'approvers' $env:ESRP_APPROVERS
+    $owners = @($ownersValue -split '[,\r\n]+' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+    $approvers = @($approversValue -split '[,\r\n]+' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+    $aliasPattern = '^[A-Za-z0-9][A-Za-z0-9._-]*@microsoft\.com$'
+
+    foreach ($entry in @($owners; $approvers)) {
+      if ($entry -notmatch $aliasPattern) {
+        throw "Owners and approvers must be individual Microsoft accounts in alias@microsoft.com format: $entry"
+      }
+    }
+
+    if ($owners.Count -eq 0 -or $approvers.Count -eq 0) {
+      throw 'At least one owner and one approver are required.'
+    }
+
+    $overlap = @($owners | Where-Object { $approvers -contains $_ })
+    if ($overlap.Count -gt 0) {
+      throw "Owners and approvers must be different individuals. Found in both lists: $($overlap -join ', ')"
+    }
+  displayName: Validate ESRP release configuration
+  env:
+    ESRP_FOLDER_LOCATION: ${{ parameters.folderLocation }}
+    ESRP_OWNERS: ${{ parameters.owners }}
+    ESRP_APPROVERS: ${{ parameters.approvers }}
+
+- task: SFP.release-tasks.custom-build-release-task.EsrpRelease@12
+  displayName: ${{ parameters.displayName }}
+  inputs:
+    connectedservicename: azfunc-internal-esrp-prod
+    usemanagedidentity: true
+    keyvaultname: kv-azfunc-esrp-prod
+    signcertname: esrp-release
+    clientid: a31bf239-3e15-498e-a335-f6ec0c9d9ccf
+    intent: PackageDistribution
+    contenttype: PyPI
+    contentsource: Folder
+    folderlocation: ${{ parameters.folderLocation }}
+    waitforreleasecompletion: true
+    owners: ${{ parameters.owners }}
+    approvers: ${{ parameters.approvers }}
+    serviceendpointurl: https://api.esrp.microsoft.com
+    mainpublisher: ESRPRELPACMAN
+    domaintenantid: 33e01921-4d64-4f8c-a055-5bdaffd5e33d

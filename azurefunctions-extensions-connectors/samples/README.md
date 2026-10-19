@@ -43,5 +43,5 @@ Demonstrates how to handle calendar event creation and modification actions. The
 
 ## Prerequisites
 
-- Python 3.13 or later
+- Python 3.10 or later
 - Azure Functions Core Tools

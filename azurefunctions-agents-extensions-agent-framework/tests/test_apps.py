@@ -1,0 +1,117 @@
+from __future__ import annotations
+
+import inspect
+from unittest.mock import Mock
+
+import azure.functions as func
+
+from azurefunctions.agents.extensions.agent_framework import AgentFunctionApp
+from azurefunctions.agents.extensions.agent_framework import apps
+
+
+def test_typed_api_exposes_only_v1_options():
+    assert list(inspect.signature(AgentFunctionApp.__init__).parameters) == [
+        "self",
+        "client_factory",
+        "app_root",
+        "tools",
+        "http_auth_level",
+    ]
+    assert list(inspect.signature(AgentFunctionApp.markdown_agent).parameters) == [
+        "self",
+        "arg_name",
+        "agent_name",
+        "client_factory",
+        "tools",
+    ]
+    assert list(
+        inspect.signature(AgentFunctionApp.orchestration_trigger).parameters
+    ) == [
+        "self",
+        "context_name",
+        "orchestration",
+        "input_type",
+    ]
+
+
+def test_typed_agent_function_app_pins_framework_provider(monkeypatch):
+    parent_init = Mock()
+    configure_app = Mock()
+    monkeypatch.setattr(func.FunctionApp, "__init__", parent_init)
+    monkeypatch.setattr(apps, "configure_app", configure_app)
+    factory = lambda: object()
+
+    app = AgentFunctionApp(
+        client_factory=factory,
+        app_root="app",
+        tools=["lookup"],
+    )
+
+    parent_init.assert_called_once_with(
+        http_auth_level=func.AuthLevel.FUNCTION,
+    )
+    configure_app.assert_called_once_with(
+        app,
+        provider="agent_framework",
+        app_root="app",
+        provider_options={"client_factory": factory, "tools": ["lookup"]},
+    )
+
+
+def test_agent_function_app_uses_function_app_directly():
+    assert func.FunctionApp in AgentFunctionApp.__bases__
+
+
+def test_typed_markdown_agent_forwards_supported_overrides(monkeypatch):
+    parent_decorator = Mock(return_value=object())
+    monkeypatch.setattr(apps, "base_markdown_agent", parent_decorator)
+    app = object.__new__(AgentFunctionApp)
+    factory = lambda: object()
+
+    result = app.markdown_agent(
+        arg_name="agent",
+        agent_name="orders",
+        client_factory=factory,
+        tools=["lookup"],
+    )
+
+    assert result is parent_decorator.return_value
+    parent_decorator.assert_called_once_with(
+        app,
+        provider="agent_framework",
+        arg_name="agent",
+        agent_name="orders",
+        client_factory=factory,
+        tools=["lookup"],
+    )
+
+
+def test_typed_orchestration_trigger_adds_agent_context(monkeypatch):
+    parent_decorator = Mock(return_value=object())
+    durable_decorator = Mock(return_value=object())
+    monkeypatch.setattr(
+        func.FunctionApp,
+        "orchestration_trigger",
+        parent_decorator,
+    )
+    monkeypatch.setattr(
+        apps,
+        "durable_orchestration_trigger",
+        durable_decorator,
+    )
+    app = object.__new__(AgentFunctionApp)
+
+    result = app.orchestration_trigger(
+        context_name="context",
+        orchestration="orders",
+        input_type=dict,
+    )
+
+    assert result is durable_decorator.return_value
+    durable_decorator.assert_called_once_with(
+        app,
+        sdk_decorator=parent_decorator,
+        context_name="context",
+        orchestration="orders",
+        input_type=dict,
+    )

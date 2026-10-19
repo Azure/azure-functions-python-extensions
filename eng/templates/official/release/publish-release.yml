@@ -13,10 +13,15 @@ parameters:
   - name: githubRepo
     type: string
     default: 'azure-functions-python-extensions'
-  - name: esrpMainPublisher
+  - name: esrpOwners
     type: string
-    default: 'azure-functions'
-    displayName: 'ESRP onboarding publisher name'
+    default: '$(EsrpOwners)'
+  - name: esrpApprovers
+    type: string
+    default: '$(EsrpApprovers)'
+  - name: esrpManualApprovers
+    type: string
+    default: '$(EsrpManualApprovers)'
 
 jobs:
   - job: CreateReleaseTag
@@ -218,8 +223,21 @@ jobs:
             1. Wait for all checks to pass at https://github.com/Azure/azure-functions-python-worker/pulls.
             2. Merge the PR into the worker dev branch.
 
-  - job: ESRPRelease
+  - job: ESRPApproval
     dependsOn: FinishWorkerPr
+    displayName: 'Approve PyPI release'
+    timeoutInMinutes: 1440
+    pool: server
+    steps:
+      - task: ManualValidation@1
+        inputs:
+          notifyUsers: ''
+          approvers: '${{ parameters.esrpManualApprovers }}'
+          allowApproversToApproveTheirOwnRuns: false
+          instructions: 'Approve publishing the Python package to PyPI through ESRP.'
+
+  - job: ESRPRelease
+    dependsOn: ESRPApproval
     displayName: 'Publish package to PyPI with ESRP'
     templateContext:
       type: releaseJob
@@ -289,21 +307,9 @@ jobs:
           Write-Host "  - $($sourceDistributions[0].Name)"
         displayName: 'Validate ESRP package contents'
 
-      - task: SFP.release-tasks.custom-build-release-task.EsrpRelease@9
-        displayName: 'ESRP Release ${{ parameters.extensionName }}'
-        inputs:
-          connectedservicename: 'azfunc-internal-esrp-prod'
-          usemanagedidentity: true
-          keyvaultname: 'kv-azfunc-esrp-prod'
-          signcertname: 'esrp-signing'
-          clientid: 'a31bf239-3e15-498e-a335-f6ec0c9d9ccf'
-          intent: 'PackageDistribution'
-          contenttype: 'PyPi'
-          contentsource: 'Folder'
-          folderlocation: '$(Pipeline.Workspace)/${{ parameters.artifactName }}/dist'
-          waitforreleasecompletion: true
-          owners: $(Build.RequestedForEmail)
-          approvers: $(Build.RequestedForEmail)
-          serviceendpointurl: 'https://api.esrp.microsoft.com'
-          mainpublisher: '${{ parameters.esrpMainPublisher }}'
-          domaintenantid: '33e01921-4d64-4f8c-a055-5bdaffd5e33d'
+      - template: /eng/templates/official/steps/publish-pypi-esrp.yml@self
+        parameters:
+          folderLocation: '$(Pipeline.Workspace)/${{ parameters.artifactName }}/dist'
+          owners: ${{ parameters.esrpOwners }}
+          approvers: ${{ parameters.esrpApprovers }}
+          displayName: 'ESRP Release ${{ parameters.extensionName }}'
