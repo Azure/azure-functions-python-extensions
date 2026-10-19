@@ -36,14 +36,14 @@ jobs:
           git clone --branch "${{ parameters.extensionName }}/release/${{ parameters.extensionVersion }}" --single-branch \
             "https://$(GithubUser):$(GithubPat)@github.com/${{ parameters.githubOrg }}/${{ parameters.githubRepo }}.git" .
         displayName: 'Checkout extension release branch'
-      - task: UsePythonVersion@0
-        inputs:
-          versionSpec: '${{ parameters.pythonVersion }}'
       - task: PipAuthenticate@1
         displayName: 'Pip Authenticate'
         inputs:
           artifactFeeds: public/upstream-public
           onlyAddExtraIndex: false
+      - task: UsePythonVersion@0
+        inputs:
+          versionSpec: '${{ parameters.pythonVersion }}'
       - bash: |
           python --version
           python -m pip install -U pip

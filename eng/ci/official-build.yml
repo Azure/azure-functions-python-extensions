@@ -4,7 +4,6 @@ trigger:
     include:
       - dev
       - release/*
-      - '*/release/*'
 
 # CI only, does not trigger on PRs.
 pr: none

@@ -155,6 +155,7 @@ jobs:
   - job: CreateWorkerPR
     dependsOn: CheckGitHubRelease
     displayName: 'Create PR in Worker Repo'
+    continueOnError: true
     steps:
       - pwsh: |
           $githubUser = "$(GithubUser)"
