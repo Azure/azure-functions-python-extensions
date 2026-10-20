@@ -86,6 +86,29 @@ def test_markdown_agent_injects_fresh_context_and_hides_parameter(tmp_path, prov
     assert provider.compiled.opened == provider.compiled.closed == 2
 
 
+@pytest.mark.parametrize("directory", ["", "agents"])
+def test_markdown_agent_accepts_plain_markdown_file(
+    tmp_path,
+    provider,
+    directory,
+):
+    instructions = "Use the order API."
+    parent = tmp_path / directory
+    parent.mkdir(exist_ok=True)
+    (parent / "orders.md").write_text(instructions, encoding="utf-8")
+
+    @bindings.markdown_agent(
+        func.FunctionApp(),
+        provider="agent_framework",
+        arg_name="agent",
+        agent_name="orders",
+    )
+    async def handler(agent: object) -> None:
+        pass
+
+    assert provider.compile_args["instructions"] == instructions
+
+
 def test_markdown_agent_logs_provider_usage(tmp_path, provider, caplog):
     (tmp_path / "orders.agent.md").write_text("instructions", encoding="utf-8")
     app = func.FunctionApp()
@@ -179,7 +202,7 @@ def test_markdown_agent_closes_context_when_handler_is_cancelled(tmp_path, provi
 def test_markdown_agent_rejects_ambiguous_files(tmp_path, provider):
     (tmp_path / "agents").mkdir()
     (tmp_path / "orders.agent.md").write_text("root", encoding="utf-8")
-    (tmp_path / "agents" / "orders.agent.md").write_text("nested", encoding="utf-8")
+    (tmp_path / "agents" / "orders.md").write_text("nested", encoding="utf-8")
 
     with pytest.raises(ValueError, match="ambiguous"):
 
