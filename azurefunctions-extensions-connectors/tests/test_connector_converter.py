@@ -232,6 +232,77 @@ class TestConnectorConverter(unittest.TestCase):
         self.assertEqual(len(messages), 1)
         self.assertEqual(messages[0].id, "message-1")
 
+    def test_decode_record_body_is_not_callback_envelope(self):
+        """Preserve a record's own body in direct and wrapped payloads."""
+        for body in ("Hello", None, {"contentType": "text", "content": "Hello"}):
+            record = {"id": "message-1", "subject": "Test", "body": body}
+            for payload in (record, {"body": record}):
+                for value in (payload, json.dumps(payload)):
+                    with self.subTest(body=body, value=value):
+                        messages = ConnectorConverter.decode(
+                            data=Datum(value=value, type="json"),
+                            trigger_metadata=None,
+                            pytype=List[ClientReceiveMessage],
+                        )
+
+                        self.assertEqual(len(messages), 1)
+                        self.assertEqual(messages[0].id, record["id"])
+                        self.assertEqual(messages[0].subject, record["subject"])
+                        self.assertEqual(messages[0].body, body)
+
+    def test_decode_polling_records_preserve_body(self):
+        """Poll collections preserve direct and wrapped record bodies."""
+        records = [
+            {"id": "message-1", "body": "Hello"},
+            {"id": "message-2", "body": None},
+            {"id": "message-3", "body": {"content": "Hello"}},
+        ]
+        for wrapped in (False, True):
+            for data_type in ("collection_string", "collection_bytes"):
+                events = [
+                    json.dumps({"body": record} if wrapped else record)
+                    for record in records
+                ]
+                collection = (
+                    SimpleNamespace(string=events)
+                    if data_type == "collection_string"
+                    else SimpleNamespace(bytes=[event.encode() for event in events])
+                )
+                with self.subTest(wrapped=wrapped, data_type=data_type):
+                    messages = ConnectorConverter.decode(
+                        data=Datum(value=collection, type=data_type),
+                        trigger_metadata=None,
+                        pytype=List[ClientReceiveMessage],
+                    )
+
+                    self.assertEqual(
+                        [(message.id, message.body) for message in messages],
+                        [(record["id"], record["body"]) for record in records],
+                    )
+
+    def test_decode_null_callback_body(self):
+        """A null callback body still contains no records."""
+        messages = ConnectorConverter.decode(
+            data=Datum(value={"body": None}, type="json"),
+            trigger_metadata=None,
+            pytype=List[ClientReceiveMessage],
+        )
+
+        self.assertEqual(messages, [])
+
+    def test_decode_invalid_callback_body(self):
+        """A callback body must still be an object or null."""
+        for body in ("Hello", []):
+            with self.subTest(body=body):
+                with self.assertRaisesRegex(
+                    ValueError, "Connector payload body must contain a JSON object",
+                ):
+                    ConnectorConverter.decode(
+                        data=Datum(value={"body": body}, type="json"),
+                        trigger_metadata=None,
+                        pytype=List[ClientReceiveMessage],
+                    )
+
     def test_decode_polling_email_collection(self):
         """Deserialize each Poll MANY event, including nested source batches."""
         events = [

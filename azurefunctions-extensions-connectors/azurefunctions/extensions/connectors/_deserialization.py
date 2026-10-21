@@ -98,7 +98,7 @@ def deserialize_model(
 
 
 def parse_payload(data: Datum) -> list[dict[str, Any]]:
-    """Normalize a connector callback into a list of item dictionaries."""
+    """Normalize direct records or callbacks with a sole outer body property."""
     if data.type in ("collection_string", "collection_bytes"):
         return [
             item
@@ -116,7 +116,7 @@ def parse_payload(data: Datum) -> list[dict[str, Any]]:
     if not isinstance(payload, dict):
         raise ValueError("Connector payload must contain a JSON object.")
 
-    body = payload.get("body", payload)
+    body = payload["body"] if set(payload) == {"body"} else payload
     if body is None:
         return []
     if not isinstance(body, dict):
