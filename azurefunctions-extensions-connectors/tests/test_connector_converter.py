@@ -1,9 +1,12 @@
 #  Copyright (c) Microsoft Corporation. All rights reserved.
 #  Licensed under the MIT License.
 
+import json
 import unittest
+from types import SimpleNamespace
 from typing import List
 
+from azure.connectors.office365 import GraphCalendarEventClientWithActionType
 from azurefunctions.extensions.base import Datum
 from azurefunctions.extensions.connectors._sdk_type import ConnectorSdkType
 from azurefunctions.extensions.connectors.office365 import (
@@ -172,6 +175,149 @@ class TestConnectorConverter(unittest.TestCase):
         )
 
         self.assertEqual(result, "future-connector-value")
+
+    def test_decode_email_batch_with_metadata(self):
+        """Preserve batch records when the envelope includes OData metadata."""
+        body = {
+            "@odata.context": "https://example.test/messages",
+            "@odata.nextLink": "https://example.test/messages?skip=2",
+            "value": [
+                {"id": "message-1", "subject": "First", "importance": "high"},
+                {"id": "message-2", "subject": "Second", "importance": "low"},
+            ],
+        }
+        for payload in (body, {"body": body}, json.dumps({"body": body})):
+            with self.subTest(payload=payload):
+                messages = ConnectorConverter.decode(
+                    data=Datum(value=payload, type="json"),
+                    trigger_metadata=None,
+                    pytype=List[ClientReceiveMessage],
+                )
+
+                self.assertEqual(len(messages), 2)
+                self.assertEqual(
+                    [(message.id, message.subject, message.importance)
+                     for message in messages],
+                    [("message-1", "First", 2), ("message-2", "Second", 0)],
+                )
+
+    def test_decode_empty_email_batch_with_metadata(self):
+        """An empty or null batch with metadata contains no messages."""
+        for value in ([], None):
+            with self.subTest(value=value):
+                messages = ConnectorConverter.decode(
+                    data=Datum(
+                        value={"body": {
+                            "@odata.context": "messages", "value": value,
+                        }},
+                        type="json",
+                    ),
+                    trigger_metadata=None,
+                    pytype=List[ClientReceiveMessage],
+                )
+
+                self.assertEqual(messages, [])
+
+    def test_decode_single_email_with_scalar_value(self):
+        """A scalar value property does not turn a message into a batch."""
+        messages = ConnectorConverter.decode(
+            data=Datum(
+                value={"body": {"id": "message-1", "value": "custom-value"}},
+                type="json",
+            ),
+            trigger_metadata=None,
+            pytype=List[ClientReceiveMessage],
+        )
+
+        self.assertEqual(len(messages), 1)
+        self.assertEqual(messages[0].id, "message-1")
+
+    def test_decode_polling_email_collection(self):
+        """Deserialize each Poll MANY event, including nested source batches."""
+        events = [
+            json.dumps({"body": {"id": "message-1", "subject": "First"}}),
+            json.dumps({"body": {
+                "@odata.context": "messages",
+                "value": [
+                    {"id": "message-2", "subject": "Second"},
+                    {"id": "message-3", "subject": "Third"},
+                ],
+            }}),
+        ]
+        for data_type, collection in (
+            ("collection_string", SimpleNamespace(string=events)),
+            ("collection_bytes", SimpleNamespace(
+                bytes=[event.encode("utf-8") for event in events],
+            )),
+        ):
+            with self.subTest(data_type=data_type):
+                messages = ConnectorConverter.decode(
+                    data=Datum(value=collection, type=data_type),
+                    trigger_metadata=None,
+                    pytype=List[ClientReceiveMessage],
+                )
+
+                self.assertEqual(
+                    [(message.id, message.subject) for message in messages],
+                    [("message-1", "First"), ("message-2", "Second"),
+                     ("message-3", "Third")],
+                )
+
+    def test_decode_empty_polling_email_collection(self):
+        """An empty transport collection contains no messages."""
+        messages = ConnectorConverter.decode(
+            data=Datum(
+                value=SimpleNamespace(string=[]), type="collection_string",
+            ),
+            trigger_metadata=None,
+            pytype=List[ClientReceiveMessage],
+        )
+
+        self.assertEqual(messages, [])
+
+    def test_decode_changed_calendar_events_returns_list(self):
+        """Keep changed events indexable and iterable for shipped handlers."""
+        events = [
+            {"id": "event-1", "subject": "Planning",
+             "actionType": "added", "isAdded": True},
+            {"id": "event-2", "subject": "Review",
+             "actionType": "updated", "isUpdated": True},
+        ]
+        for annotation in (
+            GraphCalendarEventListWithActionType,
+            List[GraphCalendarEventListWithActionType],
+            list[GraphCalendarEventListWithActionType],
+        ):
+            for items in (events[:1], events, []):
+                payloads = [
+                    {"body": {"@odata.context": "calendar", "value": items}},
+                ]
+                if len(items) == 1:
+                    payloads.append({"body": items[0]})
+                for payload in payloads:
+                    with self.subTest(annotation=annotation, payload=payload):
+                        result = ConnectorConverter.decode(
+                            data=Datum(value=json.dumps(payload), type="json"),
+                            trigger_metadata=None,
+                            pytype=annotation,
+                        )
+
+                        self.assertIsInstance(result, list)
+                        self.assertEqual(len(result), len(items))
+                        for event in result:
+                            self.assertIsInstance(
+                                event, GraphCalendarEventClientWithActionType,
+                            )
+                        self.assertEqual(
+                            [(event.id, event.subject, event.action_type)
+                             for event in result],
+                            [(item["id"], item["subject"], item["actionType"])
+                             for item in items],
+                        )
+                        if items:
+                            self.assertTrue(result[0].is_added)
+                        if len(items) == 2:
+                            self.assertTrue(result[1].is_updated)
 
 
 if __name__ == "__main__":

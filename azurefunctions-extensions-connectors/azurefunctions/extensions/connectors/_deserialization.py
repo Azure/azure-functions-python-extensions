@@ -99,8 +99,15 @@ def deserialize_model(
 
 def parse_payload(data: Datum) -> list[dict[str, Any]]:
     """Normalize a connector callback into a list of item dictionaries."""
+    if data.type in ("collection_string", "collection_bytes"):
+        return [
+            item
+            for event in data.python_value
+            for item in parse_payload(Datum(value=event, type="json"))
+        ]
+
     payload: Any = data.value
-    if isinstance(payload, str):
+    if isinstance(payload, (str, bytes, bytearray)):
         try:
             payload = json.loads(payload)
         except json.JSONDecodeError as error:
@@ -115,7 +122,7 @@ def parse_payload(data: Datum) -> list[dict[str, Any]]:
     if not isinstance(body, dict):
         raise ValueError("Connector payload body must contain a JSON object.")
 
-    if set(body) == {"value"} and (
+    if "value" in body and (
         body["value"] is None or isinstance(body["value"], list)
     ):
         raw_items = body["value"] or []

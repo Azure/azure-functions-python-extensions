@@ -11,7 +11,6 @@ from azure.connectors.office365 import (
     ClientReceiveMessage,
     GraphCalendarEventClientReceive,
     GraphCalendarEventClientWithActionType,
-    GraphCalendarEventListWithActionType,
     GraphClientReceiveMessage,
 )
 from azurefunctions.extensions.base import Datum
@@ -72,10 +71,9 @@ def deserialize_graph_calendar_events(
 
 def deserialize_graph_calendar_events_with_action_type(
     data: Datum,
-) -> GraphCalendarEventListWithActionType:
-    """Deserialize changed calendar events into their generated list wrapper."""
-    events = [
+) -> list[GraphCalendarEventClientWithActionType]:
+    """Deserialize changed calendar events into a list for trigger handlers."""
+    return [
         deserialize_model(GraphCalendarEventClientWithActionType, item)
         for item in parse_payload(data)
     ]
-    return GraphCalendarEventListWithActionType(value=events)
