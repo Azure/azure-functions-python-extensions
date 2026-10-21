@@ -12,7 +12,7 @@ in the library's project folder.
 
 ### Prerequisites
 
-A supported Python version is required - see 
+A supported Python version is required - see
 [Python Functions version support policy](https://learn.microsoft.com/azure/azure-functions/functions-versions?tabs=isolated-process%2Cv4&pivots=programming-language-python#languages) for more information.
 
 ## Available extensions

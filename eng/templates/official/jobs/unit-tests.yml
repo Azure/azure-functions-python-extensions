@@ -103,7 +103,8 @@ jobs:
     dependsOn: []
     strategy:
       matrix: ${{ parameters.python_versions }}
-    condition: always()
+    # Secret variables are unavailable to pull requests from forks.
+    condition: ne(variables['System.PullRequest.IsFork'], 'True')
     steps:
       - task: PipAuthenticate@1
         displayName: 'Pip Authenticate'
