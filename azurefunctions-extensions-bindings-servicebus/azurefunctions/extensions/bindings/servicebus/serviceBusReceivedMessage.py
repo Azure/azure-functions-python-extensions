@@ -3,7 +3,9 @@
 
 from azure.servicebus import ServiceBusReceivedMessage as ServiceBusReceivedMessageSdk
 from azurefunctions.extensions.base import Datum, SdkType
-from .utils import get_decoded_message
+
+
+_LOCK_TOKEN_LENGTH = 16
 
 
 class ServiceBusReceivedMessage(SdkType, ServiceBusReceivedMessageSdk):
@@ -14,20 +16,20 @@ class ServiceBusReceivedMessage(SdkType, ServiceBusReceivedMessageSdk):
         self._source = None
         self._content_type = None
         self._content = None
-        self._decoded_message = None
         if self._data:
             self._version = data.version
             self._source = data.source
             self._content_type = data.content_type
             self._content = data.content
-            self._decoded_message = get_decoded_message(self._content)
 
     def get_sdk_type(self):
         """
-        Returns a ServiceBusReceivedMessage.
-        Message settling is not yet supported.
+        Returns a receiver-less ServiceBusReceivedMessage containing the
+        message content and broker metadata.
         """
-        if self._decoded_message:
-            return ServiceBusReceivedMessageSdk(self._decoded_message, receiver=None)
+        if self._content:
+            return ServiceBusReceivedMessageSdk.from_bytes(
+                self._content[_LOCK_TOKEN_LENGTH:]
+            )
         else:
             return None
