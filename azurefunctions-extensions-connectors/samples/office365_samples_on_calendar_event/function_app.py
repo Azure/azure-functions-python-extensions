@@ -17,14 +17,14 @@ FOLDER: office365_samples_on_calendar_event
 DESCRIPTION:
     These samples demonstrate how to handle the "When an event is added,
     updated or deleted" action from an Office365 Connector Trigger. The
-    GraphCalendarEventListWithActionType type is the rich payload returned
+    GraphCalendarEventClientWithActionType type is the rich payload returned
     when a calendar event is added, updated, or deleted.
 """
 
 
 @app.connector_trigger(arg_name="event")
 def office365_on_calendar_event_single(
-    event: List[office365.GraphCalendarEventListWithActionType]
+    event: List[office365.GraphCalendarEventClientWithActionType]
 ):
     """
     Single event processing - splitOn enabled
@@ -39,7 +39,7 @@ def office365_on_calendar_event_single(
 
 @app.connector_trigger(arg_name="events")
 def office365_on_calendar_event_batch(
-    events: List[office365.GraphCalendarEventListWithActionType]
+    events: List[office365.GraphCalendarEventClientWithActionType]
 ):
     """
     Batch event processing - splitOn disabled

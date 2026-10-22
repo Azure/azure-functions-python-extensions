@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import types
+from collections.abc import Mapping
 from dataclasses import Field, fields, is_dataclass
 from typing import Any, Callable, TypeVar, Union, get_args, get_origin, get_type_hints
 
@@ -53,6 +54,18 @@ def _deserialize_value(annotation: Any, value: Any) -> Any:
         ]
         if len(non_none_types) == 1:
             return _deserialize_value(non_none_types[0], value)
+
+        if isinstance(value, dict):
+            model_types = [
+                item_type for item_type in non_none_types
+                if isinstance(item_type, type) and is_dataclass(item_type)
+            ]
+            if len(model_types) == 1 and all(
+                item_type is model_types[0]
+                or (get_origin(item_type) or item_type) in (dict, Mapping)
+                for item_type in non_none_types
+            ):
+                return _deserialize_value(model_types[0], value)
 
     if origin is list:
         item_types = get_args(annotation)
