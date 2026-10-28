@@ -71,9 +71,13 @@ def deserialize_graph_calendar_events(
 
 def deserialize_graph_calendar_events_with_action_type(
     data: Datum,
+    *,
+    reject_malformed_members: bool = False,
 ) -> list[GraphCalendarEventClientWithActionType]:
     """Deserialize changed calendar events into a list for trigger handlers."""
     return [
         deserialize_model(GraphCalendarEventClientWithActionType, item)
-        for item in parse_payload(data)
+        for item in parse_payload(
+            data, reject_malformed_members=reject_malformed_members,
+        )
     ]

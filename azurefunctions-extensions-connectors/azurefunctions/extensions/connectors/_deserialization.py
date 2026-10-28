@@ -110,13 +110,20 @@ def deserialize_model(
     return model_type(**values)
 
 
-def parse_payload(data: Datum) -> list[dict[str, Any]]:
+def parse_payload(
+    data: Datum,
+    *,
+    reject_malformed_members: bool = False,
+) -> list[dict[str, Any]]:
     """Normalize direct records or callbacks with a sole outer body property."""
     if data.type in ("collection_string", "collection_bytes"):
         return [
             item
             for event in data.python_value
-            for item in parse_payload(Datum(value=event, type="json"))
+            for item in parse_payload(
+                Datum(value=event, type="json"),
+                reject_malformed_members=reject_malformed_members,
+            )
         ]
 
     payload: Any = data.value
@@ -141,5 +148,10 @@ def parse_payload(data: Datum) -> list[dict[str, Any]]:
         raw_items = body["value"] or []
     else:
         raw_items = [body]
+
+    if reject_malformed_members and any(
+        not isinstance(item, dict) for item in raw_items
+    ):
+        raise ValueError("Each connector batch item must contain a JSON object.")
 
     return [item for item in raw_items if isinstance(item, dict)]

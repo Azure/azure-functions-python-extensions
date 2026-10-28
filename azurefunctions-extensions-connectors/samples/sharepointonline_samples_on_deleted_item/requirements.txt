@@ -1,2 +1,2 @@
-azure-functions>=2.2.0b4
+azure-functions
 azurefunctions-extensions-connectors

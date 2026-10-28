@@ -9,17 +9,11 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+import azure.connectors.visualstudioteamservices as models
+import azurefunctions.extensions.connectors.visualstudioteamservices as devops
 from azurefunctions.extensions.base import Datum
 
-SDK_AVAILABLE = importlib.util.find_spec(
-    "azure.connectors.visualstudioteamservices"
-) is not None
-if SDK_AVAILABLE:
-    import azure.connectors.visualstudioteamservices as models
-    import azurefunctions.extensions.connectors.visualstudioteamservices as devops
 
-
-@unittest.skipUnless(SDK_AVAILABLE, "Azure DevOps sample requires SDK main.")
 class TestDevOpsSample(unittest.TestCase):
     """Keep the sample annotations, return contracts, and count-only logs usable."""
 
@@ -121,14 +115,10 @@ class TestDevOpsSample(unittest.TestCase):
                     else:
                         self.assertEqual(log.call_count, 1)
 
-    def test_configuration_pins_sdk_source_containing_required_models(self):
-        """Do not suggest that the published SDK 0.5.0b1 already has this connector."""
+    def test_configuration_uses_sdk_package_and_local_runtime_settings(self):
+        """Use the SDK package with the experimental bundle and local storage."""
         requirements = (self.sample_root / "requirements.txt").read_text()
-        self.assertIn(
-            "azure-connectors @ git+https://github.com/Azure/connectors-python-sdk.git"
-            "@5e93a98c11a9eec43c4d3bbf441333b80d9ac7cb#subdirectory=src",
-            requirements,
-        )
+        self.assertIn("azure-connectors", requirements.splitlines())
         host = json.loads((self.sample_root / "host.json").read_text())
         self.assertEqual(host["extensionBundle"]["id"],
                          "Microsoft.Azure.Functions.ExtensionBundle.Experimental")

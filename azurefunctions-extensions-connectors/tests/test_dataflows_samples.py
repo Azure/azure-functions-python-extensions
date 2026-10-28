@@ -9,15 +9,11 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+import azure.connectors.dataflows as models
+import azurefunctions.extensions.connectors.dataflows as dataflows
 from azurefunctions.extensions.base import Datum
 
-SDK_AVAILABLE = importlib.util.find_spec("azure.connectors.dataflows") is not None
-if SDK_AVAILABLE:
-    import azure.connectors.dataflows as models
-    import azurefunctions.extensions.connectors.dataflows as dataflows
 
-
-@unittest.skipUnless(SDK_AVAILABLE, "Dataflows sample requires SDK main.")
 class TestDataflowsSample(unittest.TestCase):
     """Exercise the actual sample handler with generated refresh objects."""
 
@@ -77,14 +73,10 @@ class TestDataflowsSample(unittest.TestCase):
                 ])
                 self.assertNotIn("synthetic-id", str(log.call_args_list))
 
-    def test_configuration_pins_sdk_source_containing_dataflows(self):
-        """The published 0.5.0b1 wheel does not contain the new SDK module."""
+    def test_configuration_uses_sdk_package_and_local_runtime_settings(self):
+        """Use the SDK package with the experimental bundle and local storage."""
         requirements = (self.sample_root / "requirements.txt").read_text()
-        self.assertIn(
-            "azure-connectors @ git+https://github.com/Azure/connectors-python-sdk.git"
-            "@116d96fa55473217f8e50a11ee523c9b38854bf9#subdirectory=src",
-            requirements,
-        )
+        self.assertIn("azure-connectors", requirements.splitlines())
         host = json.loads((self.sample_root / "host.json").read_text())
         self.assertEqual(host["extensionBundle"]["id"],
                          "Microsoft.Azure.Functions.ExtensionBundle.Experimental")

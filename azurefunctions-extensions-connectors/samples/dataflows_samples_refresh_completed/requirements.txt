@@ -1,3 +1,3 @@
-azure-functions>=2.2.0b4
+azure-functions
 azurefunctions-extensions-connectors
-azure-connectors @ git+https://github.com/Azure/connectors-python-sdk.git@116d96fa55473217f8e50a11ee523c9b38854bf9#subdirectory=src
+azure-connectors

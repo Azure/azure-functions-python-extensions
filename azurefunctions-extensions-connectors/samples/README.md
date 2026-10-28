@@ -58,8 +58,7 @@ Start Azurite for the development-storage setting before running locally.
 ### sharepointonline_samples_on_new_item
 
 Demonstrates `GetOnNewItems` with `List[sharepointonline.Item]`. The same type
-works for the other list-item and file-property operations in the
-[trigger mapping](../docs/trigger-sdk-type-mapping.md#sharepoint-online).
+works for the other list-item and file-property operations.
 Read custom columns through `item.dynamic_properties`; values retain their JSON
 types and exact field names.
 
@@ -110,8 +109,7 @@ of member dictionaries. The four handlers cover `OnNewChannelMessage`,
 
 ### teams_samples_webhooks
 
-Contains one handler for each of the seven webhook operations in the
-[Teams mapping](../docs/trigger-sdk-type-mapping.md#microsoft-teams). Each returns
+Contains one handler for each of the seven Teams webhook operations. Each returns
 a list of SDK notification models. Chat notifications retain their `value`
 reference arrays; dynamic notifications expose raw JSON through
 `additional_properties`. Recording and transcript handlers receive metadata and
@@ -203,14 +201,6 @@ pushes, pull-request creation and closure, TFVC check-ins, and V2 work-item
 assignment, creation, closure, and updates. Every handler receives a list of SDK
 items, not a `VstsList...` response envelope.
 
-**SDK prerequisite:** the published `azure-connectors==0.5.0b1` does not contain
-this connector. The sample requirements pin [SDK main revision 5e93a98](https://github.com/Azure/connectors-python-sdk/commit/5e93a98c11a9eec43c4d3bbf441333b80d9ac7cb)
-through a Git source dependency. Install those requirements and the extension
-from this checkout until releases contain both changes. A version-only check
-cannot distinguish the released SDK from the new source, which currently has
-the same package version. Tests for these bindings skip when the SDK module is
-absent; run them against this source revision to validate Azure DevOps support.
-
 Register each trigger separately with `account` and `project`. Git triggers also
 require `repository`; `OnWorkItemAssignedV2` also requires `team` and
 `wiql__System_AssignedTo`. Select the intended handler and configure split-on in
@@ -241,14 +231,6 @@ Register the trigger with `workspaceType`, `groupIdForOnRefreshComplete`, and
 separate setup steps. The handler logs only completion and failure counts, not
 dataflow names or identifiers. `Failed` and `Cancelled` refreshes are valid
 callback records; dates remain nullable SDK strings.
-
-**SDK prerequisite:** published `azure-connectors==0.5.0b1` lacks `dataflows`.
-The sample requirements pin [SDK main revision 116d96f](https://github.com/Azure/connectors-python-sdk/commit/116d96fa55473217f8e50a11ee523c9b38854bf9)
-as a Git source dependency. Install those requirements and the extension from
-this checkout until releases contain both changes. A version-only check cannot
-distinguish the old wheel from the new source, which has the same package version.
-New Dataflows tests skip when the SDK module is absent; run them against this
-source revision to validate the binding.
 
 The sample keeps the existing experimental connector bundle and development
 storage settings; start Azurite before local use. Tests index and execute the

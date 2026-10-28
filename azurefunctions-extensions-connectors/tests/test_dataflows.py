@@ -4,49 +4,17 @@
 """Synthetic Dataflows refresh callbacks against the generated SDK model."""
 
 import copy
-import importlib.util
 import json
-import subprocess
-import sys
 import unittest
 from dataclasses import fields
 from types import SimpleNamespace
 from typing import List
 
+import azure.connectors.dataflows as models
+import azurefunctions.extensions.connectors.dataflows as dataflows
 from azurefunctions.extensions.base import Datum
 
-SDK_AVAILABLE = importlib.util.find_spec("azure.connectors.dataflows") is not None
-if SDK_AVAILABLE:
-    import azure.connectors.dataflows as models
-    import azurefunctions.extensions.connectors.dataflows as dataflows
 
-
-class TestDataflowsSdkAvailability(unittest.TestCase):
-    """Keep the new SDK prerequisite isolated to the Dataflows namespace."""
-
-    def test_missing_dataflows_sdk_has_actionable_error(self):
-        """Do not prevent older connector imports when the new module is absent."""
-        result = subprocess.run(
-            [sys.executable, "-c", """
-import sys
-sys.modules['azure.connectors.dataflows'] = None
-import azurefunctions.extensions.connectors.salesforce
-try:
-    import azurefunctions.extensions.connectors.dataflows
-except ImportError as error:
-    assert 'Dataflows bindings require' in str(error), str(error)
-    assert 'azure.connectors.dataflows' in str(error), str(error)
-    assert 'SDK main' in str(error), str(error)
-else:
-    raise AssertionError('Expected a missing Dataflows SDK prerequisite.')
-import azurefunctions.extensions.connectors.planner
-"""],
-            capture_output=True, text=True,
-        )
-        self.assertEqual(result.returncode, 0, result.stderr)
-
-
-@unittest.skipUnless(SDK_AVAILABLE, "Dataflows bindings require SDK main (see sample).")
 class TestDataflowsBindings(unittest.TestCase):
     """Keep refresh item fields, wire names, and transport cardinality intact."""
 

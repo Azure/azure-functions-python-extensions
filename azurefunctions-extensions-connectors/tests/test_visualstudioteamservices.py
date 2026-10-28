@@ -4,54 +4,17 @@
 """Synthetic Azure DevOps polling callbacks against the generated SDK models."""
 
 import copy
-import importlib.util
 import json
-import subprocess
-import sys
 import unittest
 from dataclasses import fields
 from types import SimpleNamespace
 from typing import List
 
+import azure.connectors.visualstudioteamservices as models
+import azurefunctions.extensions.connectors.visualstudioteamservices as devops
 from azurefunctions.extensions.base import Datum
 
-SDK_AVAILABLE = importlib.util.find_spec(
-    "azure.connectors.visualstudioteamservices"
-) is not None
-if SDK_AVAILABLE:
-    import azure.connectors.visualstudioteamservices as models
-    import azurefunctions.extensions.connectors.visualstudioteamservices as devops
 
-
-class TestDevOpsSdkAvailability(unittest.TestCase):
-    """Keep old connectors usable when the optional new SDK module is absent."""
-
-    def test_missing_devops_sdk_has_actionable_error(self):
-        """Fail only the new namespace import, with its SDK prerequisite named."""
-        result = subprocess.run(
-            [sys.executable, "-c", """
-import sys
-sys.modules['azure.connectors.visualstudioteamservices'] = None
-import azurefunctions.extensions.connectors.salesforce
-try:
-    import azurefunctions.extensions.connectors.visualstudioteamservices
-except ImportError as error:
-    assert 'Azure DevOps bindings require' in str(error), str(error)
-    assert 'azure.connectors.visualstudioteamservices' in str(error), str(error)
-    assert 'SDK main' in str(error), str(error)
-else:
-    raise AssertionError('Expected a missing SDK module error.')
-import azurefunctions.extensions.connectors.planner
-"""],
-            capture_output=True, text=True,
-        )
-        self.assertEqual(result.returncode, 0, result.stderr)
-
-
-@unittest.skipUnless(
-    SDK_AVAILABLE,
-    "Azure DevOps requires SDK main with visualstudioteamservices (see samples).",
-)
 class TestDevOpsBindings(unittest.TestCase):
     """Verify item identity, nested types, custom fields, and source batches."""
 

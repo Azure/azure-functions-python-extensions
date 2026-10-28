@@ -158,6 +158,45 @@ class TestOffice365TriggerBindings(unittest.TestCase):
                         data=data,
                     ).get_sdk_type()
 
+    def test_changed_calendar_binding_rejects_malformed_batch_members(self):
+        """Reject whole batches instead of silently dropping malformed members."""
+        record = {"id": "event-1", "ActionType": "added"}
+        for invalid in (None, False, 0, "invalid", [], [record]):
+            for members in ([record, invalid], [invalid, record], [invalid]):
+                for payload in ({"value": members}, {"body": {"value": members}}):
+                    for value in (payload, json.dumps(payload),
+                                  json.dumps(payload).encode("utf-8")):
+                        with self.subTest(invalid=invalid, value=value):
+                            with self.assertRaisesRegex(ValueError, "batch item"):
+                                ConnectorConverter.decode(
+                                    data=Datum(value=value, type="json"),
+                                    trigger_metadata=None,
+                                    pytype=List[GraphCalendarEventClientWithActionType],
+                                )
+
+    def test_changed_calendar_binding_rejects_malformed_poll_many_members(self):
+        """Apply strict validation inside every transport collection event."""
+        events = [json.dumps({"id": "event-1"}),
+                  json.dumps({"body": {"value": [{"id": "event-2"}, None]}})]
+        for data_type, collection in (
+            ("collection_string", SimpleNamespace(string=events)),
+            ("collection_bytes", SimpleNamespace(
+                bytes=[event.encode("utf-8") for event in events],
+            )),
+        ):
+            with self.subTest(data_type=data_type):
+                with self.assertRaisesRegex(ValueError, "batch item"):
+                    GraphCalendarEventClientWithActionType(
+                        data=Datum(value=collection, type=data_type),
+                    ).get_sdk_type()
+
+    def test_legacy_calendar_wrapper_keeps_malformed_member_filtering(self):
+        """Preserve the legacy wrapper's filtering for existing applications."""
+        events = GraphCalendarEventListWithActionType(data=Datum(
+            value={"body": {"value": [{"id": "event-1"}, None]}}, type="json",
+        )).get_sdk_type()
+        self.assertEqual([event.id for event in events], ["event-1"])
+
     def test_modern_trigger_operations_use_the_expected_item_bindings(self):
         """Cover the eight current SDK operations with their shared item types."""
         operation_groups = (

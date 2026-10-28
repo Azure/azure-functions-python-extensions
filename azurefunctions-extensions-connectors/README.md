@@ -13,8 +13,8 @@ Supported connectors:
 * Dataverse (the `commondataservice` connector)
 * Planner
 * Salesforce
-* Azure DevOps (requires an SDK build containing `visualstudioteamservices`)
-* Power Query Dataflows (requires an SDK build containing `dataflows`)
+* Azure DevOps
+* Power Query Dataflows
 
 [Source code](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-connectors)
 | [Package (PyPI)](https://pypi.org/project/azurefunctions-extensions-connectors/)
@@ -69,13 +69,12 @@ SDK items with the selected object's fields in `dynamic_properties`. See the
 Azure DevOps handlers import `BuildResult`, `GitPush`, `GitPullRequest`,
 `TfvcChangeset`, or `TriggerWorkItemResponse` from
 `azurefunctions.extensions.connectors.visualstudioteamservices`. See the
-[Azure DevOps sample](samples/README.md#azure-devops-sample) for the SDK source
-prerequisite; the published `azure-connectors==0.5.0b1` lacks this connector.
+[Azure DevOps sample](samples/README.md#azure-devops-sample).
 
 Dataflows handlers import `RefreshModel` from
 `azurefunctions.extensions.connectors.dataflows`. The binding returns SDK refresh
 records for `OnRefreshComplete`. See the
-[Dataflows sample](samples/README.md#dataflows-sample) for its SDK source prerequisite.
+[Dataflows sample](samples/README.md#dataflows-sample).
 
 ## Key concepts
 
@@ -305,13 +304,7 @@ reject malformed batch members, and do not fetch continuation pages. Type
 annotations do not register an operation or choose split-on behavior. Legacy
 work-item operations without `V2` are not part of this inventory.
 
-The implementation references [SDK main revision 5e93a98](https://github.com/Azure/connectors-python-sdk/blob/5e93a98c11a9eec43c4d3bbf441333b80d9ac7cb/src/azure/connectors/visualstudioteamservices.py).
-Until a release contains this module, install that SDK source revision or a
-later build containing it. The sample requirements pin the source. Importing
-this namespace with an older SDK raises an actionable `ImportError`; other
-connector namespaces do not import it. The shared SDK dependency floor remains
-unchanged for existing connectors. Tests use synthetic callbacks, not live
-Azure DevOps delivery.
+Tests use synthetic callbacks, not live Azure DevOps delivery.
 
 ### Supported Dataflows trigger type
 
@@ -337,12 +330,6 @@ Transport arrays do not change the connector's single-record source schema.
 Malformed members and value-only collection envelopes raise `ValueError` rather
 than producing partial results or empty SDK models.
 
-The binding references [SDK main revision 116d96f](https://github.com/Azure/connectors-python-sdk/blob/116d96fa55473217f8e50a11ee523c9b38854bf9/src/azure/connectors/dataflows.py).
-The published `azure-connectors==0.5.0b1` lacks this module. Install the pinned
-SDK source from the sample requirements or a later build containing it.
-Importing only this namespace with an older SDK raises an actionable
-`ImportError`; existing connector namespaces remain available. Synthetic tests
-cover conversion and sample execution; live Dataflows delivery remains unverified.
 
 ### Cardinality
 All supported SDK bindings return lists for single-item callbacks
