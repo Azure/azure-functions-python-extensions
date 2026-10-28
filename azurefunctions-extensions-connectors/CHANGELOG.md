@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Add the Power Query Dataflows `RefreshModel` SDK binding for refresh-completion
+	polling callbacks, with a sample. Requires an SDK build containing `dataflows`;
+	published `azure-connectors==0.5.0b1` does not include that module.
+- Add Azure DevOps SDK bindings for builds, Git pushes and pull requests, TFVC
+	changesets, and V2 work-item triggers, with samples. Requires an SDK build
+	containing `visualstudioteamservices`; published `azure-connectors==0.5.0b1`
+	does not include that module.
 - Add the Salesforce `Item` SDK binding for record-created and record-updated
 	triggers, preserving standard and custom fields, with a sample.
 - Add the Planner `GetTaskResponseV2` SDK binding for new, completed, and assigned

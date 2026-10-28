@@ -1,8 +1,8 @@
 # Azure Functions Extensions Connectors library for Python
 
 This library binds Office 365, SharePoint Online, OneDrive for Business, Teams,
-Dataverse/CDS, Planner, and Salesforce connector trigger payloads to model types
-from the Azure Connectors SDK in Python Function Apps.
+Dataverse/CDS, Planner, Salesforce, Azure DevOps, and Dataflows connector trigger
+payloads to model types from the Azure Connectors SDK in Python Function Apps.
 
 Supported connectors:
 
@@ -13,6 +13,8 @@ Supported connectors:
 * Dataverse (the `commondataservice` connector)
 * Planner
 * Salesforce
+* Azure DevOps (requires an SDK build containing `visualstudioteamservices`)
+* Power Query Dataflows (requires an SDK build containing `dataflows`)
 
 [Source code](https://github.com/Azure/azure-functions-python-extensions/tree/dev/azurefunctions-extensions-connectors)
 | [Package (PyPI)](https://pypi.org/project/azurefunctions-extensions-connectors/)
@@ -63,6 +65,17 @@ Salesforce handlers import `Item` from
 `azurefunctions.extensions.connectors.salesforce`. The binding returns generated
 SDK items with the selected object's fields in `dynamic_properties`. See the
 [Salesforce sample](samples/README.md#salesforce-sample).
+
+Azure DevOps handlers import `BuildResult`, `GitPush`, `GitPullRequest`,
+`TfvcChangeset`, or `TriggerWorkItemResponse` from
+`azurefunctions.extensions.connectors.visualstudioteamservices`. See the
+[Azure DevOps sample](samples/README.md#azure-devops-sample) for the SDK source
+prerequisite; the published `azure-connectors==0.5.0b1` lacks this connector.
+
+Dataflows handlers import `RefreshModel` from
+`azurefunctions.extensions.connectors.dataflows`. The binding returns SDK refresh
+records for `OnRefreshComplete`. See the
+[Dataflows sample](samples/README.md#dataflows-sample) for its SDK source prerequisite.
 
 ## Key concepts
 
@@ -262,9 +275,78 @@ collections. Records with other fields named `value` or `body` retain those fiel
 Malformed batch members raise `ValueError` instead of being silently dropped.
 Tests use synthetic callbacks; live Salesforce delivery remains unverified.
 
+### Supported Azure DevOps trigger types
+
+| Trigger operations | Binding item type |
+| --- | --- |
+| `OnBuildCompleted` | `visualstudioteamservices.BuildResult` |
+| `OnGitPush` | `visualstudioteamservices.GitPush` |
+| `OnGitPullCreated`, `OnGitPullClosed` | `visualstudioteamservices.GitPullRequest` |
+| `OnTfvcCheckIn` | `visualstudioteamservices.TfvcChangeset` |
+| `OnWorkItemAssignedV2`, `OnWorkItemClosedV2`, `OnWorkItemCreatedV2`, `OnWorkItemUpdatedV2` | `visualstudioteamservices.TriggerWorkItemResponse` |
+
+These are the nine GET polling operations in the referenced SDK's trigger
+registry, not separate webhook subscription actions. Each binding returns a
+list of generated SDK items rather than a `VstsList...` response envelope.
+Build users, definitions, and `_links.web`; Git repositories, identities, ref
+updates, reviewers, commits, and options; and TFVC author identities become
+their corresponding generated SDK models. Dates and URLs keep SDK string types.
+
+`TriggerWorkItemResponse` exposes `id`, `rev`, `url`, and `fields`. Its `fields`
+dictionary keeps exact dotted names such as `System.Title` and `Custom.Flag`,
+nested JSON, nulls, false flags, zero values, and empty strings. The binding does
+not invent a fixed work-item schema or use the different action-response model.
+A missing or null `fields` value stays null; other non-object values raise
+`ValueError`.
+
+All five bindings accept single records, arrays, sole-`body` callback envelopes,
+OData `value` batches, and Poll MANY transport collections. They preserve order,
+reject malformed batch members, and do not fetch continuation pages. Type
+annotations do not register an operation or choose split-on behavior. Legacy
+work-item operations without `V2` are not part of this inventory.
+
+The implementation references [SDK main revision 5e93a98](https://github.com/Azure/connectors-python-sdk/blob/5e93a98c11a9eec43c4d3bbf441333b80d9ac7cb/src/azure/connectors/visualstudioteamservices.py).
+Until a release contains this module, install that SDK source revision or a
+later build containing it. The sample requirements pin the source. Importing
+this namespace with an older SDK raises an actionable `ImportError`; other
+connector namespaces do not import it. The shared SDK dependency floor remains
+unchanged for existing connectors. Tests use synthetic callbacks, not live
+Azure DevOps delivery.
+
+### Supported Dataflows trigger type
+
+| Trigger operation | Binding item type |
+| --- | --- |
+| `OnRefreshComplete` | `dataflows.RefreshModel` |
+
+This Power Query Dataflows operation is a GET polling trigger. Its callback is
+one `azure.connectors.dataflows.RefreshModel` record, not a `value` collection.
+The binding returns a list containing that SDK record, following the extension's
+list-returning convention. It does not use `DataflowModel`, which describes the
+separate refresh action response, or fetch related dataflows or continuation pages.
+
+The six nullable string fields are `dataflow_id`, `dataflow_name`, `refresh_type`,
+`start_time`, `end_time`, and `status`. The binding maps the SDK wire names such
+as `dataflowId` and `refreshType`. Dates remain strings, nulls and empty strings
+stay distinct, and `Failed` or `Cancelled` statuses remain callback data rather
+than raising conversion errors. No fixed status enum is imposed.
+
+Supported inputs include a direct record, a sole-`body` callback envelope,
+JSON text or bytes, arrays of transport records, and Functions MANY collections.
+Transport arrays do not change the connector's single-record source schema.
+Malformed members and value-only collection envelopes raise `ValueError` rather
+than producing partial results or empty SDK models.
+
+The binding references [SDK main revision 116d96f](https://github.com/Azure/connectors-python-sdk/blob/116d96fa55473217f8e50a11ee523c9b38854bf9/src/azure/connectors/dataflows.py).
+The published `azure-connectors==0.5.0b1` lacks this module. Install the pinned
+SDK source from the sample requirements or a later build containing it.
+Importing only this namespace with an older SDK raises an actionable
+`ImportError`; existing connector namespaces remain available. Synthetic tests
+cover conversion and sample execution; live Dataflows delivery remains unverified.
+
 ### Cardinality
 All supported SDK bindings return lists for single-item callbacks
-(split-on enabled) and source batches (split-on disabled). For example, use
+and source batches where the connector supports them. For example, use
 `List[office365.GraphCalendarEventClientWithActionType]` for changed events.
 
 Both direct binding annotations and `List[BindingType]` annotations are accepted;

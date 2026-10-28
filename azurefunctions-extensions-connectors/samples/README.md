@@ -2,7 +2,7 @@
 
 This folder shows how to use `azurefunctions-extensions-connectors` with
 Office 365, SharePoint Online, OneDrive for Business, Microsoft Teams, Dataverse/CDS,
-Planner, and Salesforce.
+Planner, Salesforce, Azure DevOps, and Power Query Dataflows.
 
 ## Samples
 
@@ -191,6 +191,69 @@ the same experimental connector extension bundle as the other examples. Tests
 and local sample checks use synthetic payloads; live Salesforce delivery is
 unverified. Connection authorization and trigger registration remain separate
 setup steps.
+
+## Azure DevOps sample
+
+### visualstudioteamservices_samples_polling
+
+Imports the five binding types from
+`azurefunctions.extensions.connectors.visualstudioteamservices`. Ten handlers
+cover all nine SDK polling triggers: build completion (split-on and batch), Git
+pushes, pull-request creation and closure, TFVC check-ins, and V2 work-item
+assignment, creation, closure, and updates. Every handler receives a list of SDK
+items, not a `VstsList...` response envelope.
+
+**SDK prerequisite:** the published `azure-connectors==0.5.0b1` does not contain
+this connector. The sample requirements pin [SDK main revision 5e93a98](https://github.com/Azure/connectors-python-sdk/commit/5e93a98c11a9eec43c4d3bbf441333b80d9ac7cb)
+through a Git source dependency. Install those requirements and the extension
+from this checkout until releases contain both changes. A version-only check
+cannot distinguish the released SDK from the new source, which currently has
+the same package version. Tests for these bindings skip when the SDK module is
+absent; run them against this source revision to validate Azure DevOps support.
+
+Register each trigger separately with `account` and `project`. Git triggers also
+require `repository`; `OnWorkItemAssignedV2` also requires `team` and
+`wiql__System_AssignedTo`. Select the intended handler and configure split-on in
+the registration, not through its annotation. These are polling operations,
+not webhook subscription actions.
+
+Nested fixed-schema fields become SDK models. Work-item custom columns stay raw
+JSON in `item.fields`, with exact names such as `System.Title`; check for null
+before accessing them. The sample logs counts rather than titles, identities,
+URLs, or field values. It includes the existing experimental connector bundle
+and development storage settings; start Azurite before local use. Tests index
+and execute the handlers with synthetic data; live delivery remains unverified.
+
+## Dataflows sample
+
+### dataflows_samples_refresh_completed
+
+Uses `List[dataflows.RefreshModel]`, imported from
+`azurefunctions.extensions.connectors.dataflows`, for `OnRefreshComplete`.
+The polling trigger returns one refresh object. The extension supplies a list
+of generated SDK refresh records to the handler, not the `DataflowModel` action
+response or a `value` collection. Transport arrays and MANY deliveries are also
+accepted, but the annotation does not select the operation or change the source
+cardinality.
+
+Register the trigger with `workspaceType`, `groupIdForOnRefreshComplete`, and
+`dataflowIdForOnRefreshComplete`. Connection authorization and registration are
+separate setup steps. The handler logs only completion and failure counts, not
+dataflow names or identifiers. `Failed` and `Cancelled` refreshes are valid
+callback records; dates remain nullable SDK strings.
+
+**SDK prerequisite:** published `azure-connectors==0.5.0b1` lacks `dataflows`.
+The sample requirements pin [SDK main revision 116d96f](https://github.com/Azure/connectors-python-sdk/commit/116d96fa55473217f8e50a11ee523c9b38854bf9)
+as a Git source dependency. Install those requirements and the extension from
+this checkout until releases contain both changes. A version-only check cannot
+distinguish the old wheel from the new source, which has the same package version.
+New Dataflows tests skip when the SDK module is absent; run them against this
+source revision to validate the binding.
+
+The sample keeps the existing experimental connector bundle and development
+storage settings; start Azurite before local use. Tests index and execute the
+handler with synthetic empty, successful, failed, and cancelled callbacks.
+Live Dataflows delivery remains unverified.
 
 ## Prerequisites
 
