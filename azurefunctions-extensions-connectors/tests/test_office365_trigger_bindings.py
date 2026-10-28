@@ -190,6 +190,42 @@ class TestOffice365TriggerBindings(unittest.TestCase):
                         data=Datum(value=collection, type=data_type),
                     ).get_sdk_type()
 
+    def test_changed_calendar_binding_rejects_invalid_collection_values(self):
+        """Reject non-array collection values without changing legacy parsing."""
+        for invalid in ("bad", "", {}, {"id": "event-1"}, False, 0, 1):
+            for payload in ({"value": invalid}, {"body": {"value": invalid}}):
+                for value in (payload, json.dumps(payload),
+                              json.dumps(payload).encode("utf-8")):
+                    with self.subTest(invalid=invalid, value=value):
+                        data = Datum(value=value, type="json")
+                        with self.assertRaisesRegex(ValueError, "value must contain"):
+                            ConnectorConverter.decode(
+                                data=data, trigger_metadata=None,
+                                pytype=List[GraphCalendarEventClientWithActionType],
+                            )
+                        legacy = GraphCalendarEventListWithActionType(
+                            data=data,
+                        ).get_sdk_type()
+                        self.assertEqual(len(legacy), 1)
+                        self.assertIsNone(legacy[0].id)
+
+    def test_changed_calendar_binding_rejects_invalid_poll_many_values(self):
+        """Validate collection values inside string and byte transport events."""
+        for invalid in ("bad", {}, False, 0):
+            events = [json.dumps({"id": "event-1"}),
+                      json.dumps({"body": {"value": invalid}})]
+            for data_type, collection in (
+                ("collection_string", SimpleNamespace(string=events)),
+                ("collection_bytes", SimpleNamespace(
+                    bytes=[event.encode("utf-8") for event in events],
+                )),
+            ):
+                with self.subTest(invalid=invalid, data_type=data_type):
+                    with self.assertRaisesRegex(ValueError, "value must contain"):
+                        GraphCalendarEventClientWithActionType(
+                            data=Datum(value=collection, type=data_type),
+                        ).get_sdk_type()
+
     def test_legacy_calendar_wrapper_keeps_malformed_member_filtering(self):
         """Preserve the legacy wrapper's filtering for existing applications."""
         events = GraphCalendarEventListWithActionType(data=Datum(

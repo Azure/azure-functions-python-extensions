@@ -142,6 +142,11 @@ def parse_payload(
     if not isinstance(body, dict):
         raise ValueError("Connector payload body must contain a JSON object.")
 
+    if reject_malformed_members and "value" in body and (
+        body["value"] is not None and not isinstance(body["value"], list)
+    ):
+        raise ValueError("Connector batch value must contain a JSON array or null.")
+
     if "value" in body and (
         body["value"] is None or isinstance(body["value"], list)
     ):
