@@ -32,6 +32,30 @@ class TestGraphCalendarEventListWithActionType(unittest.TestCase):
         event = GraphCalendarEventListWithActionType(data=test_data)
         self.assertEqual(event._json_payload, test_data)
 
+    def test_get_sdk_type_deserializes_action_type_list(self):
+        """Test changed events are returned as a list of SDK items."""
+        data = Datum(
+            value={
+                "body": {
+                    "id": "event-1",
+                    "actionType": "updated",
+                    "isUpdated": True,
+                    "subject": "Updated planning",
+                }
+            },
+            type="json",
+        )
+
+        event_list = GraphCalendarEventListWithActionType(
+            data=data
+        ).get_sdk_type()
+
+        self.assertIsInstance(event_list, list)
+        self.assertEqual(len(event_list), 1)
+        self.assertEqual(event_list[0].id, "event-1")
+        self.assertEqual(event_list[0].action_type, "updated")
+        self.assertTrue(event_list[0].is_updated)
+
 
 if __name__ == "__main__":
     unittest.main()
