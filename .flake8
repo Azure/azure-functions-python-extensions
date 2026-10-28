@@ -7,6 +7,13 @@ ignore = W503,E402,E731
 
 exclude = .git, __pycache__, build, dist, .eggs, .github, .local, docs/,
           Samples, .env*, .vscode, venv*, *.venv*,
+          azurefunctions-agents-extensions-agent-framework/samples,
+          azurefunctions-extensions-bindings-blob/samples,
+          azurefunctions-extensions-bindings-cosmosdb/samples,
+          azurefunctions-extensions-bindings-eventhub/samples,
+          azurefunctions-extensions-bindings-servicebus/samples,
+          azurefunctions-extensions-connectors/samples,
+          azurefunctions-extensions-http-fastapi/samples,
           azurefunctions-extensions-bindings-servicebus/azurefunctions/extensions/bindings/protos,
 
 max-line-length = 88
