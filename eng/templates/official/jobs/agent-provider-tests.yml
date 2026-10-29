@@ -23,6 +23,8 @@ jobs:
           PYTHON_VERSION: '3.13'
         python314:
           PYTHON_VERSION: '3.14'
+        python315:
+          PYTHON_VERSION: '3.15'
     condition: always()
     steps:
       - task: PipAuthenticate@1

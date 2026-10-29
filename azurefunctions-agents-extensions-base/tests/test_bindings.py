@@ -86,16 +86,25 @@ def test_markdown_agent_injects_fresh_context_and_hides_parameter(tmp_path, prov
     assert provider.compiled.opened == provider.compiled.closed == 2
 
 
-@pytest.mark.parametrize("directory", ["", "agents"])
-def test_markdown_agent_accepts_plain_markdown_file(
+@pytest.mark.parametrize(
+    ("directory", "filename"),
+    [
+        ("", "orders.agent.md"),
+        ("", "orders.md"),
+        ("agents", "orders.agent.md"),
+        ("agents", "orders.md"),
+    ],
+)
+def test_markdown_agent_resolves_supported_instruction_paths(
     tmp_path,
     provider,
     directory,
+    filename,
 ):
     instructions = "Use the order API."
     parent = tmp_path / directory
     parent.mkdir(exist_ok=True)
-    (parent / "orders.md").write_text(instructions, encoding="utf-8")
+    (parent / filename).write_text(instructions, encoding="utf-8")
 
     @bindings.markdown_agent(
         func.FunctionApp(),

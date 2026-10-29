@@ -92,7 +92,6 @@ Pass Copilot session options directly to `markdown_agent()`:
 	agent_name="orders",
 	reasoning_effort="high",
 	streaming=True,
-	enable_session_store=True,
 )
 async def process_order(
 	req: func.HttpRequest,
@@ -224,11 +223,13 @@ Function Apps when capability sets require isolation.
 The extension creates one client lazily and reuses it across invocations for the
 lifetime of the Python worker process. Each invocation creates and closes a
 fresh session. Default ephemeral sessions are deleted after disconnect so they
-do not accumulate in the cached client's registry. Setting
-`enable_session_store=True` preserves session data instead. The extension
-replaces the session system message with the raw Agent instructions and disables
-ambient Copilot configuration discovery, session persistence, memory,
-telemetry, built-in Skills, and tool search.
+do not accumulate in the cached client's registry. Leave
+`enable_session_store` disabled: this binding creates a new session for every
+invocation and does not expose a session ID or resume workflow. Enabling the
+store retains each disconnected session in the cached client for the lifetime
+of the worker. The extension replaces the session system message with the raw
+Agent instructions and disables ambient Copilot configuration discovery,
+session persistence, memory, telemetry, built-in Skills, and tool search.
 Explicit Python tools, discovered Skills, and discovered MCP servers remain
 available.
 

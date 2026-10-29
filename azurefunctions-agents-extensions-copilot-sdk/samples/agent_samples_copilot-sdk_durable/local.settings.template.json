@@ -5,6 +5,6 @@
     "FUNCTIONS_WORKER_RUNTIME": "python",
     "COPILOT_GITHUB_TOKEN": "<set-locally-or-use-an-app-setting>",
     "COPILOT_BASE_DIRECTORY": "<set-to-an-isolated-writable-directory>",
-    "COPILOT_MODEL": "gpt-5"
+    "COPILOT_MODEL": "gpt-6"
   }
 }
