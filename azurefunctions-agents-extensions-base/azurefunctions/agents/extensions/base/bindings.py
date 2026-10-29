@@ -171,24 +171,27 @@ def _find_exact_file(directory: Path, expected_name: str) -> Path | None:
 
 
 def _resolve_instructions(app_root: Path, agent_name: str) -> str:
-    expected_name = f"{_validate_agent_name(agent_name)}.agent.md"
+    validated_name = _validate_agent_name(agent_name)
+    expected_names = (
+        f"{validated_name}.agent.md",
+        f"{validated_name}.md",
+    )
     matches = [
         match
-        for match in (
-            _find_exact_file(app_root, expected_name),
-            _find_exact_file(app_root / "agents", expected_name),
-        )
-        if match is not None
+        for directory in (app_root, app_root / "agents")
+        for expected_name in expected_names
+        if (match := _find_exact_file(directory, expected_name)) is not None
     ]
     if not matches:
+        expected = " or ".join(repr(name) for name in expected_names)
         raise FileNotFoundError(
-            f"Agent {agent_name!r} was not found as {expected_name!r} in "
+            f"Agent {agent_name!r} was not found as {expected} in "
             f"{str(app_root)!r} or its 'agents' directory"
         )
     if len(matches) > 1:
+        conflicts = ", ".join(repr(str(match)) for match in matches)
         raise ValueError(
-            f"Agent {agent_name!r} is ambiguous: both "
-            f"{str(matches[0])!r} and {str(matches[1])!r} exist"
+            f"Agent {agent_name!r} is ambiguous; found: {conflicts}"
         )
 
     source = matches[0].resolve(strict=True)
