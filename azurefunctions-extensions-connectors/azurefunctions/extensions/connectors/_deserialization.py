@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import types
+from collections.abc import Mapping
 from dataclasses import Field, fields, is_dataclass
 from typing import Any, Callable, TypeVar, Union, get_args, get_origin, get_type_hints
 
@@ -54,6 +55,18 @@ def _deserialize_value(annotation: Any, value: Any) -> Any:
         if len(non_none_types) == 1:
             return _deserialize_value(non_none_types[0], value)
 
+        if isinstance(value, dict):
+            model_types = [
+                item_type for item_type in non_none_types
+                if isinstance(item_type, type) and is_dataclass(item_type)
+            ]
+            if len(model_types) == 1 and all(
+                item_type is model_types[0]
+                or (get_origin(item_type) or item_type) in (dict, Mapping)
+                for item_type in non_none_types
+            ):
+                return _deserialize_value(model_types[0], value)
+
     if origin is list:
         item_types = get_args(annotation)
         item_type = item_types[0] if item_types else Any
@@ -97,13 +110,20 @@ def deserialize_model(
     return model_type(**values)
 
 
-def parse_payload(data: Datum) -> list[dict[str, Any]]:
+def parse_payload(
+    data: Datum,
+    *,
+    reject_malformed_members: bool = False,
+) -> list[dict[str, Any]]:
     """Normalize direct records or callbacks with a sole outer body property."""
     if data.type in ("collection_string", "collection_bytes"):
         return [
             item
             for event in data.python_value
-            for item in parse_payload(Datum(value=event, type="json"))
+            for item in parse_payload(
+                Datum(value=event, type="json"),
+                reject_malformed_members=reject_malformed_members,
+            )
         ]
 
     payload: Any = data.value
@@ -122,11 +142,21 @@ def parse_payload(data: Datum) -> list[dict[str, Any]]:
     if not isinstance(body, dict):
         raise ValueError("Connector payload body must contain a JSON object.")
 
+    if reject_malformed_members and "value" in body and (
+        body["value"] is not None and not isinstance(body["value"], list)
+    ):
+        raise ValueError("Connector batch value must contain a JSON array or null.")
+
     if "value" in body and (
         body["value"] is None or isinstance(body["value"], list)
     ):
         raw_items = body["value"] or []
     else:
         raw_items = [body]
+
+    if reject_malformed_members and any(
+        not isinstance(item, dict) for item in raw_items
+    ):
+        raise ValueError("Each connector batch item must contain a JSON object.")
 
     return [item for item in raw_items if isinstance(item, dict)]
