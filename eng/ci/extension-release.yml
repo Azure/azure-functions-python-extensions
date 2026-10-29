@@ -1,5 +1,18 @@
 pr: none
 
+parameters:
+  - name: ExtensionName
+    displayName: 'Extension project to release'
+    type: string
+    default: 'azurefunctions-extensions-base'
+  - name: ExtensionDirectory
+    displayName: 'Package path under the extension project directory'
+    type: string
+  - name: NewLibraryVersion
+    displayName: 'Extension version to release (for example, 1.2.0)'
+    type: string
+    default: ''
+
 resources:
   repositories:
     - repository: 1es
@@ -10,12 +23,6 @@ resources:
       type: git
       name: engineering
       ref: refs/tags/release
-  pipelines:
-    - pipeline: officialBuild
-      project: internal
-      source: python-extensions.official
-      branch: dev
-      trigger: none
 
 variables:
   - group: azure-functions-python-release
@@ -31,6 +38,34 @@ extends:
       os: windows
 
     stages:
-      - stage: Release
+      - stage: BumpVersion
+        displayName: 'Bump Extension Version'
+        dependsOn: []
         jobs:
-          - template: /eng/templates/official/jobs/publish-release.yml@self
+          - template: /eng/templates/official/release/bump-version.yml@self
+            parameters:
+              extensionVersion: ${{ parameters.NewLibraryVersion }}
+              extensionName: ${{ parameters.ExtensionName }}
+              extensionDirectory: ${{ parameters.ExtensionDirectory }}
+              createPullRequest: true
+              baseBranch: dev
+
+      - stage: Build
+        displayName: 'Build Extension Artifacts'
+        dependsOn: BumpVersion
+        jobs:
+          - template: /eng/templates/official/release/build-artifacts.yml@self
+            parameters:
+              extensionVersion: ${{ parameters.NewLibraryVersion }}
+              extensionName: ${{ parameters.ExtensionName }}
+              artifactName: ${{ parameters.ExtensionName }}
+
+      - stage: Release
+        displayName: 'Release Extension'
+        dependsOn: Build
+        jobs:
+          - template: /eng/templates/official/release/publish-release.yml@self
+            parameters:
+              extensionVersion: ${{ parameters.NewLibraryVersion }}
+              extensionName: ${{ parameters.ExtensionName }}
+              artifactName: ${{ parameters.ExtensionName }}

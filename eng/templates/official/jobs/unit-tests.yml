@@ -20,6 +20,10 @@ jobs:
   - job: "AgentsBaseTests"
     displayName: "Agents Base Extension Tests"
     dependsOn: []
+    pool:
+      name: ${{ parameters.PoolName }}
+      image: 1es-ubuntu-22.04
+      os: linux
     strategy:
       matrix:
         python313:
@@ -47,12 +51,14 @@ jobs:
 
   - template: /eng/templates/official/jobs/agent-provider-tests.yml@self
     parameters:
+      PoolName: ${{ parameters.PoolName }}
       job_name: AgentsFrameworkTests
       extension_name: Agents Framework
       extension_directory: azurefunctions-agents-extensions-agent-framework
 
   - template: /eng/templates/official/jobs/agent-provider-tests.yml@self
     parameters:
+      PoolName: ${{ parameters.PoolName }}
       job_name: AgentsCopilotSdkTests
       extension_name: Agents Copilot SDK
       extension_directory: azurefunctions-agents-extensions-copilot-sdk
@@ -60,6 +66,10 @@ jobs:
   - job: "BaseTests"
     displayName: "Base Extension Tests"
     dependsOn: []
+    pool:
+      name: ${{ parameters.PoolName }}
+      image: 1es-ubuntu-22.04
+      os: linux
     strategy:
       matrix: ${{ parameters.python_versions }}
     condition: always()
@@ -84,6 +94,10 @@ jobs:
   - job: "BlobTests"
     displayName: "Blob Extension Tests"
     dependsOn: []
+    pool:
+      name: ${{ parameters.PoolName }}
+      image: 1es-ubuntu-22.04
+      os: linux
     strategy:
       matrix: ${{ parameters.python_versions }}
     # Secret variables are unavailable to pull requests from forks.
@@ -144,6 +158,10 @@ jobs:
   - job: "EventHubTests"
     displayName: "EventHub Extension Tests"
     dependsOn: []
+    pool:
+      name: ${{ parameters.PoolName }}
+      image: 1es-ubuntu-22.04
+      os: linux
     strategy:
       matrix: ${{ parameters.python_versions }}
     condition: always()
@@ -168,6 +186,10 @@ jobs:
   - job: "FastApiTests"
     displayName: "FastApi Extension Tests"
     dependsOn: []
+    pool:
+      name: ${{ parameters.PoolName }}
+      image: 1es-ubuntu-22.04
+      os: linux
     strategy:
       matrix: ${{ parameters.python_versions }}
     condition: always()
@@ -192,6 +214,10 @@ jobs:
   - job: "ServiceBusTests"
     displayName: "ServiceBus Extension Tests"
     dependsOn: []
+    pool:
+      name: ${{ parameters.PoolName }}
+      image: 1es-ubuntu-22.04
+      os: linux
     strategy:
       matrix:
         python310:
@@ -223,6 +249,10 @@ jobs:
   - job: "ConnectorsTests"
     displayName: "Connectors Extension Tests"
     dependsOn: []
+    pool:
+      name: ${{ parameters.PoolName }}
+      image: 1es-ubuntu-22.04
+      os: linux
     strategy:
       matrix: ${{ parameters.python_versions }}
     condition: always()

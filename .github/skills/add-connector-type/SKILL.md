@@ -21,6 +21,27 @@ Checklist for adding a new SDK type to the `azurefunctions-extensions-connectors
 
 ### Step 1: Create the SDK Type Wrapper
 
+Do not modify the generated Azure Connectors SDK model or add a `from_json()`
+method to it. Trigger callback normalization and conversion belong to this
+extension because those rules vary by SDK binding type.
+
+First add a type-specific function to the connector's `_deserialization.py`:
+
+```python
+from .._deserialization import deserialize_model, parse_payload
+
+
+def deserialize_{newTypeName}(data: Datum) -> List[Azure{NewTypeName}]:
+    """Deserialize the trigger callback into generated SDK models."""
+    return [
+        deserialize_model(Azure{NewTypeName}, item)
+        for item in parse_payload(data)
+    ]
+```
+
+Add explicit aliases and converters there if the callback field names or value
+semantics differ from the generated model contract.
+
 **File:** `azurefunctions-extensions-connectors/azurefunctions/extensions/connectors/{ConnectorName}/{newTypeName}.py`
 
 ```python
@@ -30,56 +51,26 @@ Checklist for adding a new SDK type to the `azurefunctions-extensions-connectors
 from typing import List
 
 from azure.connectors.{ConnectorName} import {NewTypeName} as Azure{NewTypeName}
-from azurefunctions.extensions.base import Datum, SdkType
+from .._sdk_type import ConnectorSdkType
+from ._deserialization import deserialize_{newTypeName}
 
 
-class {NewTypeName}(SdkType, Azure{NewTypeName}):
-    def __init__(self, *, data: Datum) -> None:
-        self._json_payload = data
+class {NewTypeName}(
+    ConnectorSdkType[List[Azure{NewTypeName}]],
+    Azure{NewTypeName},
+):
+    """Azure Functions binding for {ConnectorName} trigger values."""
 
-    @classmethod
-    def supports_deferred_binding(cls) -> bool:
-        """{ConnectorName} connector does not support deferred binding."""
-        return False
-
-    def get_sdk_type(self) -> List[Azure{NewTypeName}]:
-        if not self._json_payload:
-            raise ValueError(
-                f"Unable to create {self.__class__.__name__} SDK type. "
-                f"No data provided."
-            )
-        try:
-            messages = Azure{NewTypeName}.from_json(self._json_payload)
-            return messages
-        except Exception as e:
-            raise ValueError(
-                f"Unable to create {self.__class__.__name__} SDK type. "
-                f"Exception: {e}"
-            ) from e
+    _deserialize = staticmethod(deserialize_{newTypeName})
 ```
 
 ### Step 2: Update the Converter
 
 **File:** `azurefunctions-extensions-connectors/azurefunctions/extensions/connectors/connectorConverter.py`
 
-1. Add import at the top:
-   ```python
-   from .{ConnectorName}.{newTypeName} import {NewTypeName}
-   ```
-
-2. Add to `SUPPORTED_SDK_TYPES` tuple:
-   ```python
-   SUPPORTED_SDK_TYPES = (
-       # ... existing types ...
-       {NewTypeName}
-   )
-   ```
-
-3. Add `elif` branch in `decode()` method:
-   ```python
-   elif sdk_type == {NewTypeName}:
-       return {NewTypeName}(data=data).get_sdk_type()
-   ```
+No converter change is needed. The converter recognizes every
+`ConnectorSdkType` subclass and constructs the selected wrapper, which delegates
+to its `_deserialize` function.
 
 ### Step 3: Update Package Exports
 
@@ -136,7 +127,23 @@ class {NewTypeName}(SdkType, Azure{NewTypeName}):
        def test_supports_deferred_binding_false(self):
            """Test that {NewTypeName} does not support deferred binding"""
            self.assertFalse({NewTypeName}.supports_deferred_binding())
+
+       def test_get_sdk_type_deserializes_payload(self):
+           """Test callback fields and nested values are deserialized"""
+           data = Datum(
+               value={"body": {"value": [{"id": "item-1"}]}},
+               type="json",
+           )
+
+           values = {NewTypeName}(data=data).get_sdk_type()
+
+           self.assertEqual(len(values), 1)
+           self.assertEqual(values[0].id, "item-1")
    ```
+
+Add focused cases for both batch and single-item envelopes, string and decoded
+JSON inputs, aliases, scalar conversions, nested generated models, empty input,
+malformed input, and the exact return shape required by the SDK type.
 
 ### Step 5: Create Sample Folder
 
@@ -250,5 +257,5 @@ Demonstrates how to handle the "{Action Description}" action. The {NewTypeName} 
 
 | Action | Files |
 |--------|-------|
-| **Modified** | `connectorConverter.py`, `{ConnectorName}/__init__.py`, `tests/test_clientreceivemessage.py`, `samples/README.md` |
+| **Modified** | `connectorConverter.py`, `{ConnectorName}/_deserialization.py`, `{ConnectorName}/__init__.py`, `tests/test_clientreceivemessage.py`, `samples/README.md` |
 | **Created** | `{ConnectorName}/{newTypeName}.py`, `samples/{ConnectorName}_samples_{action_name}/` (4 files) |
