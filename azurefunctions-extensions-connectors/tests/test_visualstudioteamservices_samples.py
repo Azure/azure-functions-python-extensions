@@ -116,14 +116,14 @@ class TestDevOpsSample(unittest.TestCase):
                         self.assertEqual(log.call_count, 1)
 
     def test_configuration_uses_extension_package_and_local_runtime_settings(self):
-        """Use the extension package with the preview bundle and local storage."""
+        """Use the extension package with the stable bundle and local storage."""
         requirements = (self.sample_root / "requirements.txt").read_text()
         self.assertIn("azure-functions", requirements.splitlines())
         self.assertIn("azurefunctions-extensions-connectors", requirements.splitlines())
         host = json.loads((self.sample_root / "host.json").read_text())
         self.assertEqual(host["extensionBundle"]["id"],
-                         "Microsoft.Azure.Functions.ExtensionBundle.Preview")
-        self.assertEqual(host["extensionBundle"]["version"], "[4.50.0, 5.0.0)")
+                         "Microsoft.Azure.Functions.ExtensionBundle")
+        self.assertEqual(host["extensionBundle"]["version"], "[4.41.0, 5.0.0)")
         settings = json.loads((self.sample_root / "local.settings.json").read_text())
         self.assertEqual(settings["Values"]["AzureWebJobsStorage"],
                          "UseDevelopmentStorage=true")
