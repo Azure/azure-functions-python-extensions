@@ -1,3 +1,2 @@
 azure-functions
 azurefunctions-extensions-connectors
-azure-connectors

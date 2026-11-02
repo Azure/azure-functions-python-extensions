@@ -73,13 +73,15 @@ class TestDataflowsSample(unittest.TestCase):
                 ])
                 self.assertNotIn("synthetic-id", str(log.call_args_list))
 
-    def test_configuration_uses_sdk_package_and_local_runtime_settings(self):
-        """Use the SDK package with the experimental bundle and local storage."""
+    def test_configuration_uses_extension_package_and_local_runtime_settings(self):
+        """Use the extension package with the preview bundle and local storage."""
         requirements = (self.sample_root / "requirements.txt").read_text()
-        self.assertIn("azure-connectors", requirements.splitlines())
+        self.assertIn("azure-functions", requirements.splitlines())
+        self.assertIn("azurefunctions-extensions-connectors", requirements.splitlines())
         host = json.loads((self.sample_root / "host.json").read_text())
         self.assertEqual(host["extensionBundle"]["id"],
-                         "Microsoft.Azure.Functions.ExtensionBundle.Experimental")
+                         "Microsoft.Azure.Functions.ExtensionBundle.Preview")
+        self.assertEqual(host["extensionBundle"]["version"], "[4.50.0, 5.0.0)")
         settings = json.loads((self.sample_root / "local.settings.json").read_text())
         self.assertEqual(settings["Values"]["AzureWebJobsStorage"],
                          "UseDevelopmentStorage=true")
