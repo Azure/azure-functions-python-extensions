@@ -235,7 +235,7 @@ def {ConnectorName}_{action_name}_batch(
 
 **requirements.txt:**
 ```
-azure-functions>=2.2.0b4
+azure-functions
 azurefunctions-extensions-connectors
 ```
 
