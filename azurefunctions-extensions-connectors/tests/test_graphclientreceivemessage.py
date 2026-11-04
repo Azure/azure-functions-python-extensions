@@ -3,6 +3,11 @@
 
 import unittest
 
+from azure.connectors.office365 import (
+    GraphClientReceiveFileAttachment,
+    SensitivityLabelMetadata,
+)
+
 from azurefunctions.extensions.base import Datum
 from azurefunctions.extensions.connectors.office365 import (
     GraphClientReceiveMessage
@@ -61,7 +66,14 @@ class TestGraphClientReceiveMessage(unittest.TestCase):
 
         self.assertEqual(len(messages), 1)
         self.assertEqual(messages[0].from_, "sender@example.com")
+        self.assertIsInstance(
+            messages[0].attachments[0], GraphClientReceiveFileAttachment,
+        )
         self.assertEqual(messages[0].attachments[0].id, "attachment-1")
+        self.assertEqual(messages[0].attachments[0].content_bytes, "content")
+        self.assertIsInstance(
+            messages[0].sensitivity_label_info[0], SensitivityLabelMetadata,
+        )
         self.assertEqual(
             messages[0].sensitivity_label_info[0].display_name,
             "Confidential",

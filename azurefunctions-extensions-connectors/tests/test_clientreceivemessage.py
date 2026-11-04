@@ -3,6 +3,8 @@
 
 import unittest
 
+from azure.connectors.office365 import ClientReceiveFileAttachment
+
 from azurefunctions.extensions.base import Datum
 from azurefunctions.extensions.connectors.office365 import (
     ClientReceiveMessage
@@ -49,6 +51,9 @@ class TestClientReceiveMessage(unittest.TestCase):
         self.assertEqual(messages[0].to, "recipient@example.com")
         self.assertEqual(messages[0].importance, 2)
         self.assertTrue(messages[0].has_attachment)
+        self.assertIsInstance(
+            messages[0].attachments[0], ClientReceiveFileAttachment,
+        )
         self.assertEqual(messages[0].attachments[0].id, "attachment-1")
         self.assertEqual(
             messages[0].attachments[0].content_type,

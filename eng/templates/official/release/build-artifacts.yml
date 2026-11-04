@@ -28,7 +28,7 @@ jobs:
       outputParentDirectory: $(Build.ArtifactStagingDirectory)
       outputs:
         - output: pipelineArtifact
-          targetPath: $(Build.SourcesDirectory)/${{ parameters.extensionName }}
+          targetPath: $(Build.ArtifactStagingDirectory)/${{ parameters.extensionName }}
           artifactName: ${{ parameters.artifactName }}
     steps:
       - checkout: none
@@ -45,10 +45,11 @@ jobs:
         inputs:
           versionSpec: '${{ parameters.pythonVersion }}'
       - bash: |
+          set -euo pipefail
           python --version
           python -m pip install -U pip
           python -m pip install build twine
-          cd "${{ parameters.extensionName }}"
-          python -m build
-          python -m twine check dist/*
+          cd "$(Build.SourcesDirectory)/${{ parameters.extensionName }}"
+          python -m build --outdir "$(Build.ArtifactStagingDirectory)/${{ parameters.extensionName }}/dist"
+          python -m twine check "$(Build.ArtifactStagingDirectory)/${{ parameters.extensionName }}/dist/"*
         displayName: 'Build ${{ parameters.extensionName }}'
