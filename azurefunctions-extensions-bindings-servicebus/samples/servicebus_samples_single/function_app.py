@@ -32,7 +32,7 @@ USAGE:
 
 
 @app.service_bus_queue_trigger(arg_name="receivedmessage",
-                               queue_name="QUEUE_NAME",
+                               queue_name="%QUEUE_NAME%",
                                connection="SERVICEBUS_CONNECTION")
 def servicebus_queue_trigger(receivedmessage: servicebus.ServiceBusReceivedMessage):
     logging.info("Python ServiceBus queue trigger processed message.")
@@ -51,20 +51,22 @@ def servicebus_queue_trigger(receivedmessage: servicebus.ServiceBusReceivedMessa
 
 
 @app.service_bus_topic_trigger(arg_name="receivedmessage",
-                               topic_name="TOPIC_NAME",
+                               topic_name="%TOPIC_NAME%",
                                connection="SERVICEBUS_CONNECTION",
-                               subscription_name="SUBSCRIPTION_NAME")
+                               subscription_name="%SUBSCRIPTION_NAME%")
 def servicebus_topic_trigger(receivedmessage: servicebus.ServiceBusReceivedMessage):
     logging.info("Python ServiceBus topic trigger processed message.")
-    logging.info("Receiving: %s\n"
-                 "Body: %s\n"
-                 "Enqueued time: %s\n"
-                 "Lock Token: %s\n"
-                 "Message ID: %s\n"
-                 "Sequence number: %s\n",
-                 receivedmessage,
-                 receivedmessage.body,
-                 receivedmessage.enqueued_time_utc,
-                 receivedmessage.lock_token,
-                 receivedmessage.message_id,
-                 receivedmessage.sequence_number)
+    logging.info(
+        "Receiving: %s\n"
+        "Body: %s\n"
+        "Enqueued time: %s\n"
+        "Lock Token: %s\n"
+        "Message ID: %s\n"
+        "Sequence number: %s\n",
+        receivedmessage,
+        receivedmessage.body,
+        receivedmessage.enqueued_time_utc,
+        receivedmessage.lock_token,
+        receivedmessage.message_id,
+        receivedmessage.sequence_number,
+    )

@@ -9,7 +9,7 @@
 import azure.functions as func
 import azurefunctions.extensions.bindings.servicebus as servicebus
 
-from azure.identity import DefaultAzureCredential
+from azure.identity.aio import DefaultAzureCredential
 from azure.servicebus.aio import ServiceBusClient
 from azure.servicebus import ServiceBusMessage
 
@@ -38,16 +38,22 @@ app = func.FunctionApp(http_auth_level=func.AuthLevel.FUNCTION)
 
 MAX_RETRIES = 3
 
+
 @app.service_bus_queue_trigger(arg_name="received_message",
-                               queue_name="QUEUE_NAME",
+                               queue_name="%QUEUE_NAME%",
                                connection="SERVICEBUS_CONNECTION",
                                auto_complete_messages=False)
-async def servicebus_queue_trigger(received_message: servicebus.ServiceBusReceivedMessage, message_actions: servicebus.ServiceBusMessageActions):
-    logging.info(f"Python ServiceBus queue trigger processed message.")
+async def servicebus_queue_trigger(
+        received_message: servicebus.ServiceBusReceivedMessage,
+        message_actions: servicebus.ServiceBusMessageActions):
+    logging.info("Python ServiceBus queue trigger processed message.")
 
     application_properties = received_message.application_properties or {}
 
-    logging.info(f"Received message: {received_message}. Message application properties: {application_properties}")
+    logging.info(
+        "Received message: %s. Message application properties: %s",
+        received_message,
+        application_properties)
 
     # Read retry count
     current_retry_count = int(application_properties.get(b"retry_count", 0))
@@ -56,20 +62,17 @@ async def servicebus_queue_trigger(received_message: servicebus.ServiceBusReceiv
     # If max retries exceeded -> dead-letter
     if current_retry_count >= MAX_RETRIES:
         logging.warning("Max retries exceeded. Dead-lettering message.")
-        message_actions.deadletter(received_message, deadletter_reason="MaxRetryExceeded")
+        message_actions.deadletter(
+            received_message, deadletter_reason="MaxRetryExceeded")
         return
 
     try:
-        # Complete original message
-        logging.info(f"Completing original message {received_message}.")
-        message_actions.complete(received_message)
-        logging.info("Original message completed successfully")
-
         # ----- Service Bus Client Setup -----
         # Determine Service Bus client: connection string or Managed Identity
         conn = os.getenv("SERVICEBUS_CONNECTION")
         fqns = os.getenv("SERVICEBUS_CONNECTION__fullyQualifiedNamespace")
         queue_name = os.getenv("QUEUE_NAME")
+        credential = None
 
         # ----- Create client -----
         if conn and "SharedAccessKey" in conn:
@@ -77,54 +80,68 @@ async def servicebus_queue_trigger(received_message: servicebus.ServiceBusReceiv
             sb_client = ServiceBusClient.from_connection_string(conn)
         elif fqns:
             logging.info(f"Using Managed Identity with namespace: {fqns}")
+            credential = DefaultAzureCredential()
             sb_client = ServiceBusClient(
                 fully_qualified_namespace=fqns,
-                credential=DefaultAzureCredential()
+                credential=credential
             )
         else:
             raise RuntimeError(
-                "Neither SERVICEBUS_CONNECTION nor SERVICEBUS_CONNECTION__fullyQualifiedNamespace is configured"
+                "Neither SERVICEBUS_CONNECTION nor "
+                "SERVICEBUS_CONNECTION__fullyQualifiedNamespace is configured"
             )
 
         # Sender for the queue
         sender = sb_client.get_queue_sender(queue_name=queue_name)
 
-        async with sb_client, sender:
-            # NEW retry count
-            new_retry_count = current_retry_count + 1
+        try:
+            async with sb_client, sender:
+                # NEW retry count
+                new_retry_count = current_retry_count + 1
 
-            # Schedule the new message for +10 seconds
-            schedule_time = datetime.datetime.utcnow() + datetime.timedelta(seconds=10)
+                # Schedule the new message for +10 seconds
+                schedule_time = (
+                    datetime.datetime.utcnow()
+                    + datetime.timedelta(seconds=10))
 
-            new_message = ServiceBusMessage(
-                body=str(received_message),
-                application_properties={
-                    **application_properties,
-                    "retry_count": new_retry_count,
-                    "original_message_id": received_message.message_id,
-                    "scheduled_at": datetime.datetime.utcnow().isoformat(),
-                    "original_enqueue_time": received_message.enqueued_time_utc.isoformat() if received_message.enqueued_time_utc else None
-                },
-                message_id=received_message.message_id,
-                session_id=received_message.session_id,
-                content_type=received_message.content_type,
-                correlation_id=received_message.correlation_id,
-                subject=received_message.subject
-            )
+                new_message = ServiceBusMessage(
+                    body=str(received_message),
+                    application_properties={
+                        **application_properties,
+                        "retry_count": new_retry_count,
+                        "original_message_id": received_message.message_id,
+                        "scheduled_at": datetime.datetime.utcnow().isoformat(),
+                        "original_enqueue_time": (
+                            received_message.enqueued_time_utc.isoformat()
+                            if received_message.enqueued_time_utc else None)
+                    },
+                    message_id=received_message.message_id,
+                    session_id=received_message.session_id,
+                    content_type=received_message.content_type,
+                    correlation_id=received_message.correlation_id,
+                    subject=received_message.subject
+                )
 
-            # Send the new message
-            sequence_number = await sender.schedule_messages(
-                new_message,
-                schedule_time
-            )
+                # Send the new message
+                sequence_number = await sender.schedule_messages(
+                    new_message,
+                    schedule_time
+                )
 
-            logging.info(f"Message scheduled with sequence number: {sequence_number}")
-            logging.info(f"Retry count incremented to: {new_retry_count}")
+                logging.info(
+                    f"Message scheduled with sequence number: {sequence_number}")
+                logging.info(
+                    f"Retry count incremented to: {new_retry_count}")
 
+                logging.info(
+                    f"Completing original message {received_message}.")
+                message_actions.complete(received_message)
+                logging.info("Original message completed successfully")
+        finally:
+            if credential is not None:
+                await credential.close()
 
-    except Exception as e:
+    except Exception:
         logging.exception("Error processing message. Abandoning message.")
         message_actions.abandon(received_message)
         raise
-
-
