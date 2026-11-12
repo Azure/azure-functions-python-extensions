@@ -1,0 +1,1 @@
+azurefunctions-agents-extensions-copilot-sdk[durable]==1.0.0b1

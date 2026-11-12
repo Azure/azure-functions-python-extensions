@@ -12,13 +12,14 @@ in the library's project folder.
 
 ### Prerequisites
 
-A supported Python version is required - see 
+A supported Python version is required - see
 [Python Functions version support policy](https://learn.microsoft.com/azure/azure-functions/functions-versions?tabs=isolated-process%2Cv4&pivots=programming-language-python#languages) for more information.
 
 ## Available extensions
 * [Base extension](azurefunctions-extensions-base/README.md)
 * [Agent provider base](azurefunctions-agents-extensions-base/README.md)
 * [Microsoft Agent Framework](azurefunctions-agents-extensions-agent-framework/README.md)
+* [GitHub Copilot SDK](azurefunctions-agents-extensions-copilot-sdk/README.md)
 * [Azure Blob Storage bindings](azurefunctions-extensions-bindings-blob/README.md)
 * [Azure Cosmos DB bindings](azurefunctions-extensions-bindings-cosmosdb/README.md)
 * [Azure Event Hubs bindings](azurefunctions-extensions-bindings-eventhub/README.md)

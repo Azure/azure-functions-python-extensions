@@ -9,6 +9,9 @@ from .graphCalendarEventListWithActionType import (
 from .graphCalendarEventClientReceive import (
     GraphCalendarEventClientReceive
 )
+from .graphCalendarEventClientWithActionType import (
+    GraphCalendarEventClientWithActionType
+)
 from ..connectorConverter import ConnectorConverter
 
 __all__ = [
@@ -16,5 +19,6 @@ __all__ = [
     "GraphClientReceiveMessage",
     "GraphCalendarEventListWithActionType",
     "GraphCalendarEventClientReceive",
+    "GraphCalendarEventClientWithActionType",
     "ConnectorConverter",
 ]

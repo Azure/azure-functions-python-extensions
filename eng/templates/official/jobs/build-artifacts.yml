@@ -13,6 +13,9 @@ jobs:
         agents_framework_extension:
           EXTENSION_DIRECTORY: 'azurefunctions-agents-extensions-agent-framework'
           EXTENSION_NAME: 'Agents Framework'
+        agents_copilot_sdk_extension:
+          EXTENSION_DIRECTORY: 'azurefunctions-agents-extensions-copilot-sdk'
+          EXTENSION_NAME: 'Agents Copilot SDK'
         blob_extension:
           EXTENSION_DIRECTORY: 'azurefunctions-extensions-bindings-blob'
           EXTENSION_NAME: 'Blob'
@@ -35,7 +38,7 @@ jobs:
       outputParentDirectory: $(Build.ArtifactStagingDirectory)
       outputs:
         - output: pipelineArtifact
-          targetPath: $(Build.SourcesDirectory)
+          targetPath: $(Build.ArtifactStagingDirectory)/$(EXTENSION_DIRECTORY)
           artifactName: "$(EXTENSION_DIRECTORY)"
 
     steps:
@@ -51,8 +54,10 @@ jobs:
           python --version
         displayName: 'Check python version'
       - bash: |
+          set -euo pipefail
           python -m pip install -U pip
-          pip install build twine
-          cd $(EXTENSION_DIRECTORY)
-          python -m build
+          python -m pip install build twine
+          cd "$(Build.SourcesDirectory)/$(EXTENSION_DIRECTORY)"
+          python -m build --outdir "$(Build.ArtifactStagingDirectory)/$(EXTENSION_DIRECTORY)/dist"
+          python -m twine check "$(Build.ArtifactStagingDirectory)/$(EXTENSION_DIRECTORY)/dist/"*
         displayName: 'Build $(EXTENSION_NAME) Extension'

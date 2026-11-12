@@ -3,6 +3,11 @@
 
 import unittest
 
+from azure.connectors.office365 import (
+    GraphClientReceiveFileAttachment,
+    SensitivityLabelMetadata,
+)
+
 from azurefunctions.extensions.base import Datum
 from azurefunctions.extensions.connectors.office365 import (
     GraphClientReceiveMessage
@@ -28,6 +33,51 @@ class TestGraphClientReceiveMessage(unittest.TestCase):
         test_data = Datum(value='{"test": "data"}', type='json')
         msg = GraphClientReceiveMessage(data=test_data)
         self.assertEqual(msg._json_payload, test_data)
+
+    def test_get_sdk_type_deserializes_nested_graph_models(self):
+        """Test Graph attachments and sensitivity labels are typed."""
+        data = Datum(
+            value={
+                "body": {
+                    "value": [
+                        {
+                            "id": "message-1",
+                            "from": "sender@example.com",
+                            "attachments": [
+                                {
+                                    "id": "attachment-1",
+                                    "contentBytes": "content",
+                                }
+                            ],
+                            "sensitivityLabelInfo": [
+                                {
+                                    "sensitivityLabelId": "label-1",
+                                    "displayName": "Confidential",
+                                }
+                            ],
+                        }
+                    ]
+                }
+            },
+            type="json",
+        )
+
+        messages = GraphClientReceiveMessage(data=data).get_sdk_type()
+
+        self.assertEqual(len(messages), 1)
+        self.assertEqual(messages[0].from_, "sender@example.com")
+        self.assertIsInstance(
+            messages[0].attachments[0], GraphClientReceiveFileAttachment,
+        )
+        self.assertEqual(messages[0].attachments[0].id, "attachment-1")
+        self.assertEqual(messages[0].attachments[0].content_bytes, "content")
+        self.assertIsInstance(
+            messages[0].sensitivity_label_info[0], SensitivityLabelMetadata,
+        )
+        self.assertEqual(
+            messages[0].sensitivity_label_info[0].display_name,
+            "Confidential",
+        )
 
 
 if __name__ == "__main__":
