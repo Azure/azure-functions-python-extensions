@@ -9,7 +9,7 @@ import unittest
 from types import SimpleNamespace
 from typing import List
 
-import azure.connectors.commondataservice as models
+import azure.connectors.common_data_service as models
 import azurefunctions.extensions.connectors.commondataservice as cds
 from azurefunctions.extensions.base import Datum
 from azurefunctions.extensions.connectors.connectorConverter import ConnectorConverter

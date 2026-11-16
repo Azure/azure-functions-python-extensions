@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from azure.connectors.sharepointonline import DeletedItem, Item
+from azure.connectors.sharepoint_online import DeletedItem, Item
 from azurefunctions.extensions.base import Datum
 
 from .._deserialization import deserialize_model

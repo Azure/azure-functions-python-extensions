@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from azure.connectors.visualstudioteamservices import (
+from azure.connectors.visual_studio_team_services import (
     BuildResult, GitPullRequest, GitPush, TfvcChangeset, TriggerWorkItemResponse,
 )
 from azurefunctions.extensions.base import Datum

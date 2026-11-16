@@ -3,7 +3,7 @@
 
 """Bind SharePoint list and file-property trigger items."""
 
-from azure.connectors.sharepointonline import Item as AzureItem
+from azure.connectors.sharepoint_online import Item as AzureItem
 
 from .._sdk_type import ConnectorSdkType
 from ._deserialization import deserialize_items

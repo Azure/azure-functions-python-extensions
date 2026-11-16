@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from azure.connectors.commondataservice import Item, ObjectEntity
+from azure.connectors.common_data_service import Item, ObjectEntity
 from azurefunctions.extensions.base import Datum
 
 

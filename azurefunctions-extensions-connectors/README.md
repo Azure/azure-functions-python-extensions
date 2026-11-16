@@ -35,6 +35,9 @@ Install the connector SDK type-binding extension with pip:
 pip install azurefunctions-extensions-connectors
 ```
 
+This extension requires `azure-connectors>=1.0.0`. It uses the SDK's canonical
+module names while keeping the existing extension binding import paths.
+
 ### Bind to the SDK-type
 The Azure Functions Extensions Connectors Office365 library for Python allows you to create a function app with an Office365 Connector Trigger and define the type as a ClientReceiveMessage or List[ClientReceiveMessage]. Instead of receiving raw data, when the function is executed, the type returned will be the defined SDK-type and have all of the methods available from the `azure-connectors` SDK.
 
@@ -44,7 +47,7 @@ a list of generated SDK items. See the [SharePoint samples](samples/README.md#sh
 
 OneDrive for Business handlers import `BlobMetadata` from
 `azurefunctions.extensions.connectors.onedriveforbusiness`. The binding returns
-a list of generated `azure.connectors.onedriveforbusiness.BlobMetadata` models.
+a list of generated `azure.connectors.onedrive_for_business.BlobMetadata` models.
 See the [OneDrive sample](samples/README.md#onedrive-for-business-sample).
 
 Teams handlers import their binding types from
@@ -114,8 +117,11 @@ Records with other columns retain every top-level key, including a column named
 `dynamicProperties`, without flattening or merging it.
 
 `DeletedItem` exposes `id`, `name`, `file_name_with_extension`,
-`deleted_by_user_name`, `time_deleted`, and `is_folder`. The binding uses the SDK's
+`deleted_by_username`, `time_deleted`, and `is_folder`. The binding uses the SDK's
 wire-name metadata, including the uppercase `ID` field.
+
+When upgrading from a preview, replace `deleted_by_user_name` with
+`deleted_by_username` in handler code. The callback key remains `DeletedByUserName`.
 
 Both types support single records, callback body envelopes, source batches, and
 Functions Poll MANY collections. Malformed batch members raise `ValueError`
@@ -192,9 +198,9 @@ triggers, replace connection setup, or provide an alias for the distinct
 
 | Trigger operations | Extension binding type | Returned SDK models |
 | --- | --- | --- |
-| `SubscribeWebhookTrigger` | `RowChangeNotification` | `list[azure.connectors.commondataservice.ObjectEntity]` |
-| `BusinessEventsTrigger` | `ActionEventNotification` | `list[azure.connectors.commondataservice.ObjectEntity]` |
-| `GetOnDeletedItems_V2`, `GetOnNewItems_V2`, `GetOnUpdatedItems_V2` (legacy polling) | `Item` | `list[azure.connectors.commondataservice.Item]` |
+| `SubscribeWebhookTrigger` | `RowChangeNotification` | `list[azure.connectors.common_data_service.ObjectEntity]` |
+| `BusinessEventsTrigger` | `ActionEventNotification` | `list[azure.connectors.common_data_service.ObjectEntity]` |
+| `GetOnDeletedItems_V2`, `GetOnNewItems_V2`, `GetOnUpdatedItems_V2` (legacy polling) | `Item` | `list[azure.connectors.common_data_service.Item]` |
 
 `RowChangeNotification` and `ActionEventNotification` are extension binding
 names, not new generated SDK models. Both preserve each complete webhook

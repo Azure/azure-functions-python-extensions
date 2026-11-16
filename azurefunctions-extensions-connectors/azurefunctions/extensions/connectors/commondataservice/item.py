@@ -3,7 +3,7 @@
 
 """Bind legacy CDS polling records using the generated SDK item model."""
 
-from azure.connectors.commondataservice import Item as AzureItem
+from azure.connectors.common_data_service import Item as AzureItem
 
 from .._sdk_type import ConnectorSdkType
 from ._deserialization import deserialize_items

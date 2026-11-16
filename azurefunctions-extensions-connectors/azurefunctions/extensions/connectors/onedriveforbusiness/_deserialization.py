@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from azure.connectors.onedriveforbusiness import BlobMetadata
+from azure.connectors.onedrive_for_business import BlobMetadata
 from azurefunctions.extensions.base import Datum
 
 from .._deserialization import deserialize_model
