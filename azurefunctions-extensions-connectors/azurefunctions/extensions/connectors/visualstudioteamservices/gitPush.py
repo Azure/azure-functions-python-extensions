@@ -3,7 +3,7 @@
 
 """Bind Azure DevOps Git pushes using the generated SDK item model."""
 
-from azure.connectors.visualstudioteamservices import GitPush as AzureGitPush
+from azure.connectors.visual_studio_team_services import GitPush as AzureGitPush
 
 from .._sdk_type import ConnectorSdkType
 from ._deserialization import deserialize_pushes

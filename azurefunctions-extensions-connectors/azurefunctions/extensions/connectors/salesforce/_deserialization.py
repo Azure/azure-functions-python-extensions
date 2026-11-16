@@ -11,6 +11,8 @@ from typing import Any
 from azure.connectors.salesforce import Item
 from azurefunctions.extensions.base import Datum
 
+from .._deserialization import is_callback_envelope
+
 
 def _parse_payload(data: Datum) -> list[dict[str, Any]]:
     """Normalize polling records, source batches, and transport collections."""
@@ -28,7 +30,7 @@ def _parse_payload(data: Datum) -> list[dict[str, Any]]:
         except (json.JSONDecodeError, UnicodeDecodeError) as error:
             raise ValueError(f"Invalid JSON payload: {error}.") from error
 
-    if isinstance(payload, dict) and set(payload) == {"body"}:
+    if is_callback_envelope(payload):
         payload = payload["body"]
         if payload is None:
             return []

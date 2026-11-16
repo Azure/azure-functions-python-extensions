@@ -3,7 +3,7 @@
 
 """Bind Azure DevOps pull requests using the generated SDK item model."""
 
-from azure.connectors.visualstudioteamservices import (
+from azure.connectors.visual_studio_team_services import (
     GitPullRequest as AzureGitPullRequest,
 )
 

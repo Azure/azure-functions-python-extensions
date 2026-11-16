@@ -3,7 +3,7 @@
 
 """Bind Azure DevOps work-item callbacks without losing custom fields."""
 
-from azure.connectors.visualstudioteamservices import (
+from azure.connectors.visual_studio_team_services import (
     TriggerWorkItemResponse as AzureTriggerWorkItemResponse,
 )
 

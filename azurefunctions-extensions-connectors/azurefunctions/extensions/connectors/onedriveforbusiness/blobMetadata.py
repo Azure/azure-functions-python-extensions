@@ -3,7 +3,7 @@
 
 """Bind OneDrive for Business file-property trigger items."""
 
-from azure.connectors.onedriveforbusiness import BlobMetadata as AzureBlobMetadata
+from azure.connectors.onedrive_for_business import BlobMetadata as AzureBlobMetadata
 
 from .._sdk_type import ConnectorSdkType
 from ._deserialization import deserialize_blob_metadata

@@ -9,7 +9,7 @@ import unittest
 from types import SimpleNamespace
 from typing import List
 
-import azure.connectors.sharepointonline as models
+import azure.connectors.sharepoint_online as models
 import azurefunctions.extensions.connectors.sharepointonline as sharepointonline
 from azurefunctions.extensions.base import Datum
 from azurefunctions.extensions.connectors.sharepointonline import (
@@ -150,7 +150,7 @@ class TestSharePointOnlineBindings(unittest.TestCase):
                     self.assertEqual(result[0].id, 0)
                     self.assertEqual(result[0].name, "Planning")
                     self.assertEqual(result[0].file_name_with_extension, "plan.docx")
-                    self.assertEqual(result[0].deleted_by_user_name, "Example User")
+                    self.assertEqual(result[0].deleted_by_username, "Example User")
                     self.assertEqual(result[0].time_deleted, record["TimeDeleted"])
                     self.assertIs(result[0].is_folder, False)
 
@@ -158,9 +158,11 @@ class TestSharePointOnlineBindings(unittest.TestCase):
         """Keep the shared deserializer's Python-field fallback."""
         result = DeletedItem(data=Datum(value={
             "id": 1, "name": "Folder", "is_folder": True,
+            "deleted_by_username": "Example User",
         }, type="json")).get_sdk_type()
         self.assertEqual(result[0].id, 1)
         self.assertEqual(result[0].name, "Folder")
+        self.assertEqual(result[0].deleted_by_username, "Example User")
         self.assertIs(result[0].is_folder, True)
         self.assertIsNone(result[0].time_deleted)
 

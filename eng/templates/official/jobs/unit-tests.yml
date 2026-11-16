@@ -268,10 +268,18 @@ jobs:
       - bash: |
           python -m pip install --upgrade pip
           cd azurefunctions-extensions-connectors
-          python -m pip install -U -e .[dev]
-        displayName: 'Install Connectors Dependencies'
+          python -m pip install -U -e .[dev] 'azure-connectors==1.0.0'
+        displayName: 'Install Connectors Dependencies with Minimum SDK'
         condition: ne(variables['PYTHON_VERSION'], '3.9')
       - bash: |
           python -m pytest -q --instafail azurefunctions-extensions-connectors/tests/
-        displayName: "Running Connectors $(PYTHON_VERSION) Python Extension Tests"
+        displayName: "Run Connectors Tests with Minimum SDK on Python $(PYTHON_VERSION)"
+        condition: ne(variables['PYTHON_VERSION'], '3.9')
+      - bash: |
+          python -m pip install --upgrade 'azure-connectors>=1.0.0'
+        displayName: 'Install Latest Connectors SDK'
+        condition: ne(variables['PYTHON_VERSION'], '3.9')
+      - bash: |
+          python -m pytest -q --instafail azurefunctions-extensions-connectors/tests/
+        displayName: "Run Connectors Tests with Latest SDK on Python $(PYTHON_VERSION)"
         condition: ne(variables['PYTHON_VERSION'], '3.9')
