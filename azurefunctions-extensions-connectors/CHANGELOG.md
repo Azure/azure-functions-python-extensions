@@ -36,6 +36,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 	remains supported with the same list-returning behavior.
 
 ### Fixed
+- Unwrap callback bodies with `headers` and `statusCode` transport metadata
+	across all connector bindings, including Poll MANY events. Preserve records
+	with other fields and keep connector-specific batch and webhook rules.
 - Deserialize nested SDK models when their annotations also accept mappings,
   preserving typed Office 365 attachments with newer generated SDKs.
 

@@ -81,6 +81,18 @@ records for `OnRefreshComplete`. See the
 
 ## Key concepts
 
+### Callback envelopes
+
+All bindings accept a callback `body` with optional `headers` (a JSON object)
+and `statusCode` (an integer) alongside it. They unwrap that outer layer once,
+including for each event in a Poll MANY collection. Each binding keeps its own
+rules for source batches and webhook notification collections.
+
+An object with other sibling keys, or with headers or status values of another
+type, remains a record. This preserves records with their own `body` field.
+An object consisting only of `body` and valid transport metadata is treated as
+an envelope; custom records with exactly that shape cannot be distinguished.
+
 ### ClientReceiveMessage
 The `ClientReceiveMessage` type represents a message received from an Office365 connector. The extension automatically parses the incoming JSON payload and converts it into typed ClientReceiveMessage objects from the `azure-connectors` SDK.
 
@@ -186,8 +198,8 @@ identity dictionaries.
 
 Teams polling bindings extract source `value` arrays; webhook bindings do not.
 All support raw object arrays, JSON text or bytes, and Poll MANY collections.
-An object whose only key is `body` is treated as the callback envelope; a
-notification's own body field remains data when other record fields are present.
+An object with `body` and only optional transport metadata is a callback envelope;
+a notification's own body stays data when other record fields are present.
 Malformed batches raise `ValueError` rather than dropping members.
 
 ### Supported Dataverse/CDS trigger types
@@ -221,8 +233,9 @@ Other records retain their entire top-level structure. Polling bindings extract
 never extract `value`.
 
 All three bindings support JSON objects or arrays, callback envelopes containing
-only `body`, and transport collections. A record's own `body` field stays data
-when other record fields are present. Malformed batch members raise `ValueError`.
+`body` and optional transport metadata, and transport collections. A record's own
+`body` field stays data when other record fields are present. Malformed batch
+members raise `ValueError`.
 The legacy operations are deprecated and exist here for compatibility, not as a
 recommendation for new registrations. Dynamic callback tests are synthetic;
 live Dataverse delivery has not been tested.
@@ -253,8 +266,8 @@ objects are not this connector's array contract; invalid assignment shapes raise
 Supported callback shapes include single task records, source arrays, callback
 `body` envelopes, `value` batches with OData metadata, and Poll MANY collections.
 Malformed batch members raise `ValueError` rather than being silently dropped.
-An object containing only `body` is treated as a callback envelope; extra task
-fields named `body` or `value` cannot hide the task's SDK fields.
+An object with `body` and only optional transport metadata is a callback envelope;
+extra task fields named `body` or `value` cannot hide the task's SDK fields.
 
 ### Supported Salesforce trigger types
 
@@ -274,7 +287,7 @@ objects. A record containing only `dynamicProperties` or `dynamic_properties`
 supplies that object or null as the bag. Records with other fields keep their
 entire top-level structure without merging a similarly named field.
 
-Supported inputs include split-on records, source arrays, sole-`body` callback
+Supported inputs include split-on records, source arrays, `body` callback
 envelopes, `value` batches with only OData metadata alongside them, and Poll MANY
 collections. Records with other fields named `value` or `body` retain those fields.
 Malformed batch members raise `ValueError` instead of being silently dropped.
@@ -304,7 +317,7 @@ not invent a fixed work-item schema or use the different action-response model.
 A missing or null `fields` value stays null; other non-object values raise
 `ValueError`.
 
-All five bindings accept single records, arrays, sole-`body` callback envelopes,
+All five bindings accept single records, arrays, `body` callback envelopes,
 OData `value` batches, and Poll MANY transport collections. They preserve order,
 reject malformed batch members, and do not fetch continuation pages. Type
 annotations do not register an operation or choose split-on behavior. Legacy
@@ -330,7 +343,7 @@ as `dataflowId` and `refreshType`. Dates remain strings, nulls and empty strings
 stay distinct, and `Failed` or `Cancelled` statuses remain callback data rather
 than raising conversion errors. No fixed status enum is imposed.
 
-Supported inputs include a direct record, a sole-`body` callback envelope,
+Supported inputs include a direct record, a `body` callback envelope,
 JSON text or bytes, arrays of transport records, and Functions MANY collections.
 Transport arrays do not change the connector's single-record source schema.
 Malformed members and value-only collection envelopes raise `ValueError` rather

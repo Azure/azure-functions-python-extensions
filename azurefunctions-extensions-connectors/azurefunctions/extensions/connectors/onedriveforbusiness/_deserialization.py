@@ -11,7 +11,7 @@ from typing import Any
 from azure.connectors.onedrive_for_business import BlobMetadata
 from azurefunctions.extensions.base import Datum
 
-from .._deserialization import deserialize_model
+from .._deserialization import deserialize_model, is_callback_envelope
 
 _BLOB_METADATA_ALIASES = {
     "id": "Id",
@@ -45,7 +45,7 @@ def _parse_metadata_payload(data: Datum) -> list[dict[str, Any]]:
         except (json.JSONDecodeError, UnicodeDecodeError) as error:
             raise ValueError(f"Invalid JSON payload: {error}.") from error
 
-    if isinstance(payload, dict) and set(payload) == {"body"}:
+    if is_callback_envelope(payload):
         payload = payload["body"]
         if payload is None:
             return []
