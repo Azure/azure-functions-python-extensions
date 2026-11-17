@@ -308,7 +308,7 @@ jobs:
           Write-Host "  - $($sourceDistributions[0].Name)"
         displayName: 'Validate ESRP package contents'
 
-      - template: /eng/templates/official/steps/publish-pypi-esrp.yml@self
+      - template: /ci/internal/publish-pypi-esrp.yml@eng
         parameters:
           folderLocation: '$(Pipeline.Workspace)/${{ parameters.artifactName }}/dist'
           owners: ${{ parameters.esrpOwners }}
