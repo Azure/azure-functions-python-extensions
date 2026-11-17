@@ -9,7 +9,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-import azure.connectors.visualstudioteamservices as models
+import azure.connectors.visual_studio_team_services as models
 import azurefunctions.extensions.connectors.visualstudioteamservices as devops
 from azurefunctions.extensions.base import Datum
 

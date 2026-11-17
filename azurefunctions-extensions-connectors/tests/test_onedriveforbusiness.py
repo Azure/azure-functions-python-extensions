@@ -11,7 +11,7 @@ from types import SimpleNamespace
 from typing import Any, List
 from unittest.mock import patch
 
-import azure.connectors.onedriveforbusiness as models
+import azure.connectors.onedrive_for_business as models
 import azurefunctions.extensions.connectors.onedriveforbusiness as onedrive
 from azurefunctions.extensions.connectors.onedriveforbusiness import _deserialization
 from azurefunctions.extensions.base import Datum

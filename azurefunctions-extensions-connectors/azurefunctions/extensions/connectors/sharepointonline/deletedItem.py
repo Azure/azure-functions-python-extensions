@@ -3,7 +3,7 @@
 
 """Bind SharePoint item and file deletion trigger metadata."""
 
-from azure.connectors.sharepointonline import DeletedItem as AzureDeletedItem
+from azure.connectors.sharepoint_online import DeletedItem as AzureDeletedItem
 
 from .._sdk_type import ConnectorSdkType
 from ._deserialization import deserialize_deleted_items

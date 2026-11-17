@@ -110,12 +110,23 @@ def deserialize_model(
     return model_type(**values)
 
 
+def is_callback_envelope(payload: Any) -> bool:
+    """Recognize body with only typed HTTP metadata, not arbitrary record fields."""
+    return (
+        isinstance(payload, dict)
+        and "body" in payload
+        and payload.keys() <= {"body", "headers", "statusCode"}
+        and ("headers" not in payload or isinstance(payload["headers"], dict))
+        and ("statusCode" not in payload or type(payload["statusCode"]) is int)
+    )
+
+
 def parse_payload(
     data: Datum,
     *,
     reject_malformed_members: bool = False,
 ) -> list[dict[str, Any]]:
-    """Normalize direct records or callbacks with a sole outer body property."""
+    """Normalize direct records or callbacks with optional HTTP metadata."""
     if data.type in ("collection_string", "collection_bytes"):
         return [
             item
@@ -136,7 +147,7 @@ def parse_payload(
     if not isinstance(payload, dict):
         raise ValueError("Connector payload must contain a JSON object.")
 
-    body = payload["body"] if set(payload) == {"body"} else payload
+    body = payload["body"] if is_callback_envelope(payload) else payload
     if body is None:
         return []
     if not isinstance(body, dict):

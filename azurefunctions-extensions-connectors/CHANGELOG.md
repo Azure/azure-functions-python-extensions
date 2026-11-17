@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Breaking changes
+- Require `azure-connectors>=1.0.0` and use its canonical SDK module names for
+	Dataverse/CDS, OneDrive for Business, SharePoint Online, and Azure DevOps.
+	Extension binding import paths and connector IDs remain unchanged.
+- SharePoint `DeletedItem` now exposes `deleted_by_username` instead of
+	`deleted_by_user_name`, matching the SDK. The wire key remains `DeletedByUserName`.
+
 ### Added
 - Add the Power Query Dataflows `RefreshModel` SDK binding for refresh-completion
 	polling callbacks, with a sample.
@@ -29,6 +36,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 	remains supported with the same list-returning behavior.
 
 ### Fixed
+- Unwrap callback bodies with `headers` and `statusCode` transport metadata
+	across all connector bindings, including Poll MANY events. Preserve records
+	with other fields and keep connector-specific batch and webhook rules.
 - Deserialize nested SDK models when their annotations also accept mappings,
   preserving typed Office 365 attachments with newer generated SDKs.
 

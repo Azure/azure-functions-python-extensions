@@ -3,7 +3,7 @@
 
 """Bind dynamic SubscribeWebhookTrigger row-change notifications."""
 
-from azure.connectors.commondataservice import ObjectEntity
+from azure.connectors.common_data_service import ObjectEntity
 
 from .._sdk_type import ConnectorSdkType
 from ._deserialization import deserialize_notifications

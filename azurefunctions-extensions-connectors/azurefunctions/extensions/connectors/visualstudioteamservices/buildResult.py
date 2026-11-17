@@ -3,7 +3,7 @@
 
 """Bind Azure DevOps build callbacks using the generated SDK item model."""
 
-from azure.connectors.visualstudioteamservices import BuildResult as AzureBuildResult
+from azure.connectors.visual_studio_team_services import BuildResult as AzureBuildResult
 
 from .._sdk_type import ConnectorSdkType
 from ._deserialization import deserialize_builds

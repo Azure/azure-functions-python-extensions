@@ -8,8 +8,10 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from azure.connectors.commondataservice import Item, ObjectEntity
+from azure.connectors.common_data_service import Item, ObjectEntity
 from azurefunctions.extensions.base import Datum
+
+from .._deserialization import is_callback_envelope
 
 
 def _parse_payload(data: Datum, *, unwrap_value: bool) -> list[dict[str, Any]]:
@@ -30,7 +32,7 @@ def _parse_payload(data: Datum, *, unwrap_value: bool) -> list[dict[str, Any]]:
         except (json.JSONDecodeError, UnicodeDecodeError) as error:
             raise ValueError(f"Invalid JSON payload: {error}.") from error
 
-    if isinstance(payload, dict) and set(payload) == {"body"}:
+    if is_callback_envelope(payload):
         payload = payload["body"]
         if payload is None:
             return []
