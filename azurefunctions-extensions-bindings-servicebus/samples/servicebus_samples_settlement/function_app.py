@@ -28,10 +28,14 @@ USAGE:
 
 
 @app.service_bus_queue_trigger(arg_name="received_message",
-                               queue_name="QUEUE_NAME",
+                               queue_name="%QUEUE_NAME%",
                                connection="SERVICEBUS_CONNECTION",
                                auto_complete_messages=False)
-def servicebus_queue_trigger(received_message: servicebus.ServiceBusReceivedMessage, message_actions: servicebus.ServiceBusMessageActions):
-    logging.info(f"Python ServiceBus queue trigger processed message. Message: {received_message}")
+def servicebus_queue_trigger(
+        received_message: servicebus.ServiceBusReceivedMessage,
+        message_actions: servicebus.ServiceBusMessageActions):
+    logging.info(
+        "Python ServiceBus queue trigger processed message. Message: %s",
+        received_message)
     message_actions.complete(received_message)
     logging.info("Completed message.")

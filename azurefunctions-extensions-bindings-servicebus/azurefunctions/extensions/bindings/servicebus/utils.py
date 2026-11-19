@@ -3,12 +3,8 @@
 
 import datetime
 import struct
-import uamqp
 import uuid
 
-
-_X_OPT_LOCK_TOKEN = b"x-opt-lock-token"
-LOCK_TOKEN_LENGTH = 16
 
 # AMQP format codes (subset)
 FMT_NULL = 0x40
@@ -23,52 +19,6 @@ FMT_UTF8_LARGE = 0xB1
 FMT_UUID = 0x98
 FMT_MAP8 = 0xC1
 FMT_MAP32 = 0xD1
-
-
-def get_lock_token(message: bytes, index: int) -> str:
-    # Get the lock token from the message
-    lock_token_encoded = message[:index]
-
-    # Convert the lock token to a UUID using the first 16 bytes
-    # Use little-endian to match SDK
-    lock_token_uuid = uuid.UUID(bytes_le=lock_token_encoded[:LOCK_TOKEN_LENGTH])
-
-    return lock_token_uuid
-
-
-def get_amqp_message(message: bytes):
-    """
-    Get the amqp message from the model_binding_data content
-    and create the message.
-    """
-    amqp_message = message[LOCK_TOKEN_LENGTH:]
-    decoded_message = uamqp.Message().decode_from_bytes(amqp_message)
-
-    return decoded_message
-
-
-def get_decoded_message(content: bytes):
-    """
-    First, find the end of the lock token. Then,
-    get the lock token UUID and create the delivery
-    annotations dictionary. Finally, get the amqp message
-    and set the delivery annotations. Once the delivery
-    annotations have been set, the amqp message is ready to
-    return.
-    """
-    if content:
-        try:
-            index = content.find(_X_OPT_LOCK_TOKEN)
-
-            lock_token = get_lock_token(content, index)
-            delivery_anno_dict = {_X_OPT_LOCK_TOKEN: lock_token}
-
-            decoded_message = get_amqp_message(content)
-            decoded_message.delivery_annotations = delivery_anno_dict
-            return decoded_message
-        except Exception as e:
-            raise ValueError(f"Failed to decode ServiceBus content: {e}") from e
-    return None
 
 
 def encode_amqp_value(value):
