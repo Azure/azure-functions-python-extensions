@@ -10,7 +10,6 @@ from azurefunctions.extensions.base import Datum
 
 from azurefunctions.extensions.bindings.servicebus import (ServiceBusReceivedMessage,
                                                            ServiceBusConverter)
-from azurefunctions.extensions.bindings.servicebus.utils import get_decoded_message
 
 
 SERVICEBUS_SAMPLE_CONTENT = b"_\241S\374f\335OI\202]\356\033|4<\373\000Sp\300\013\005@@pH\031\010\000@R\001\000Sq\301$\002\243\020x-opt-lock-token\230\374S\241_\335fIO\202]\356\033|4<\373\000Sr\301U\006\243\023x-opt-enqueued-time\203\000\000\001\216v\307\333\310\243\025x-opt-sequence-numberU\014\243\022x-opt-locked-until\203\000\000\001\216v\310\3067\000Ss\300?\r\241 f00d2a33551440389d68e299d31adc7c@@@@@@@\203\000\000\001\216\276\340\343\310\203\000\000\001\216v\307\333\310@@@\000Su\240\005hello"  # noqa: E501
@@ -39,6 +38,20 @@ class MockCMBD:
 
 
 class TestServiceBus(unittest.TestCase):
+    def assert_sample_message(self, message: ServiceBusSDK) -> None:
+        self.assertEqual(b"".join(message.body), b"hello")
+        self.assertEqual(message.message_id, "f00d2a33551440389d68e299d31adc7c")
+        self.assertEqual(message.sequence_number, 12)
+        self.assertEqual(
+            str(message.lock_token), "fc53a15f-dd66-494f-825d-ee1b7c343cfb"
+        )
+        self.assertIsNotNone(message.enqueued_time_utc)
+        self.assertIsNotNone(message.locked_until_utc)
+        self.assertEqual(
+            str(message.raw_amqp_message.delivery_annotations[b"x-opt-lock-token"]),
+            "fc53a15f-dd66-494f-825d-ee1b7c343cfb",
+        )
+
     def test_input_type(self):
         check_input_type = ServiceBusConverter.check_input_type_annotation
         self.assertTrue(check_input_type(ServiceBusReceivedMessage))
@@ -101,11 +114,13 @@ class TestServiceBus(unittest.TestCase):
 
         self.assertIsNotNone(result)
         self.assertIsInstance(result, ServiceBusSDK)
+        self.assert_sample_message(result)
 
         sdk_result = ServiceBusReceivedMessage(data=datum.value).get_sdk_type()
 
         self.assertIsNotNone(sdk_result)
         self.assertIsInstance(sdk_result, ServiceBusSDK)
+        self.assert_sample_message(sdk_result)
 
     def test_input_populated_cmbd(self):
         sample_mbd = MockMBD(
@@ -122,16 +137,18 @@ class TestServiceBus(unittest.TestCase):
         )
 
         self.assertIsNotNone(result)
-        for event_data in result:
-            self.assertIsInstance(event_data, ServiceBusSDK)
+        for message in result:
+            self.assertIsInstance(message, ServiceBusSDK)
+            self.assert_sample_message(message)
 
         sdk_results = []
         for mbd in datum.value.model_binding_data:
             sdk_results.append(ServiceBusReceivedMessage(data=mbd).get_sdk_type())
 
         self.assertNotEqual(sdk_results, [None, None])
-        for event_data in sdk_results:
-            self.assertIsInstance(event_data, ServiceBusSDK)
+        for message in sdk_results:
+            self.assertIsInstance(message, ServiceBusSDK)
+            self.assert_sample_message(message)
 
     def test_input_invalid_datum_type(self):
         with self.assertRaises(ValueError) as e:
@@ -144,11 +161,58 @@ class TestServiceBus(unittest.TestCase):
             "Unexpected type of data received for the 'servicebus' binding: 'str'",
         )
 
-    def test_input_get_decoded_message_ex(self):
-        with self.assertRaises(ValueError) as e:
-            _ = get_decoded_message("Invalid message")
+    def test_input_invalid_amqp_payload(self):
+        sample_mbd = MockMBD(
+            version="1.0",
+            source="AzureServiceBusReceivedMessage",
+            content_type="application/octet-stream",
+            content=b"\x00" * 16 + b"\x01\x02\x03\x04",
+        )
+        datum: Datum = Datum(value=sample_mbd, type="model_binding_data")
 
-        self.assertIn("Failed to decode ServiceBus content", e.exception.args[0])
+        with self.assertRaisesRegex(ValueError, "not a valid AMQP"):
+            ServiceBusConverter.decode(
+                data=datum,
+                trigger_metadata=None,
+                pytype=ServiceBusReceivedMessage,
+            )
+
+    def test_input_truncated_amqp_payload(self):
+        sample_mbd = MockMBD(
+            version="1.0",
+            source="AzureServiceBusReceivedMessage",
+            content_type="application/octet-stream",
+            content=SERVICEBUS_SAMPLE_CONTENT[:30],
+        )
+        datum: Datum = Datum(value=sample_mbd, type="model_binding_data")
+
+        with self.assertRaisesRegex(ValueError, "not a valid AMQP"):
+            ServiceBusConverter.decode(
+                data=datum,
+                trigger_metadata=None,
+                pytype=ServiceBusReceivedMessage,
+            )
+
+    def test_input_invalid_amqp_payload_in_batch(self):
+        sample_mbd = MockMBD(
+            version="1.0",
+            source="AzureServiceBusReceivedMessage",
+            content_type="application/octet-stream",
+            content=b"\x00" * 16 + b"\x01\x02\x03\x04",
+        )
+        datum: Datum = Datum(
+            value=MockCMBD([sample_mbd]),
+            type="collection_model_binding_data",
+        )
+
+        with self.assertRaisesRegex(
+            ValueError, "Failed to decode incoming ServiceBus batch"
+        ):
+            ServiceBusConverter.decode(
+                data=datum,
+                trigger_metadata=None,
+                pytype=List[ServiceBusReceivedMessage],
+            )
 
     def test_populated_properties(self):
         sample_mbd = MockMBD(

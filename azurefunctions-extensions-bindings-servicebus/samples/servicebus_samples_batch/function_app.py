@@ -33,10 +33,12 @@ USAGE:
 
 
 @app.service_bus_queue_trigger(arg_name="receivedmessage",
-                               queue_name="QUEUE_NAME",
+                               queue_name="%QUEUE_NAME%",
                                connection="SERVICEBUS_CONNECTION",
                                cardinality="many")
-def servicebus_queue_trigger(receivedmessage: List[servicebus.ServiceBusReceivedMessage]):
+def servicebus_queue_trigger(
+    receivedmessage: List[servicebus.ServiceBusReceivedMessage],
+):
     logging.info("Python ServiceBus queue trigger processed message.")
     for message in receivedmessage:
         logging.info("Receiving: %s\n"
@@ -54,11 +56,13 @@ def servicebus_queue_trigger(receivedmessage: List[servicebus.ServiceBusReceived
 
 
 @app.service_bus_topic_trigger(arg_name="receivedmessage",
-                               topic_name="TOPIC_NAME",
+                               topic_name="%TOPIC_NAME%",
                                connection="SERVICEBUS_CONNECTION",
-                               subscription_name="SUBSCRIPTION_NAME",
+                               subscription_name="%SUBSCRIPTION_NAME%",
                                cardinality="many")
-def servicebus_topic_trigger(receivedmessage: List[servicebus.ServiceBusReceivedMessage]):
+def servicebus_topic_trigger(
+    receivedmessage: List[servicebus.ServiceBusReceivedMessage],
+):
     logging.info("Python ServiceBus topic trigger processed message.")
     for message in receivedmessage:
         logging.info("Receiving: %s\n"
