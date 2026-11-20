@@ -235,7 +235,7 @@ jobs:
           notifyUsers: ''
           approvers: '${{ parameters.esrpManualApprovers }}'
           allowApproversToApproveTheirOwnRuns: false
-          instructions: 'Approve publishing the Python package to PyPI through ESRP.'
+          instructions: 'Approve staging the Python package to public/pre-release, then publishing to PyPI through ESRP.'
 
   - job: ESRPRelease
     dependsOn: ESRPApproval
@@ -308,7 +308,11 @@ jobs:
           Write-Host "  - $($sourceDistributions[0].Name)"
         displayName: 'Validate ESRP package contents'
 
-      - template: /eng/templates/official/steps/publish-pypi-esrp.yml@self
+      - template: /ci/internal/publish-pypi-staging.yml@eng
+        parameters:
+          folderLocation: '$(Pipeline.Workspace)/${{ parameters.artifactName }}/dist'
+
+      - template: /ci/internal/publish-pypi-esrp.yml@eng
         parameters:
           folderLocation: '$(Pipeline.Workspace)/${{ parameters.artifactName }}/dist'
           owners: ${{ parameters.esrpOwners }}
